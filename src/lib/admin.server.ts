@@ -1,11 +1,14 @@
 import { normalizeUsername, usernameToEmail } from "@/lib/permissions";
 
-type RpcClient = {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+type CanRpcClient = {
+  rpc: (
+    fn: "can",
+    args: { _module: string; _action: string },
+  ) => PromiseLike<{ data: boolean | null; error: unknown }>;
 };
 
 /** Verificação de permissão no backend (não confie apenas na interface). */
-export async function assertCan(supabase: RpcClient, module: string, action: string) {
+export async function assertCan(supabase: CanRpcClient, module: string, action: string) {
   const { data, error } = await supabase.rpc("can", { _module: module, _action: action });
   if (error) throw new Error("Não foi possível verificar suas permissões.");
   if (data !== true) throw new Error("Você não tem permissão para executar esta ação.");
