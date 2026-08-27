@@ -404,6 +404,7 @@ export type Database = {
         Returns: boolean
       }
       is_active_user: { Args: { _user_id: string }; Returns: boolean }
+      touch_last_login: { Args: never; Returns: undefined }
     }
     Enums: {
       event_status: "lead" | "confirmed" | "done" | "cancelled"
