@@ -111,7 +111,7 @@ function ClientsPage() {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      const phones = `${onlyDigits(client.phone ?? "")}${onlyDigits(client.whatsapp ?? "")}`;
+      const phones = `${onlyDigits(client.phone ?? "")}${onlyDigits(client.whatsapp ?? "")}${onlyDigits(client.cpf ?? "")}`;
       return haystack.includes(term) || (digits.length > 0 && phones.includes(digits));
     });
   }, [clients.data, search]);
