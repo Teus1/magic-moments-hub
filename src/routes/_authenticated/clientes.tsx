@@ -126,6 +126,9 @@ function ClientsPage() {
     setEditing(client);
     setForm({
       full_name: client.full_name,
+      birth_date: client.birth_date ?? "",
+      cpf: client.cpf ?? "",
+      rg: client.rg ?? "",
       phone: client.phone ?? "",
       whatsapp: client.whatsapp ?? "",
       email: client.email ?? "",
@@ -148,6 +151,9 @@ function ClientsPage() {
 
       const payload = {
         full_name: name,
+        birth_date: form.birth_date || null,
+        cpf: form.cpf.trim() || null,
+        rg: form.rg.trim() || null,
         phone: form.phone.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         email: form.email.trim() || null,
