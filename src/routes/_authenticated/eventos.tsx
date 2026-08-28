@@ -1,0 +1,737 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { CalendarDays, MapPin, PartyPopper, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { AppShell, PageHeader } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import {
+  EVENT_STATUS_CLASSES,
+  EVENT_STATUS_LABELS,
+  EVENT_STATUS_OPTIONS,
+  EVENT_TYPE_SUGGESTIONS,
+  emptyEventForm,
+  formatCurrency,
+  formatEventDate,
+  formatTimeRange,
+  parseCurrencyInput,
+  type EventForm,
+  type EventStatus,
+} from "@/lib/events";
+
+export const Route = createFileRoute("/_authenticated/eventos")({
+  head: () => ({
+    meta: [
+      { title: "Eventos — Magic Moments" },
+      {
+        name: "description",
+        content: "Gestão dos eventos da Magic Moments: datas, serviços, responsáveis e valores.",
+      },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: EventsPage,
+});
+
+interface EventRow {
+  id: string;
+  client_id: string;
+  service_id: string | null;
+  name: string;
+  event_type: string | null;
+  event_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  venue: string | null;
+  address: string | null;
+  status: EventStatus;
+  contracted_value: number;
+  received_value: number;
+  balance_value: number | null;
+  responsible_id: string | null;
+  notes: string | null;
+  clients: { id: string; full_name: string; phone: string | null } | null;
+  services: { id: string; name: string; color: string } | null;
+  responsible: { id: string; name: string } | null;
+}
+
+const SELECT_COLUMNS = `
+  id, client_id, service_id, name, event_type, event_date, start_time, end_time,
+  venue, address, status, contracted_value, received_value, balance_value,
+  responsible_id, notes,
+  clients:client_id (id, full_name, phone),
+  services:service_id (id, name, color),
+  responsible:responsible_id (id, name)
+`;
+
+const NONE = "__none__";
+
+function EventsPage() {
+  const { can } = useCurrentUser();
+  const queryClient = useQueryClient();
+
+  const canView = can("events", "view");
+  const canCreate = can("events", "create");
+  const canEdit = can("events", "edit");
+  const canDelete = can("events", "delete");
+  const canSeeUsers = can("users", "view");
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | EventStatus>("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<EventRow | null>(null);
+  const [form, setForm] = useState<EventForm>(emptyEventForm);
+  const [deleting, setDeleting] = useState<EventRow | null>(null);
+
+  const events = useQuery({
+    queryKey: ["events"],
+    enabled: canView,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select(SELECT_COLUMNS)
+        .order("event_date", { ascending: false });
+      if (error) throw new Error("Não foi possível carregar os eventos.");
+      return (data ?? []) as unknown as EventRow[];
+    },
+  });
+
+  const clients = useQuery({
+    queryKey: ["events", "clients-options"],
+    enabled: canView,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("id, full_name").order("full_name");
+      if (error) throw new Error("Não foi possível carregar os clientes.");
+      return data;
+    },
+  });
+
+  const services = useQuery({
+    queryKey: ["events", "services-options"],
+    enabled: canView,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("id, name, color, status")
+        .eq("status", "active")
+        .order("name");
+      if (error) throw new Error("Não foi possível carregar os serviços.");
+      return data;
+    },
+  });
+
+  const team = useQuery({
+    queryKey: ["events", "team-options"],
+    enabled: canView && canSeeUsers,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, status")
+        .eq("status", "active")
+        .order("name");
+      if (error) return [];
+      return data;
+    },
+  });
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (events.data ?? []).filter((event) => {
+      if (statusFilter !== "all" && event.status !== statusFilter) return false;
+      if (!term) return true;
+      return [
+        event.name,
+        event.event_type,
+        event.venue,
+        event.address,
+        event.clients?.full_name,
+        event.services?.name,
+        event.responsible?.name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(term);
+    });
+  }, [events.data, search, statusFilter]);
+
+  const totals = useMemo(() => {
+    return filtered.reduce(
+      (acc, event) => {
+        if (event.status === "cancelled") return acc;
+        acc.contracted += Number(event.contracted_value ?? 0);
+        acc.received += Number(event.received_value ?? 0);
+        return acc;
+      },
+      { contracted: 0, received: 0 },
+    );
+  }, [filtered]);
+
+  function openCreate() {
+    setEditing(null);
+    setForm(emptyEventForm);
+    setDialogOpen(true);
+  }
+
+  function openEdit(event: EventRow) {
+    setEditing(event);
+    setForm({
+      client_id: event.client_id,
+      service_id: event.service_id ?? "",
+      name: event.name,
+      event_type: event.event_type ?? "",
+      event_date: event.event_date,
+      start_time: event.start_time ? event.start_time.slice(0, 5) : "",
+      end_time: event.end_time ? event.end_time.slice(0, 5) : "",
+      venue: event.venue ?? "",
+      address: event.address ?? "",
+      status: event.status,
+      contracted_value: String(event.contracted_value ?? 0),
+      received_value: String(event.received_value ?? 0),
+      responsible_id: event.responsible_id ?? "",
+      notes: event.notes ?? "",
+    });
+    setDialogOpen(true);
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const name = form.name.trim();
+      if (name.length < 2) throw new Error("Informe o nome do evento.");
+      if (!form.client_id) throw new Error("Selecione o cliente do evento.");
+      if (!form.event_date) throw new Error("Informe a data do evento.");
+
+      const contracted = parseCurrencyInput(form.contracted_value);
+      const received = parseCurrencyInput(form.received_value);
+
+      const payload = {
+        client_id: form.client_id,
+        service_id: form.service_id || null,
+        name,
+        event_type: form.event_type.trim() || null,
+        event_date: form.event_date,
+        start_time: form.start_time || null,
+        end_time: form.end_time || null,
+        venue: form.venue.trim() || null,
+        address: form.address.trim() || null,
+        status: form.status,
+        contracted_value: contracted,
+        received_value: received,
+        balance_value: contracted - received,
+        responsible_id: form.responsible_id || null,
+        notes: form.notes.trim() || null,
+      };
+
+      if (editing) {
+        const { error } = await supabase.from("events").update(payload).eq("id", editing.id);
+        if (error) throw new Error("Não foi possível salvar o evento.");
+        return;
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("events")
+        .insert({ ...payload, created_by: userData.user?.id ?? null });
+      if (error) throw new Error("Não foi possível cadastrar o evento.");
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Evento atualizado." : "Evento cadastrado.");
+      setDialogOpen(false);
+      setEditing(null);
+      setForm(emptyEventForm);
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("events").delete().eq("id", id);
+      if (error) throw new Error("Não foi possível excluir o evento.");
+    },
+    onSuccess: () => {
+      toast.success("Evento excluído.");
+      setDeleting(null);
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  if (!canView) {
+    return (
+      <AppShell>
+        <PageHeader title="Eventos" description="Você não tem permissão para visualizar este módulo." />
+      </AppShell>
+    );
+  }
+
+  const balance = parseCurrencyInput(form.contracted_value) - parseCurrencyInput(form.received_value);
+
+  return (
+    <AppShell>
+      <PageHeader
+        title="Eventos"
+        description="Acompanhe cada evento da Magic Moments, do primeiro contato à realização."
+        action={
+          canCreate ? (
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 size-4" /> Novo evento
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Eventos listados</p>
+            <p className="font-display text-2xl">{filtered.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Valor contratado</p>
+            <p className="font-display text-2xl">{formatCurrency(totals.contracted)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Saldo a receber</p>
+            <p className="font-display text-2xl">
+              {formatCurrency(totals.contracted - totals.received)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mb-6">
+        <CardContent className="flex flex-wrap items-center gap-4 py-4">
+          <div className="relative min-w-56 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar por evento, cliente, local ou serviço"
+              className="pl-9"
+              aria-label="Buscar eventos"
+            />
+          </div>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as "all" | EventStatus)}
+          >
+            <SelectTrigger className="w-44" aria-label="Filtrar por status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {EVENT_STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evento</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Serviço</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Valores</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events.isLoading && (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              )}
+              {!events.isLoading && filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-12 text-center">
+                    <PartyPopper className="mx-auto mb-3 size-8 text-muted-foreground/60" />
+                    <p className="text-sm text-muted-foreground">
+                      {search || statusFilter !== "all"
+                        ? "Nenhum evento encontrado com esses filtros."
+                        : "Nenhum evento cadastrado ainda."}
+                    </p>
+                  </TableCell>
+                </TableRow>
+              )}
+              {filtered.map((event) => (
+                <TableRow key={event.id}>
+                  <TableCell>
+                    <p className="font-medium">{event.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {event.event_type ? `${event.event_type} · ` : ""}
+                      {formatTimeRange(event.start_time, event.end_time)}
+                    </p>
+                    {event.venue && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="size-3" /> {event.venue}
+                      </p>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <p>{event.clients?.full_name ?? "—"}</p>
+                    {event.responsible?.name && (
+                      <p className="text-xs text-muted-foreground">Resp.: {event.responsible.name}</p>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-sm">
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="size-3.5 text-muted-foreground" />
+                      {formatEventDate(event.event_date)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {event.services ? (
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="size-3 shrink-0 rounded-full ring-2 ring-border"
+                          style={{ backgroundColor: event.services.color }}
+                          aria-hidden
+                        />
+                        {event.services.name}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn(EVENT_STATUS_CLASSES[event.status])}>
+                      {EVENT_STATUS_LABELS[event.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right text-sm">
+                    <p className="font-medium">{formatCurrency(Number(event.contracted_value ?? 0))}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Recebido {formatCurrency(Number(event.received_value ?? 0))}
+                    </p>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {canEdit && (
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(event)}>
+                          <Pencil className="mr-1 size-4" /> Editar
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Excluir ${event.name}`}
+                          onClick={() => setDeleting(event)}
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
+            <DialogDescription>
+              Informações do evento, serviço contratado, responsável e valores.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="e-name">Nome do evento</Label>
+                <Input
+                  id="e-name"
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  placeholder="Ex.: Aniversário 15 anos da Júlia"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Select
+                  value={form.client_id}
+                  onValueChange={(value) => setForm({ ...form, client_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(clients.data ?? []).map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Tipo de evento</Label>
+                <Select
+                  value={form.event_type || NONE}
+                  onValueChange={(value) =>
+                    setForm({ ...form, event_type: value === NONE ? "" : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Não informado</SelectItem>
+                    {EVENT_TYPE_SUGGESTIONS.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Serviço</Label>
+                <Select
+                  value={form.service_id || NONE}
+                  onValueChange={(value) =>
+                    setForm({ ...form, service_id: value === NONE ? "" : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Sem serviço vinculado</SelectItem>
+                    {(services.data ?? []).map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={form.status}
+                  onValueChange={(value) => setForm({ ...form, status: value as EventStatus })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="e-date">Data do evento</Label>
+                <Input
+                  id="e-date"
+                  type="date"
+                  value={form.event_date}
+                  onChange={(event) => setForm({ ...form, event_date: event.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-start">Início</Label>
+                <Input
+                  id="e-start"
+                  type="time"
+                  value={form.start_time}
+                  onChange={(event) => setForm({ ...form, start_time: event.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-end">Término</Label>
+                <Input
+                  id="e-end"
+                  type="time"
+                  value={form.end_time}
+                  onChange={(event) => setForm({ ...form, end_time: event.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="e-venue">Local</Label>
+                <Input
+                  id="e-venue"
+                  value={form.venue}
+                  onChange={(event) => setForm({ ...form, venue: event.target.value })}
+                  placeholder="Ex.: Espaço Villa Real"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-address">Endereço</Label>
+                <Input
+                  id="e-address"
+                  value={form.address}
+                  onChange={(event) => setForm({ ...form, address: event.target.value })}
+                  placeholder="Rua, número, bairro, cidade"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="e-contracted">Valor contratado (R$)</Label>
+                <Input
+                  id="e-contracted"
+                  inputMode="decimal"
+                  value={form.contracted_value}
+                  onChange={(event) => setForm({ ...form, contracted_value: event.target.value })}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-received">Valor recebido (R$)</Label>
+                <Input
+                  id="e-received"
+                  inputMode="decimal"
+                  value={form.received_value}
+                  onChange={(event) => setForm({ ...form, received_value: event.target.value })}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Saldo</Label>
+                <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-medium">
+                  {formatCurrency(balance)}
+                </div>
+              </div>
+            </div>
+
+            {canSeeUsers && (
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Select
+                  value={form.responsible_id || NONE}
+                  onValueChange={(value) =>
+                    setForm({ ...form, responsible_id: value === NONE ? "" : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Sem responsável</SelectItem>
+                    {(team.data ?? []).map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="e-notes">Observações</Label>
+              <Textarea
+                id="e-notes"
+                value={form.notes}
+                onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                placeholder="Detalhes operacionais, combinados com o cliente, etc."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleting?.name}</strong>? Essa ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleting && deleteMutation.mutate(deleting.id)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AppShell>
+  );
+}
