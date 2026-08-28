@@ -33,6 +33,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   emptyClientForm,
+  formatBirthDate,
+  formatCpf,
   formatPhone,
   formatZip,
   lookupZipCode,
@@ -54,6 +56,9 @@ export const Route = createFileRoute("/_authenticated/clientes")({
 interface ClientRow {
   id: string;
   full_name: string;
+  birth_date: string | null;
+  cpf: string | null;
+  rg: string | null;
   phone: string | null;
   whatsapp: string | null;
   email: string | null;
@@ -69,7 +74,7 @@ interface ClientRow {
 }
 
 const SELECT_COLUMNS =
-  "id, full_name, phone, whatsapp, email, zip_code, address, address_number, address_complement, neighborhood, city, state, notes, created_at";
+  "id, full_name, birth_date, cpf, rg, phone, whatsapp, email, zip_code, address, address_number, address_complement, neighborhood, city, state, notes, created_at";
 
 function ClientsPage() {
   const { can } = useCurrentUser();
@@ -106,7 +111,7 @@ function ClientsPage() {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      const phones = `${onlyDigits(client.phone ?? "")}${onlyDigits(client.whatsapp ?? "")}`;
+      const phones = `${onlyDigits(client.phone ?? "")}${onlyDigits(client.whatsapp ?? "")}${onlyDigits(client.cpf ?? "")}`;
       return haystack.includes(term) || (digits.length > 0 && phones.includes(digits));
     });
   }, [clients.data, search]);
@@ -121,6 +126,9 @@ function ClientsPage() {
     setEditing(client);
     setForm({
       full_name: client.full_name,
+      birth_date: client.birth_date ?? "",
+      cpf: client.cpf ?? "",
+      rg: client.rg ?? "",
       phone: client.phone ?? "",
       whatsapp: client.whatsapp ?? "",
       email: client.email ?? "",
@@ -143,6 +151,9 @@ function ClientsPage() {
 
       const payload = {
         full_name: name,
+        birth_date: form.birth_date || null,
+        cpf: form.cpf.trim() || null,
+        rg: form.rg.trim() || null,
         phone: form.phone.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         email: form.email.trim() || null,
@@ -283,6 +294,11 @@ function ClientsPage() {
                 <TableRow key={client.id}>
                   <TableCell>
                     <p className="font-medium">{client.full_name}</p>
+                    {(client.cpf || client.birth_date) && (
+                      <p className="text-xs text-muted-foreground">
+                        {[client.cpf, formatBirthDate(client.birth_date)].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
                     {client.notes && (
                       <p className="max-w-72 truncate text-xs text-muted-foreground">{client.notes}</p>
                     )}
@@ -349,6 +365,36 @@ function ClientsPage() {
                 value={form.full_name}
                 onChange={(event) => setForm({ ...form, full_name: event.target.value })}
               />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="c-birth">Data de nascimento</Label>
+                <Input
+                  id="c-birth"
+                  type="date"
+                  value={form.birth_date}
+                  onChange={(event) => setForm({ ...form, birth_date: event.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="c-cpf">CPF</Label>
+                <Input
+                  id="c-cpf"
+                  value={form.cpf}
+                  onChange={(event) => setForm({ ...form, cpf: formatCpf(event.target.value) })}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="c-rg">RG</Label>
+                <Input
+                  id="c-rg"
+                  value={form.rg}
+                  maxLength={20}
+                  onChange={(event) => setForm({ ...form, rg: event.target.value })}
+                />
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">

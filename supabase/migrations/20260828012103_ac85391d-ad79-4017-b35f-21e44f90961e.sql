@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN birth_date date, ADD COLUMN cpf text, ADD COLUMN rg text;

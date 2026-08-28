@@ -1,5 +1,8 @@
 export interface ClientForm {
   full_name: string;
+  birth_date: string;
+  cpf: string;
+  rg: string;
   phone: string;
   whatsapp: string;
   email: string;
@@ -15,6 +18,9 @@ export interface ClientForm {
 
 export const emptyClientForm: ClientForm = {
   full_name: "",
+  birth_date: "",
+  cpf: "",
+  rg: "",
   phone: "",
   whatsapp: "",
   email: "",
@@ -46,6 +52,23 @@ export function formatZip(value: string) {
   const digits = onlyDigits(value).slice(0, 8);
   if (digits.length <= 5) return digits;
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+/** Formata CPF: 000.000.000-00 */
+export function formatCpf(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+/** Formata data ISO (yyyy-mm-dd) para exibição dd/mm/aaaa */
+export function formatBirthDate(iso: string | null) {
+  if (!iso) return "";
+  const [year, month, day] = iso.split("-");
+  if (!year || !month || !day) return iso;
+  return `${day}/${month}/${year}`;
 }
 
 export interface ZipLookupResult {
