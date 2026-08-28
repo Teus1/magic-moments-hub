@@ -19,7 +19,9 @@ export type Database = {
           address: string | null
           address_complement: string | null
           address_number: string | null
+          birth_date: string | null
           city: string | null
+          cpf: string | null
           created_at: string
           created_by: string | null
           email: string | null
@@ -28,6 +30,7 @@ export type Database = {
           neighborhood: string | null
           notes: string | null
           phone: string | null
+          rg: string | null
           state: string | null
           updated_at: string
           whatsapp: string | null
@@ -37,7 +40,9 @@ export type Database = {
           address?: string | null
           address_complement?: string | null
           address_number?: string | null
+          birth_date?: string | null
           city?: string | null
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -46,6 +51,7 @@ export type Database = {
           neighborhood?: string | null
           notes?: string | null
           phone?: string | null
+          rg?: string | null
           state?: string | null
           updated_at?: string
           whatsapp?: string | null
@@ -55,7 +61,9 @@ export type Database = {
           address?: string | null
           address_complement?: string | null
           address_number?: string | null
+          birth_date?: string | null
           city?: string | null
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -64,6 +72,7 @@ export type Database = {
           neighborhood?: string | null
           notes?: string | null
           phone?: string | null
+          rg?: string | null
           state?: string | null
           updated_at?: string
           whatsapp?: string | null
