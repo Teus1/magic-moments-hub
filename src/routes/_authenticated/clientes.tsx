@@ -33,6 +33,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   emptyClientForm,
+  formatBirthDate,
+  formatCpf,
   formatPhone,
   formatZip,
   lookupZipCode,
@@ -54,6 +56,9 @@ export const Route = createFileRoute("/_authenticated/clientes")({
 interface ClientRow {
   id: string;
   full_name: string;
+  birth_date: string | null;
+  cpf: string | null;
+  rg: string | null;
   phone: string | null;
   whatsapp: string | null;
   email: string | null;
@@ -69,7 +74,7 @@ interface ClientRow {
 }
 
 const SELECT_COLUMNS =
-  "id, full_name, phone, whatsapp, email, zip_code, address, address_number, address_complement, neighborhood, city, state, notes, created_at";
+  "id, full_name, birth_date, cpf, rg, phone, whatsapp, email, zip_code, address, address_number, address_complement, neighborhood, city, state, notes, created_at";
 
 function ClientsPage() {
   const { can } = useCurrentUser();
