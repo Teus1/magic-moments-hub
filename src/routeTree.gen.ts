@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedConfiguracoesRolesRouteImport } from './routes/_authenticated/configuracoes/roles'
+import { Route as AuthenticatedConfiguracoesUsuariosRouteImport } from './routes/_authenticated/configuracoes/usuarios'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +35,32 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesRolesRoute =
+  AuthenticatedConfiguracoesRolesRouteImport.update({
+    id: '/configuracoes/roles',
+    path: '/configuracoes/roles',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesUsuariosRoute =
+  AuthenticatedConfiguracoesUsuariosRouteImport.update({
+    id: '/configuracoes/usuarios',
+    path: '/configuracoes/usuarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
+  '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
+  '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,14 +68,32 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
+  '/_authenticated/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/configuracoes/roles'
+    | '/configuracoes/usuarios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/configuracoes/roles'
+    | '/configuracoes/usuarios'
   id:
-    '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/dashboard'
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/configuracoes/roles'
+    | '/_authenticated/configuracoes/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,15 +132,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes/roles': {
+      id: '/_authenticated/configuracoes/roles'
+      path: '/configuracoes/roles'
+      fullPath: '/configuracoes/roles'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRolesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes/usuarios': {
+      id: '/_authenticated/configuracoes/usuarios'
+      path: '/configuracoes/usuarios'
+      fullPath: '/configuracoes/usuarios'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedConfiguracoesRolesRoute: typeof AuthenticatedConfiguracoesRolesRoute
+  AuthenticatedConfiguracoesUsuariosRoute: typeof AuthenticatedConfiguracoesUsuariosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedConfiguracoesRolesRoute: AuthenticatedConfiguracoesRolesRoute,
+  AuthenticatedConfiguracoesUsuariosRoute:
+    AuthenticatedConfiguracoesUsuariosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
