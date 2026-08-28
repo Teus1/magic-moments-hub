@@ -37,7 +37,7 @@ const MAIN_NAV: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, module: "dashboard", action: "view" },
   { label: "Eventos", icon: PartyPopper, module: "events", action: "view", soon: true },
   { label: "Calendário", icon: CalendarDays, module: "calendar", action: "view", soon: true },
-  { label: "Clientes", icon: UsersRound, module: "clients", action: "view", soon: true },
+  { label: "Clientes", to: "/clientes", icon: UsersRound, module: "clients", action: "view" },
   { label: "Serviços", icon: Sparkles, module: "services", action: "view", soon: true },
 ];
 
