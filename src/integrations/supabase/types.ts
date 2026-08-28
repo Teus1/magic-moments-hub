@@ -103,7 +103,6 @@ export type Database = {
           name: string
           notes: string | null
           received_value: number
-          responsible_id: string | null
           service_id: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["event_status"]
@@ -124,7 +123,6 @@ export type Database = {
           name: string
           notes?: string | null
           received_value?: number
-          responsible_id?: string | null
           service_id?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
@@ -145,7 +143,6 @@ export type Database = {
           name?: string
           notes?: string | null
           received_value?: number
-          responsible_id?: string | null
           service_id?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
@@ -163,13 +160,6 @@ export type Database = {
           {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_responsible_id_fkey"
-            columns: ["responsible_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -416,7 +406,7 @@ export type Database = {
       touch_last_login: { Args: never; Returns: undefined }
     }
     Enums: {
-      event_status: "lead" | "confirmed" | "done" | "cancelled"
+      event_status: "planned" | "cancelled"
       record_status: "active" | "inactive"
       user_status: "active" | "inactive"
     }
@@ -546,7 +536,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      event_status: ["lead", "confirmed", "done", "cancelled"],
+      event_status: ["planned", "cancelled"],
       record_status: ["active", "inactive"],
       user_status: ["active", "inactive"],
     },
