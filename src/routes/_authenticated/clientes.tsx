@@ -294,6 +294,11 @@ function ClientsPage() {
                 <TableRow key={client.id}>
                   <TableCell>
                     <p className="font-medium">{client.full_name}</p>
+                    {(client.cpf || client.birth_date) && (
+                      <p className="text-xs text-muted-foreground">
+                        {[client.cpf, formatBirthDate(client.birth_date)].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
                     {client.notes && (
                       <p className="max-w-72 truncate text-xs text-muted-foreground">{client.notes}</p>
                     )}
@@ -360,6 +365,36 @@ function ClientsPage() {
                 value={form.full_name}
                 onChange={(event) => setForm({ ...form, full_name: event.target.value })}
               />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="c-birth">Data de nascimento</Label>
+                <Input
+                  id="c-birth"
+                  type="date"
+                  value={form.birth_date}
+                  onChange={(event) => setForm({ ...form, birth_date: event.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="c-cpf">CPF</Label>
+                <Input
+                  id="c-cpf"
+                  value={form.cpf}
+                  onChange={(event) => setForm({ ...form, cpf: formatCpf(event.target.value) })}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="c-rg">RG</Label>
+                <Input
+                  id="c-rg"
+                  value={form.rg}
+                  maxLength={20}
+                  onChange={(event) => setForm({ ...form, rg: event.target.value })}
+                />
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
