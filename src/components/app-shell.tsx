@@ -38,7 +38,7 @@ const MAIN_NAV: NavItem[] = [
   { label: "Eventos", icon: PartyPopper, module: "events", action: "view", soon: true },
   { label: "Calendário", icon: CalendarDays, module: "calendar", action: "view", soon: true },
   { label: "Clientes", to: "/clientes", icon: UsersRound, module: "clients", action: "view" },
-  { label: "Serviços", icon: Sparkles, module: "services", action: "view", soon: true },
+  { label: "Serviços", to: "/servicos", icon: Sparkles, module: "services", action: "view" },
 ];
 
 const SETTINGS_NAV: NavItem[] = [
@@ -72,11 +72,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sidebar = (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-3 px-5 py-6">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-sidebar-accent">
-          <img src={logo} alt="Magic Moments" width={40} height={40} className="size-7 object-contain" />
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+          <img src={logo} alt="Magic Moments" width={48} height={48} className="size-10 object-contain" />
         </span>
         <div className="leading-tight">
-          <p className="font-display text-base">Magic Moments</p>
+          <p className="font-display text-base font-semibold">Magic Moments</p>
           <p className="text-xs text-sidebar-foreground/70">Painel interno</p>
         </div>
       </div>

@@ -75,15 +75,24 @@ function AuthPage() {
   const pending = signIn.isPending || setupAdmin.isPending;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-secondary/40 px-4 py-12">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 right-[-10%] h-[480px] w-[480px] rounded-full bg-brand-gradient opacity-15 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-40 left-[-10%] h-[420px] w-[420px] rounded-full bg-accent opacity-20 blur-3xl"
+      />
+      <div className="relative w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src={logo} alt="Magic Moments" width={72} height={72} className="size-16 object-contain" />
-          <h1 className="mt-4 font-display text-3xl text-foreground">Magic Moments</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Painel interno da equipe</p>
+          <img src={logo} alt="Magic Moments" width={360} height={366} className="w-40 object-contain drop-shadow-sm" />
+          <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
+            Painel interno da equipe
+          </p>
         </div>
 
-        <Card>
+        <Card className="shadow-elevated">
           <CardHeader>
             <CardTitle className="font-display text-xl">
               {needsSetup ? "Criar administrador" : "Entrar"}
