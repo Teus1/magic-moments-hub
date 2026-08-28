@@ -104,9 +104,9 @@ function UsersPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (input: { id: string; roleId?: string; status?: "active" | "inactive" }) => {
-      const patch: Record<string, unknown> = {};
-      if (input.roleId) patch["role_id"] = input.roleId;
-      if (input.status) patch["status"] = input.status;
+      const patch: { role_id?: string; status?: "active" | "inactive" } = {};
+      if (input.roleId) patch.role_id = input.roleId;
+      if (input.status) patch.status = input.status;
       const { error } = await supabase.from("profiles").update(patch).eq("id", input.id);
       if (error) throw new Error("Não foi possível atualizar o usuário.");
     },
