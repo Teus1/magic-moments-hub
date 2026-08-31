@@ -1,4 +1,17 @@
-export type EventStatus = "lead" | "confirmed" | "done" | "cancelled";
+export type EventStatus = "planned" | "cancelled";
+
+/** Status exibido: "Realizado" é derivado de um evento planejado cuja data já passou. */
+export type EventDisplayStatus = "planned" | "done" | "cancelled";
+
+export function resolveEventStatus(status: EventStatus, eventDate: string | null): EventDisplayStatus {
+  if (status === "cancelled") return "cancelled";
+  if (!eventDate) return "planned";
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  return eventDate < `${yyyy}-${mm}-${dd}` ? "done" : "planned";
+}
 
 export interface EventForm {
   client_id: string;
@@ -13,7 +26,6 @@ export interface EventForm {
   status: EventStatus;
   contracted_value: string;
   received_value: string;
-  responsible_id: string;
   notes: string;
 }
 
@@ -27,31 +39,26 @@ export const emptyEventForm: EventForm = {
   end_time: "",
   venue: "",
   address: "",
-  status: "lead",
+  status: "planned",
   contracted_value: "",
   received_value: "",
-  responsible_id: "",
   notes: "",
 };
 
 export const EVENT_STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
-  { value: "lead", label: "Lead" },
-  { value: "confirmed", label: "Confirmado" },
-  { value: "done", label: "Realizado" },
+  { value: "planned", label: "Planejado" },
   { value: "cancelled", label: "Cancelado" },
 ];
 
-export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
-  lead: "Lead",
-  confirmed: "Confirmado",
+export const EVENT_DISPLAY_STATUS_LABELS: Record<EventDisplayStatus, string> = {
+  planned: "Planejado",
   done: "Realizado",
   cancelled: "Cancelado",
 };
 
 /** Classes usando apenas tokens do design system da marca. */
-export const EVENT_STATUS_CLASSES: Record<EventStatus, string> = {
-  lead: "border-primary/30 bg-primary/10 text-primary",
-  confirmed: "border-accent/50 bg-accent/15 text-accent-foreground",
+export const EVENT_DISPLAY_STATUS_CLASSES: Record<EventDisplayStatus, string> = {
+  planned: "border-primary/30 bg-primary/10 text-primary",
   done: "border-success/40 bg-success/10 text-success",
   cancelled: "border-destructive/40 bg-destructive/10 text-destructive",
 };
