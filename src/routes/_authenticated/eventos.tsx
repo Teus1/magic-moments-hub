@@ -209,6 +209,11 @@ function EventsPage() {
       end_time: event.end_time ? event.end_time.slice(0, 5) : "",
       venue: event.venue ?? "",
       address: event.address ?? "",
+      has_ceremonial: event.has_ceremonial ?? false,
+      ceremonial_name: event.ceremonial_name ?? "",
+      ceremonial_contact: event.ceremonial_contact ?? "",
+      contact_via_ceremonial: event.contact_via_ceremonial ?? false,
+
       status: event.status,
       contracted_value: String(event.contracted_value ?? 0),
       received_value: String(event.received_value ?? 0),
