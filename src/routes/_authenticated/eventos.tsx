@@ -41,8 +41,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
-  EVENT_STATUS_CLASSES,
-  EVENT_STATUS_LABELS,
+  EVENT_DISPLAY_STATUS_CLASSES,
+  EVENT_DISPLAY_STATUS_LABELS,
   EVENT_STATUS_OPTIONS,
   EVENT_TYPE_SUGGESTIONS,
   emptyEventForm,
@@ -50,6 +50,8 @@ import {
   formatEventDate,
   formatTimeRange,
   parseCurrencyInput,
+  resolveEventStatus,
+  type EventDisplayStatus,
   type EventForm,
   type EventStatus,
 } from "@/lib/events";
@@ -83,20 +85,17 @@ interface EventRow {
   contracted_value: number;
   received_value: number;
   balance_value: number | null;
-  responsible_id: string | null;
   notes: string | null;
   clients: { id: string; full_name: string; phone: string | null } | null;
   services: { id: string; name: string; color: string } | null;
-  responsible: { id: string; name: string } | null;
 }
 
 const SELECT_COLUMNS = `
   id, client_id, service_id, name, event_type, event_date, start_time, end_time,
   venue, address, status, contracted_value, received_value, balance_value,
-  responsible_id, notes,
+  notes,
   clients:client_id (id, full_name, phone),
-  services:service_id (id, name, color),
-  responsible:responsible_id (id, name)
+  services:service_id (id, name, color)
 `;
 
 const NONE = "__none__";
@@ -109,10 +108,8 @@ function EventsPage() {
   const canCreate = can("events", "create");
   const canEdit = can("events", "edit");
   const canDelete = can("events", "delete");
-  const canSeeUsers = can("users", "view");
-
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | EventStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | EventDisplayStatus>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [form, setForm] = useState<EventForm>(emptyEventForm);
@@ -155,24 +152,11 @@ function EventsPage() {
     },
   });
 
-  const team = useQuery({
-    queryKey: ["events", "team-options"],
-    enabled: canView && canSeeUsers,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name, status")
-        .eq("status", "active")
-        .order("name");
-      if (error) return [];
-      return data;
-    },
-  });
-
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (events.data ?? []).filter((event) => {
-      if (statusFilter !== "all" && event.status !== statusFilter) return false;
+      const displayStatus = resolveEventStatus(event.status, event.event_date);
+      if (statusFilter !== "all" && displayStatus !== statusFilter) return false;
       if (!term) return true;
       return [
         event.name,
@@ -181,7 +165,6 @@ function EventsPage() {
         event.address,
         event.clients?.full_name,
         event.services?.name,
-        event.responsible?.name,
       ]
         .filter(Boolean)
         .join(" ")
@@ -223,7 +206,6 @@ function EventsPage() {
       status: event.status,
       contracted_value: String(event.contracted_value ?? 0),
       received_value: String(event.received_value ?? 0),
-      responsible_id: event.responsible_id ?? "",
       notes: event.notes ?? "",
     });
     setDialogOpen(true);
@@ -253,7 +235,6 @@ function EventsPage() {
         contracted_value: contracted,
         received_value: received,
         balance_value: contracted - received,
-        responsible_id: form.responsible_id || null,
         notes: form.notes.trim() || null,
       };
 
@@ -353,16 +334,16 @@ function EventsPage() {
           </div>
           <Select
             value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as "all" | EventStatus)}
+            onValueChange={(value) => setStatusFilter(value as "all" | EventDisplayStatus)}
           >
             <SelectTrigger className="w-44" aria-label="Filtrar por status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os status</SelectItem>
-              {EVENT_STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+              {(Object.keys(EVENT_DISPLAY_STATUS_LABELS) as EventDisplayStatus[]).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {EVENT_DISPLAY_STATUS_LABELS[value]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -420,9 +401,6 @@ function EventsPage() {
                   </TableCell>
                   <TableCell className="text-sm">
                     <p>{event.clients?.full_name ?? "—"}</p>
-                    {event.responsible?.name && (
-                      <p className="text-xs text-muted-foreground">Resp.: {event.responsible.name}</p>
-                    )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
                     <span className="flex items-center gap-1">
@@ -445,9 +423,14 @@ function EventsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={cn(EVENT_STATUS_CLASSES[event.status])}>
-                      {EVENT_STATUS_LABELS[event.status]}
-                    </Badge>
+                    {(() => {
+                      const displayStatus = resolveEventStatus(event.status, event.event_date);
+                      return (
+                        <Badge variant="outline" className={cn(EVENT_DISPLAY_STATUS_CLASSES[displayStatus])}>
+                          {EVENT_DISPLAY_STATUS_LABELS[displayStatus]}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right text-sm">
                     <p className="font-medium">{formatCurrency(Number(event.contracted_value ?? 0))}</p>
@@ -486,7 +469,7 @@ function EventsPage() {
           <DialogHeader>
             <DialogTitle className="font-display">{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
             <DialogDescription>
-              Informações do evento, serviço contratado, responsável e valores.
+              Informações do evento, serviço contratado e valores.
             </DialogDescription>
           </DialogHeader>
 
@@ -664,29 +647,6 @@ function EventsPage() {
               </div>
             </div>
 
-            {canSeeUsers && (
-              <div className="space-y-2">
-                <Label>Responsável</Label>
-                <Select
-                  value={form.responsible_id || NONE}
-                  onValueChange={(value) =>
-                    setForm({ ...form, responsible_id: value === NONE ? "" : value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Sem responsável</SelectItem>
-                    {(team.data ?? []).map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             <div className="space-y-2">
               <Label htmlFor="e-notes">Observações</Label>
