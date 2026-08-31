@@ -23,6 +23,10 @@ export interface EventForm {
   end_time: string;
   venue: string;
   address: string;
+  has_ceremonial: boolean;
+  ceremonial_name: string;
+  ceremonial_contact: string;
+  contact_via_ceremonial: boolean;
   status: EventStatus;
   contracted_value: string;
   received_value: string;
@@ -39,11 +43,16 @@ export const emptyEventForm: EventForm = {
   end_time: "",
   venue: "",
   address: "",
+  has_ceremonial: false,
+  ceremonial_name: "",
+  ceremonial_contact: "",
+  contact_via_ceremonial: false,
   status: "planned",
   contracted_value: "",
   received_value: "",
   notes: "",
 };
+
 
 export const EVENT_STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
   { value: "planned", label: "Planejado" },
