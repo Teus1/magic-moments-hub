@@ -81,6 +81,10 @@ interface EventRow {
   end_time: string | null;
   venue: string | null;
   address: string | null;
+  has_ceremonial: boolean;
+  ceremonial_name: string | null;
+  ceremonial_contact: string | null;
+  contact_via_ceremonial: boolean;
   status: EventStatus;
   contracted_value: number;
   received_value: number;
@@ -93,10 +97,12 @@ interface EventRow {
 const SELECT_COLUMNS = `
   id, client_id, service_id, name, event_type, event_date, start_time, end_time,
   venue, address, status, contracted_value, received_value, balance_value,
+  has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial,
   notes,
   clients:client_id (id, full_name, phone),
   services:service_id (id, name, color)
 `;
+
 
 const NONE = "__none__";
 
@@ -203,6 +209,11 @@ function EventsPage() {
       end_time: event.end_time ? event.end_time.slice(0, 5) : "",
       venue: event.venue ?? "",
       address: event.address ?? "",
+      has_ceremonial: event.has_ceremonial ?? false,
+      ceremonial_name: event.ceremonial_name ?? "",
+      ceremonial_contact: event.ceremonial_contact ?? "",
+      contact_via_ceremonial: event.contact_via_ceremonial ?? false,
+
       status: event.status,
       contracted_value: String(event.contracted_value ?? 0),
       received_value: String(event.received_value ?? 0),

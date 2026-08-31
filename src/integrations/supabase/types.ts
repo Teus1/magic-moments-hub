@@ -92,13 +92,17 @@ export type Database = {
         Row: {
           address: string | null
           balance_value: number | null
+          ceremonial_contact: string | null
+          ceremonial_name: string | null
           client_id: string
+          contact_via_ceremonial: boolean
           contracted_value: number
           created_at: string
           created_by: string | null
           end_time: string | null
           event_date: string
           event_type: string | null
+          has_ceremonial: boolean
           id: string
           name: string
           notes: string | null
@@ -112,13 +116,17 @@ export type Database = {
         Insert: {
           address?: string | null
           balance_value?: number | null
+          ceremonial_contact?: string | null
+          ceremonial_name?: string | null
           client_id: string
+          contact_via_ceremonial?: boolean
           contracted_value?: number
           created_at?: string
           created_by?: string | null
           end_time?: string | null
           event_date: string
           event_type?: string | null
+          has_ceremonial?: boolean
           id?: string
           name: string
           notes?: string | null
@@ -132,13 +140,17 @@ export type Database = {
         Update: {
           address?: string | null
           balance_value?: number | null
+          ceremonial_contact?: string | null
+          ceremonial_name?: string | null
           client_id?: string
+          contact_via_ceremonial?: boolean
           contracted_value?: number
           created_at?: string
           created_by?: string | null
           end_time?: string | null
           event_date?: string
           event_type?: string | null
+          has_ceremonial?: boolean
           id?: string
           name?: string
           notes?: string | null
