@@ -27,6 +27,7 @@ export interface EventForm {
   ceremonial_name: string;
   ceremonial_contact: string;
   contact_via_ceremonial: boolean;
+  has_guestbook: boolean;
   status: EventStatus;
   contracted_value: string;
   received_value: string;
@@ -47,6 +48,7 @@ export const emptyEventForm: EventForm = {
   ceremonial_name: "",
   ceremonial_contact: "",
   contact_via_ceremonial: false,
+  has_guestbook: false,
   status: "planned",
   contracted_value: "",
   received_value: "",

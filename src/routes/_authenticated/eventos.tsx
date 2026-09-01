@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { CalendarDays, MapPin, PartyPopper, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { BookHeart, CalendarDays, MapPin, PartyPopper, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/app-shell";
@@ -86,6 +86,7 @@ interface EventRow {
   ceremonial_name: string | null;
   ceremonial_contact: string | null;
   contact_via_ceremonial: boolean;
+  has_guestbook: boolean;
   status: EventStatus;
   contracted_value: number;
   received_value: number;
@@ -98,7 +99,7 @@ interface EventRow {
 const SELECT_COLUMNS = `
   id, client_id, service_id, name, event_type, event_date, start_time, end_time,
   venue, address, status, contracted_value, received_value, balance_value,
-  has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial,
+  has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook,
   notes,
   clients:client_id (id, full_name, phone),
   services:service_id (id, name, color)
@@ -214,6 +215,7 @@ function EventsPage() {
       ceremonial_name: event.ceremonial_name ?? "",
       ceremonial_contact: event.ceremonial_contact ?? "",
       contact_via_ceremonial: event.contact_via_ceremonial ?? false,
+      has_guestbook: event.has_guestbook ?? false,
 
       status: event.status,
       contracted_value: String(event.contracted_value ?? 0),
@@ -247,6 +249,7 @@ function EventsPage() {
         ceremonial_name: form.has_ceremonial ? form.ceremonial_name.trim() || null : null,
         ceremonial_contact: form.has_ceremonial ? form.ceremonial_contact.trim() || null : null,
         contact_via_ceremonial: form.has_ceremonial ? form.contact_via_ceremonial : false,
+        has_guestbook: form.has_guestbook,
         status: form.status,
         contracted_value: contracted,
         received_value: received,
@@ -481,15 +484,15 @@ function EventsPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-          <DialogHeader>
+        <DialogContent className="max-h-[92vh] overflow-y-auto border-primary/10 bg-background/95 p-0 shadow-elevated backdrop-blur-xl sm:max-w-3xl sm:rounded-xl">
+          <DialogHeader className="border-b border-border/70 bg-card/70 px-6 pb-5 pt-6">
             <DialogTitle className="font-display">{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
             <DialogDescription>
               Informações do evento, serviço contratado e valores.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-5 px-6 py-5 [&_label]:font-medium">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="e-name">Nome do evento</Label>
@@ -634,7 +637,7 @@ function EventsPage() {
               </div>
             </div>
 
-            <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+            <div className="space-y-4 rounded-lg border border-primary/10 bg-primary-soft/50 p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <Label htmlFor="e-has-ceremonial" className="text-sm font-medium">
@@ -706,6 +709,32 @@ function EventsPage() {
               )}
             </div>
 
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-accent/40 bg-accent/10 p-4 transition-colors hover:border-accent/60">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent/25 text-accent-foreground">
+                  <BookHeart className="size-4" aria-hidden="true" />
+                </span>
+                <div>
+                  <Label htmlFor="e-has-guestbook" className="text-sm font-medium">
+                    Caderno de Memórias (Guestbook)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Marque quando este adicional fizer parte do evento.
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {form.has_guestbook ? "Sim" : "Não"}
+                </span>
+                <Switch
+                  id="e-has-guestbook"
+                  checked={form.has_guestbook}
+                  onCheckedChange={(checked) => setForm({ ...form, has_guestbook: checked })}
+                />
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="e-contracted">Valor contratado (R$)</Label>
@@ -729,7 +758,7 @@ function EventsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Saldo</Label>
-                <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-medium">
+                <div className="flex h-11 items-center rounded-lg border border-input bg-muted/40 px-3.5 text-sm font-medium">
                   {formatCurrency(balance)}
                 </div>
               </div>
@@ -748,7 +777,7 @@ function EventsPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 border-t border-border/70 bg-card/90 px-6 py-4 backdrop-blur-xl">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
