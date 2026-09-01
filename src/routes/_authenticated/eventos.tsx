@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -242,6 +243,10 @@ function EventsPage() {
         end_time: form.end_time || null,
         venue: form.venue.trim() || null,
         address: form.address.trim() || null,
+        has_ceremonial: form.has_ceremonial,
+        ceremonial_name: form.has_ceremonial ? form.ceremonial_name.trim() || null : null,
+        ceremonial_contact: form.has_ceremonial ? form.ceremonial_contact.trim() || null : null,
+        contact_via_ceremonial: form.has_ceremonial ? form.contact_via_ceremonial : false,
         status: form.status,
         contracted_value: contracted,
         received_value: received,
@@ -627,6 +632,78 @@ function EventsPage() {
                   placeholder="Rua, número, bairro, cidade"
                 />
               </div>
+            </div>
+
+            <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="e-has-ceremonial" className="text-sm font-medium">
+                    Possui cerimonial?
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Indique se o evento conta com cerimonialista.
+                  </p>
+                </div>
+                <Switch
+                  id="e-has-ceremonial"
+                  checked={form.has_ceremonial}
+                  onCheckedChange={(checked) =>
+                    setForm({
+                      ...form,
+                      has_ceremonial: checked,
+                      ...(checked
+                        ? {}
+                        : { ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false }),
+                    })
+                  }
+                />
+              </div>
+
+              {form.has_ceremonial && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="e-ceremonial-name">Nome do cerimonial</Label>
+                      <Input
+                        id="e-ceremonial-name"
+                        value={form.ceremonial_name}
+                        onChange={(event) =>
+                          setForm({ ...form, ceremonial_name: event.target.value })
+                        }
+                        placeholder="Ex.: Ana Paula Cerimonial"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="e-ceremonial-contact">Contato do cerimonial</Label>
+                      <Input
+                        id="e-ceremonial-contact"
+                        value={form.ceremonial_contact}
+                        onChange={(event) =>
+                          setForm({ ...form, ceremonial_contact: event.target.value })
+                        }
+                        placeholder="Telefone ou e-mail"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <Label htmlFor="e-contact-via" className="text-sm font-medium">
+                        Contato direto com a cerimonialista
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Combine os detalhes diretamente com o cerimonial, sem passar pelo cliente.
+                      </p>
+                    </div>
+                    <Switch
+                      id="e-contact-via"
+                      checked={form.contact_via_ceremonial}
+                      onCheckedChange={(checked) =>
+                        setForm({ ...form, contact_via_ceremonial: checked })
+                      }
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
