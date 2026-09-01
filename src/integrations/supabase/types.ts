@@ -103,6 +103,7 @@ export type Database = {
           event_date: string
           event_type: string | null
           has_ceremonial: boolean
+          has_guestbook: boolean
           id: string
           name: string
           notes: string | null
@@ -127,6 +128,7 @@ export type Database = {
           event_date: string
           event_type?: string | null
           has_ceremonial?: boolean
+          has_guestbook?: boolean
           id?: string
           name: string
           notes?: string | null
@@ -151,6 +153,7 @@ export type Database = {
           event_date?: string
           event_type?: string | null
           has_ceremonial?: boolean
+          has_guestbook?: boolean
           id?: string
           name?: string
           notes?: string | null
