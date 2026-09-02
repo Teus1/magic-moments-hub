@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PickerField } from "@/components/ui/picker-field";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -107,6 +108,15 @@ const SELECT_COLUMNS = `
 
 
 const NONE = "__none__";
+
+/** Marcador visual de campo obrigatório. */
+function RequiredMark() {
+  return (
+    <span className="ml-1 text-destructive" aria-hidden="true">
+      *
+    </span>
+  );
+}
 
 function EventsPage() {
   const { can } = useCurrentUser();
@@ -253,13 +263,12 @@ function EventsPage() {
         status: form.status,
         contracted_value: contracted,
         received_value: received,
-        balance_value: contracted - received,
         notes: form.notes.trim() || null,
       };
 
       if (editing) {
         const { error } = await supabase.from("events").update(payload).eq("id", editing.id);
-        if (error) throw new Error("Não foi possível salvar o evento.");
+        if (error) throw new Error(error.message || "Não foi possível salvar o evento.");
         return;
       }
 
@@ -267,7 +276,7 @@ function EventsPage() {
       const { error } = await supabase
         .from("events")
         .insert({ ...payload, created_by: userData.user?.id ?? null });
-      if (error) throw new Error("Não foi possível cadastrar o evento.");
+      if (error) throw new Error(error.message || "Não foi possível cadastrar o evento.");
     },
     onSuccess: () => {
       toast.success(editing ? "Evento atualizado." : "Evento cadastrado.");
@@ -504,12 +513,15 @@ function EventsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Cliente</Label>
+                <Label>
+                  Cliente
+                  <RequiredMark />
+                </Label>
                 <Select
                   value={form.client_id}
                   onValueChange={(value) => setForm({ ...form, client_id: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={cn(!form.client_id && showErrors && "border-destructive/60")}>
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -588,31 +600,38 @@ function EventsPage() {
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="e-date">Data do evento</Label>
-                <Input
+                <Label htmlFor="e-date">
+                  Data do evento
+                  <RequiredMark />
+                </Label>
+                <PickerField
                   id="e-date"
-                  type="date"
+                  variant="date"
                   value={form.event_date}
                   onChange={(event) => setForm({ ...form, event_date: event.target.value })}
+                  className={cn(!form.event_date && showErrors && "border-destructive/60")}
                 />
+                <p className="text-xs text-muted-foreground">Clique para abrir o calendário.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="e-start">Início</Label>
-                <Input
+                <PickerField
                   id="e-start"
-                  type="time"
+                  variant="time"
                   value={form.start_time}
                   onChange={(event) => setForm({ ...form, start_time: event.target.value })}
                 />
+                <p className="text-xs text-muted-foreground">Clique para escolher o horário.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="e-end">Término</Label>
-                <Input
+                <PickerField
                   id="e-end"
-                  type="time"
+                  variant="time"
                   value={form.end_time}
                   onChange={(event) => setForm({ ...form, end_time: event.target.value })}
                 />
+                <p className="text-xs text-muted-foreground">Opcional.</p>
               </div>
             </div>
 
