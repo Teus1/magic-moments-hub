@@ -132,6 +132,7 @@ function EventsPage() {
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [form, setForm] = useState<EventForm>(emptyEventForm);
   const [deleting, setDeleting] = useState<EventRow | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
 
   const events = useQuery({
     queryKey: ["events"],
@@ -206,6 +207,7 @@ function EventsPage() {
   function openCreate() {
     setEditing(null);
     setForm(emptyEventForm);
+    setShowErrors(false);
     setDialogOpen(true);
   }
 
@@ -232,6 +234,7 @@ function EventsPage() {
       received_value: String(event.received_value ?? 0),
       notes: event.notes ?? "",
     });
+    setShowErrors(false);
     setDialogOpen(true);
   }
 
@@ -502,14 +505,21 @@ function EventsPage() {
           </DialogHeader>
 
           <div className="space-y-5 px-6 py-5 [&_label]:font-medium">
+            <p className="text-xs text-muted-foreground">
+              Campos marcados com <span className="text-destructive">*</span> são obrigatórios.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="e-name">Nome do evento</Label>
+                <Label htmlFor="e-name">
+                  Nome do evento
+                  <RequiredMark />
+                </Label>
                 <Input
                   id="e-name"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                   placeholder="Ex.: Aniversário 15 anos da Júlia"
+                  className={cn(form.name.trim().length < 2 && showErrors && "border-destructive/60")}
                 />
               </div>
               <div className="space-y-2">
@@ -800,7 +810,13 @@ function EventsPage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Button
+              onClick={() => {
+                setShowErrors(true);
+                saveMutation.mutate();
+              }}
+              disabled={saveMutation.isPending}
+            >
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
