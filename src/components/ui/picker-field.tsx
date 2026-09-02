@@ -15,9 +15,11 @@ export function PickerField({ variant, className, ...props }: PickerFieldProps) 
   const ref = React.useRef<HTMLInputElement>(null);
   const Icon = variant === "date" ? CalendarDays : Clock;
 
-  function openPicker() {
+  function openPicker(event: React.MouseEvent) {
     const el = ref.current;
     if (!el) return;
+    // Evita que o clique no wrapper roube o foco / feche o seletor recém-aberto
+    event.preventDefault();
     el.focus();
     try {
       (el as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
@@ -28,7 +30,7 @@ export function PickerField({ variant, className, ...props }: PickerFieldProps) 
 
   return (
     <div
-      onClick={openPicker}
+      onMouseDown={openPicker}
       className={cn(
         "group flex h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-input bg-card/70 px-3.5 text-sm shadow-xs backdrop-blur-xl transition-colors",
         "hover:border-primary/50 focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/20",
@@ -40,12 +42,16 @@ export function PickerField({ variant, className, ...props }: PickerFieldProps) 
         {...props}
         ref={ref}
         type={variant}
+        onMouseDown={(e) => {
+          props.onMouseDown?.(e);
+        }}
         className={cn(
           "w-full cursor-pointer bg-transparent outline-none",
-          "[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none",
+          "[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute",
           !props.value && "text-muted-foreground",
         )}
       />
     </div>
   );
+
 }
