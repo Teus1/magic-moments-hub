@@ -88,6 +88,114 @@ export type Database = {
           },
         ]
       }
+      collaborators: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          nickname: string | null
+          notes: string | null
+          phone: string | null
+          role_title: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          nickname?: string | null
+          notes?: string | null
+          phone?: string | null
+          role_title?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          nickname?: string | null
+          notes?: string | null
+          phone?: string | null
+          role_title?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborators_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_collaborators: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          notes: string | null
+          role_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          notes?: string | null
+          role_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          notes?: string | null
+          role_title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_collaborators_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_collaborators_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_collaborators_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
