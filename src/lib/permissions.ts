@@ -27,6 +27,11 @@ export const MODULES: ModuleDefinition[] = [
   { key: "events", label: "Eventos", description: "Eventos e valores" },
   { key: "calendar", label: "Calendário", description: "Agenda de eventos" },
   { key: "services", label: "Serviços", description: "Serviços oferecidos" },
+  {
+    key: "collaborators",
+    label: "Colaboradores",
+    description: "Operadores dos eventos",
+  },
   { key: "users", label: "Usuários", description: "Equipe interna" },
   { key: "roles", label: "Roles e permissões", description: "Papéis de acesso" },
   { key: "settings", label: "Configurações", description: "Configurações do sistema" },
