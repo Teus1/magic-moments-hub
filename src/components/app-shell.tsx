@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import {
   CalendarDays,
   ChevronDown,
+  HardHat,
   LayoutDashboard,
   LogOut,
   Menu,
