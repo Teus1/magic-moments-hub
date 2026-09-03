@@ -39,6 +39,13 @@ const MAIN_NAV: NavItem[] = [
   { label: "Calendário", icon: CalendarDays, module: "calendar", action: "view", soon: true },
   { label: "Clientes", to: "/clientes", icon: UsersRound, module: "clients", action: "view" },
   { label: "Serviços", to: "/servicos", icon: Sparkles, module: "services", action: "view" },
+  {
+    label: "Colaboradores",
+    to: "/colaboradores",
+    icon: HardHat,
+    module: "collaborators",
+    action: "view",
+  },
 ];
 
 const SETTINGS_NAV: NavItem[] = [
