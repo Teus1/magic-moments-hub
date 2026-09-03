@@ -1,7 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { BookHeart, CalendarDays, MapPin, PartyPopper, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  BookHeart,
+  CalendarDays,
+  HardHat,
+  MapPin,
+  PartyPopper,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/app-shell";
@@ -133,6 +143,7 @@ function EventsPage() {
   const [form, setForm] = useState<EventForm>(emptyEventForm);
   const [deleting, setDeleting] = useState<EventRow | null>(null);
   const [showErrors, setShowErrors] = useState(false);
+  const [teamIds, setTeamIds] = useState<string[]>([]);
 
   const events = useQuery({
     queryKey: ["events"],
@@ -168,6 +179,41 @@ function EventsPage() {
         .order("name");
       if (error) throw new Error("Não foi possível carregar os serviços.");
       return data;
+    },
+  });
+
+  const collaborators = useQuery({
+    queryKey: ["events", "collaborators-options"],
+    enabled: canView,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("collaborators")
+        .select("id, full_name, nickname, role_title, status")
+        .eq("status", "active")
+        .order("full_name");
+      if (error) throw new Error("Não foi possível carregar os colaboradores.");
+      return data ?? [];
+    },
+  });
+
+  const eventTeams = useQuery({
+    queryKey: ["events", "teams"],
+    enabled: canView,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_collaborators")
+        .select("event_id, collaborator_id, collaborators:collaborator_id (id, full_name)");
+      if (error) throw new Error("Não foi possível carregar a equipe dos eventos.");
+      const map: Record<string, { id: string; name: string }[]> = {};
+      for (const link of (data ?? []) as unknown as {
+        event_id: string;
+        collaborator_id: string;
+        collaborators: { id: string; full_name: string } | null;
+      }[]) {
+        const list = map[link.event_id] ?? (map[link.event_id] = []);
+        list.push({ id: link.collaborator_id, name: link.collaborators?.full_name ?? "—" });
+      }
+      return map;
     },
   });
 
@@ -207,6 +253,7 @@ function EventsPage() {
   function openCreate() {
     setEditing(null);
     setForm(emptyEventForm);
+    setTeamIds([]);
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -234,6 +281,7 @@ function EventsPage() {
       received_value: String(event.received_value ?? 0),
       notes: event.notes ?? "",
     });
+    setTeamIds((eventTeams.data?.[event.id] ?? []).map((member) => member.id));
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -269,23 +317,57 @@ function EventsPage() {
         notes: form.notes.trim() || null,
       };
 
+      const { data: userData } = await supabase.auth.getUser();
+      const currentUserId = userData.user?.id ?? null;
+
+      let eventId = editing?.id ?? null;
+
       if (editing) {
         const { error } = await supabase.from("events").update(payload).eq("id", editing.id);
         if (error) throw new Error(error.message || "Não foi possível salvar o evento.");
-        return;
+      } else {
+        const { data, error } = await supabase
+          .from("events")
+          .insert({ ...payload, created_by: currentUserId })
+          .select("id")
+          .single();
+        if (error) throw new Error(error.message || "Não foi possível cadastrar o evento.");
+        eventId = data.id;
       }
 
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("events")
-        .insert({ ...payload, created_by: userData.user?.id ?? null });
-      if (error) throw new Error(error.message || "Não foi possível cadastrar o evento.");
+      if (!eventId) return;
+
+      // Sincroniza a equipe (colaboradores) vinculada ao evento.
+      const previous = editing ? (eventTeams.data?.[editing.id] ?? []).map((m) => m.id) : [];
+      const toRemove = previous.filter((id) => !teamIds.includes(id));
+      const toAdd = teamIds.filter((id) => !previous.includes(id));
+
+      if (toRemove.length > 0) {
+        const { error } = await supabase
+          .from("event_collaborators")
+          .delete()
+          .eq("event_id", eventId)
+          .in("collaborator_id", toRemove);
+        if (error) throw new Error("Não foi possível atualizar a equipe do evento.");
+      }
+
+      if (toAdd.length > 0) {
+        const { error } = await supabase.from("event_collaborators").insert(
+          toAdd.map((collaboratorId) => ({
+            event_id: eventId!,
+            collaborator_id: collaboratorId,
+            created_by: currentUserId,
+          })),
+        );
+        if (error) throw new Error("Não foi possível vincular os colaboradores ao evento.");
+      }
     },
     onSuccess: () => {
       toast.success(editing ? "Evento atualizado." : "Evento cadastrado.");
       setDialogOpen(false);
       setEditing(null);
       setForm(emptyEventForm);
+      setTeamIds([]);
       queryClient.invalidateQueries({ queryKey: ["events"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -424,6 +506,12 @@ function EventsPage() {
                       {event.event_type ? `${event.event_type} · ` : ""}
                       {formatTimeRange(event.start_time, event.end_time)}
                     </p>
+                    {(eventTeams.data?.[event.id] ?? []).length > 0 && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <HardHat className="size-3" />
+                        {(eventTeams.data?.[event.id] ?? []).map((m) => m.name).join(", ")}
+                      </p>
+                    )}
                     {event.venue && (
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="size-3" /> {event.venue}
@@ -762,6 +850,55 @@ function EventsPage() {
                   onCheckedChange={(checked) => setForm({ ...form, has_guestbook: checked })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <HardHat className="size-4" aria-hidden="true" />
+                </span>
+                <div>
+                  <Label className="text-sm font-medium">Equipe do evento</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione os colaboradores que vão operar neste evento.
+                  </p>
+                </div>
+              </div>
+
+              {(collaborators.data ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum colaborador ativo cadastrado. Cadastre em Colaboradores.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {(collaborators.data ?? []).map((member) => {
+                    const selected = teamIds.includes(member.id);
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() =>
+                          setTeamIds((current) =>
+                            current.includes(member.id)
+                              ? current.filter((id) => id !== member.id)
+                              : [...current, member.id],
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs transition-colors",
+                          selected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-input bg-card/70 text-foreground hover:border-primary/50",
+                        )}
+                        aria-pressed={selected}
+                      >
+                        {member.nickname || member.full_name}
+                        {member.role_title ? ` · ${member.role_title}` : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
