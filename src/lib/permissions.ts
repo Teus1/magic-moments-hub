@@ -10,6 +10,7 @@ export type ModuleKey =
   | "events"
   | "calendar"
   | "services"
+  | "collaborators"
   | "users"
   | "roles"
   | "settings";
