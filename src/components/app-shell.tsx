@@ -2,8 +2,10 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import {
+  BriefcaseBusiness,
   CalendarDays,
   ChevronDown,
+  FolderOpen,
   HardHat,
   LayoutDashboard,
   LogOut,
@@ -38,21 +40,20 @@ const MAIN_NAV: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, module: "dashboard", action: "view" },
   { label: "Eventos", to: "/eventos", icon: PartyPopper, module: "events", action: "view" },
   { label: "Calendário", to: "/calendario", icon: CalendarDays, module: "calendar", action: "view" },
+  { label: "Minha agenda", to: "/portal", icon: BriefcaseBusiness, module: "portal", action: "view" },
+];
+
+const REGISTRY_NAV: NavItem[] = [
   { label: "Clientes", to: "/clientes", icon: UsersRound, module: "clients", action: "view" },
   { label: "Serviços", to: "/servicos", icon: Sparkles, module: "services", action: "view" },
-  {
-    label: "Colaboradores",
-    to: "/colaboradores",
-    icon: HardHat,
-    module: "collaborators",
-    action: "view",
-  },
+  { label: "Colaboradores", to: "/colaboradores", icon: HardHat, module: "collaborators", action: "view" },
 ];
 
 const SETTINGS_NAV: NavItem[] = [
   { label: "Usuários", to: "/configuracoes/usuarios", icon: Users, module: "users", action: "view" },
   { label: "Roles e permissões", to: "/configuracoes/roles", icon: Shield, module: "roles", action: "manage" },
 ];
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, can } = useCurrentUser();
@@ -61,8 +62,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(true);
+  const [registryOpen, setRegistryOpen] = useState(true);
 
   const settingsItems = SETTINGS_NAV.filter((item) => can(item.module, item.action));
+  const registryItems = REGISTRY_NAV.filter((item) => can(item.module, item.action));
+
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
