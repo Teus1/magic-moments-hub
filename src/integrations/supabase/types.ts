@@ -98,6 +98,7 @@ export type Database = {
           nickname: string | null
           notes: string | null
           phone: string | null
+          profile_id: string | null
           role_title: string | null
           status: Database["public"]["Enums"]["record_status"]
           updated_at: string
@@ -112,6 +113,7 @@ export type Database = {
           nickname?: string | null
           notes?: string | null
           phone?: string | null
+          profile_id?: string | null
           role_title?: string | null
           status?: Database["public"]["Enums"]["record_status"]
           updated_at?: string
@@ -126,6 +128,7 @@ export type Database = {
           nickname?: string | null
           notes?: string | null
           phone?: string | null
+          profile_id?: string | null
           role_title?: string | null
           status?: Database["public"]["Enums"]["record_status"]
           updated_at?: string
@@ -139,36 +142,49 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "collaborators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_collaborators: {
         Row: {
+          agreed_value: number
           collaborator_id: string
           created_at: string
           created_by: string | null
           event_id: string
           id: string
           notes: string | null
+          paid_value: number
           role_title: string | null
           updated_at: string
         }
         Insert: {
+          agreed_value?: number
           collaborator_id: string
           created_at?: string
           created_by?: string | null
           event_id: string
           id?: string
           notes?: string | null
+          paid_value?: number
           role_title?: string | null
           updated_at?: string
         }
         Update: {
+          agreed_value?: number
           collaborator_id?: string
           created_at?: string
           created_by?: string | null
           event_id?: string
           id?: string
           notes?: string | null
+          paid_value?: number
           role_title?: string | null
           updated_at?: string
         }
@@ -526,6 +542,9 @@ export type Database = {
         Returns: boolean
       }
       is_active_user: { Args: { _user_id: string }; Returns: boolean }
+      is_client_of_my_events: { Args: { _client_id: string }; Returns: boolean }
+      is_scheduled_for_event: { Args: { _event_id: string }; Returns: boolean }
+      my_collaborator_id: { Args: never; Returns: string }
       touch_last_login: { Args: never; Returns: undefined }
     }
     Enums: {
