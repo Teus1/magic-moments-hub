@@ -62,8 +62,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(true);
+  const [registryOpen, setRegistryOpen] = useState(true);
 
   const settingsItems = SETTINGS_NAV.filter((item) => can(item.module, item.action));
+  const registryItems = REGISTRY_NAV.filter((item) => can(item.module, item.action));
+
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
