@@ -75,6 +75,7 @@ function AuthPage() {
   const pending = signIn.isPending || setupAdmin.isPending;
 
   return (
+    <ClientOnly fallback={null}>
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-secondary/40 px-4 py-12">
       <div
         aria-hidden
@@ -147,5 +148,6 @@ function AuthPage() {
         </Card>
       </div>
     </div>
+    </ClientOnly>
   );
 }
