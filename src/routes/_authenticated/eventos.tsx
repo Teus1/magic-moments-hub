@@ -264,6 +264,7 @@ function EventsPage() {
     setEditing(null);
     setForm(emptyEventForm);
     setTeamIds([]);
+    setTeamValues({});
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -291,7 +292,16 @@ function EventsPage() {
       received_value: String(event.received_value ?? 0),
       notes: event.notes ?? "",
     });
-    setTeamIds((eventTeams.data?.[event.id] ?? []).map((member) => member.id));
+    const members = eventTeams.data?.[event.id] ?? [];
+    setTeamIds(members.map((member) => member.id));
+    setTeamValues(
+      Object.fromEntries(
+        members.map((member) => [
+          member.id,
+          { agreed: String(member.agreed ?? 0), paid: String(member.paid ?? 0) },
+        ]),
+      ),
+    );
     setShowErrors(false);
     setDialogOpen(true);
   }
