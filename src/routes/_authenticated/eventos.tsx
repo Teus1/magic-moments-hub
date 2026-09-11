@@ -404,6 +404,7 @@ function EventsPage() {
       setEditing(null);
       setForm(emptyEventForm);
       setTeamIds([]);
+      setTeamValues({});
       queryClient.invalidateQueries({ queryKey: ["events"] });
     },
     onError: (error: Error) => toast.error(error.message),
