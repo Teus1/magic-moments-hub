@@ -377,9 +377,25 @@ function EventsPage() {
             event_id: eventId!,
             collaborator_id: collaboratorId,
             created_by: currentUserId,
+            agreed_value: parseCurrencyInput(teamValues[collaboratorId]?.agreed ?? ""),
+            paid_value: parseCurrencyInput(teamValues[collaboratorId]?.paid ?? ""),
           })),
         );
         if (error) throw new Error("Não foi possível vincular os colaboradores ao evento.");
+      }
+
+      // Atualiza os valores combinados/pagos de quem já estava na escala.
+      const toUpdate = teamIds.filter((id) => previous.includes(id));
+      for (const collaboratorId of toUpdate) {
+        const { error } = await supabase
+          .from("event_collaborators")
+          .update({
+            agreed_value: parseCurrencyInput(teamValues[collaboratorId]?.agreed ?? ""),
+            paid_value: parseCurrencyInput(teamValues[collaboratorId]?.paid ?? ""),
+          })
+          .eq("event_id", eventId)
+          .eq("collaborator_id", collaboratorId);
+        if (error) throw new Error("Não foi possível salvar os valores da equipe.");
       }
     },
     onSuccess: () => {
