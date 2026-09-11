@@ -196,6 +196,7 @@ function CollaboratorsPage() {
         role_title: form.role_title.trim() || null,
         notes: form.notes.trim() || null,
         status: form.status,
+        profile_id: form.profile_id || null,
       };
 
       if (editing) {
