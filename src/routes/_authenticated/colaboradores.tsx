@@ -485,6 +485,32 @@ function CollaboratorsPage() {
                   Inativos não aparecem na escala de novos eventos.
                 </p>
               </div>
+              {canLinkProfile && (
+                <div className="space-y-2">
+                  <Label>Conta de acesso</Label>
+                  <Select
+                    value={form.profile_id || NO_PROFILE}
+                    onValueChange={(value) =>
+                      setForm({ ...form, profile_id: value === NO_PROFILE ? "" : value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sem conta vinculada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_PROFILE}>Sem conta vinculada</SelectItem>
+                      {(profiles.data ?? []).map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.name} · {profile.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Ao vincular, o colaborador vê seus eventos e valores em “Minha agenda”.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
