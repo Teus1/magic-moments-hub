@@ -144,6 +144,7 @@ function EventsPage() {
   const [deleting, setDeleting] = useState<EventRow | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [teamIds, setTeamIds] = useState<string[]>([]);
+  const [teamValues, setTeamValues] = useState<Record<string, { agreed: string; paid: string }>>({});
 
   const events = useQuery({
     queryKey: ["events"],
@@ -202,16 +203,25 @@ function EventsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_collaborators")
-        .select("event_id, collaborator_id, collaborators:collaborator_id (id, full_name)");
+        .select(
+          "event_id, collaborator_id, agreed_value, paid_value, collaborators:collaborator_id (id, full_name)",
+        );
       if (error) throw new Error("Não foi possível carregar a equipe dos eventos.");
-      const map: Record<string, { id: string; name: string }[]> = {};
+      const map: Record<string, { id: string; name: string; agreed: number; paid: number }[]> = {};
       for (const link of (data ?? []) as unknown as {
         event_id: string;
         collaborator_id: string;
+        agreed_value: number | null;
+        paid_value: number | null;
         collaborators: { id: string; full_name: string } | null;
       }[]) {
         const list = map[link.event_id] ?? (map[link.event_id] = []);
-        list.push({ id: link.collaborator_id, name: link.collaborators?.full_name ?? "—" });
+        list.push({
+          id: link.collaborator_id,
+          name: link.collaborators?.full_name ?? "—",
+          agreed: Number(link.agreed_value ?? 0),
+          paid: Number(link.paid_value ?? 0),
+        });
       }
       return map;
     },
