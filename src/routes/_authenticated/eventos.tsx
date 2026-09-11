@@ -144,6 +144,7 @@ function EventsPage() {
   const [deleting, setDeleting] = useState<EventRow | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [teamIds, setTeamIds] = useState<string[]>([]);
+  const [teamValues, setTeamValues] = useState<Record<string, { agreed: string; paid: string }>>({});
 
   const events = useQuery({
     queryKey: ["events"],
@@ -202,16 +203,25 @@ function EventsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_collaborators")
-        .select("event_id, collaborator_id, collaborators:collaborator_id (id, full_name)");
+        .select(
+          "event_id, collaborator_id, agreed_value, paid_value, collaborators:collaborator_id (id, full_name)",
+        );
       if (error) throw new Error("Não foi possível carregar a equipe dos eventos.");
-      const map: Record<string, { id: string; name: string }[]> = {};
+      const map: Record<string, { id: string; name: string; agreed: number; paid: number }[]> = {};
       for (const link of (data ?? []) as unknown as {
         event_id: string;
         collaborator_id: string;
+        agreed_value: number | null;
+        paid_value: number | null;
         collaborators: { id: string; full_name: string } | null;
       }[]) {
         const list = map[link.event_id] ?? (map[link.event_id] = []);
-        list.push({ id: link.collaborator_id, name: link.collaborators?.full_name ?? "—" });
+        list.push({
+          id: link.collaborator_id,
+          name: link.collaborators?.full_name ?? "—",
+          agreed: Number(link.agreed_value ?? 0),
+          paid: Number(link.paid_value ?? 0),
+        });
       }
       return map;
     },
@@ -254,6 +264,7 @@ function EventsPage() {
     setEditing(null);
     setForm(emptyEventForm);
     setTeamIds([]);
+    setTeamValues({});
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -281,7 +292,16 @@ function EventsPage() {
       received_value: String(event.received_value ?? 0),
       notes: event.notes ?? "",
     });
-    setTeamIds((eventTeams.data?.[event.id] ?? []).map((member) => member.id));
+    const members = eventTeams.data?.[event.id] ?? [];
+    setTeamIds(members.map((member) => member.id));
+    setTeamValues(
+      Object.fromEntries(
+        members.map((member) => [
+          member.id,
+          { agreed: String(member.agreed ?? 0), paid: String(member.paid ?? 0) },
+        ]),
+      ),
+    );
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -357,9 +377,25 @@ function EventsPage() {
             event_id: eventId!,
             collaborator_id: collaboratorId,
             created_by: currentUserId,
+            agreed_value: parseCurrencyInput(teamValues[collaboratorId]?.agreed ?? ""),
+            paid_value: parseCurrencyInput(teamValues[collaboratorId]?.paid ?? ""),
           })),
         );
         if (error) throw new Error("Não foi possível vincular os colaboradores ao evento.");
+      }
+
+      // Atualiza os valores combinados/pagos de quem já estava na escala.
+      const toUpdate = teamIds.filter((id) => previous.includes(id));
+      for (const collaboratorId of toUpdate) {
+        const { error } = await supabase
+          .from("event_collaborators")
+          .update({
+            agreed_value: parseCurrencyInput(teamValues[collaboratorId]?.agreed ?? ""),
+            paid_value: parseCurrencyInput(teamValues[collaboratorId]?.paid ?? ""),
+          })
+          .eq("event_id", eventId)
+          .eq("collaborator_id", collaboratorId);
+        if (error) throw new Error("Não foi possível salvar os valores da equipe.");
       }
     },
     onSuccess: () => {
@@ -368,6 +404,7 @@ function EventsPage() {
       setEditing(null);
       setForm(emptyEventForm);
       setTeamIds([]);
+      setTeamValues({});
       queryClient.invalidateQueries({ queryKey: ["events"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -895,6 +932,64 @@ function EventsPage() {
                         {member.nickname || member.full_name}
                         {member.role_title ? ` · ${member.role_title}` : ""}
                       </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {teamIds.length > 0 && (
+                <div className="space-y-3 rounded-lg border border-border/60 bg-card/70 p-3">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Valores por colaborador (combinado e já pago)
+                  </p>
+                  {teamIds.map((id) => {
+                    const member = (collaborators.data ?? []).find((c) => c.id === id);
+                    const values = teamValues[id] ?? { agreed: "", paid: "" };
+                    const memberBalance =
+                      parseCurrencyInput(values.agreed) - parseCurrencyInput(values.paid);
+                    return (
+                      <div key={id} className="grid items-end gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+                        <p className="truncate text-sm">{member?.nickname || member?.full_name || "—"}</p>
+                        <div className="space-y-1">
+                          <Label htmlFor={`t-agreed-${id}`} className="text-xs">
+                            Combinado (R$)
+                          </Label>
+                          <Input
+                            id={`t-agreed-${id}`}
+                            inputMode="decimal"
+                            className="sm:w-32"
+                            value={values.agreed}
+                            onChange={(event) =>
+                              setTeamValues((current) => ({
+                                ...current,
+                                [id]: { ...values, agreed: event.target.value },
+                              }))
+                            }
+                            placeholder="0,00"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`t-paid-${id}`} className="text-xs">
+                            Pago (R$)
+                          </Label>
+                          <Input
+                            id={`t-paid-${id}`}
+                            inputMode="decimal"
+                            className="sm:w-32"
+                            value={values.paid}
+                            onChange={(event) =>
+                              setTeamValues((current) => ({
+                                ...current,
+                                [id]: { ...values, paid: event.target.value },
+                              }))
+                            }
+                            placeholder="0,00"
+                          />
+                        </div>
+                        <p className="pb-3 text-xs text-muted-foreground sm:w-28 sm:text-right">
+                          A pagar {formatCurrency(memberBalance)}
+                        </p>
+                      </div>
                     );
                   })}
                 </div>

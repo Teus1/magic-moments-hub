@@ -66,6 +66,7 @@ interface CollaboratorRow {
   role_title: string | null;
   notes: string | null;
   status: "active" | "inactive";
+  profile_id: string | null;
 }
 
 interface CollaboratorForm {
@@ -77,7 +78,10 @@ interface CollaboratorForm {
   role_title: string;
   notes: string;
   status: "active" | "inactive";
+  profile_id: string;
 }
+
+const NO_PROFILE = "__none__";
 
 const emptyForm: CollaboratorForm = {
   full_name: "",
@@ -88,9 +92,11 @@ const emptyForm: CollaboratorForm = {
   role_title: "",
   notes: "",
   status: "active",
+  profile_id: "",
 };
 
-const SELECT_COLUMNS = "id, full_name, nickname, phone, whatsapp, email, role_title, notes, status";
+const SELECT_COLUMNS =
+  "id, full_name, nickname, phone, whatsapp, email, role_title, notes, status, profile_id";
 
 function CollaboratorsPage() {
   const { can } = useCurrentUser();
@@ -118,6 +124,21 @@ function CollaboratorsPage() {
         .order("full_name");
       if (error) throw new Error("Não foi possível carregar os colaboradores.");
       return (data ?? []) as CollaboratorRow[];
+    },
+  });
+
+  const canLinkProfile = can("users", "view");
+
+  const profiles = useQuery({
+    queryKey: ["collaborators", "profiles-options"],
+    enabled: canView && canLinkProfile,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, username, status")
+        .order("name");
+      if (error) throw new Error("Não foi possível carregar as contas de acesso.");
+      return data ?? [];
     },
   });
 
@@ -156,6 +177,7 @@ function CollaboratorsPage() {
       role_title: row.role_title ?? "",
       notes: row.notes ?? "",
       status: row.status,
+      profile_id: row.profile_id ?? "",
     });
     setDialogOpen(true);
   }
@@ -174,6 +196,7 @@ function CollaboratorsPage() {
         role_title: form.role_title.trim() || null,
         notes: form.notes.trim() || null,
         status: form.status,
+        profile_id: form.profile_id || null,
       };
 
       if (editing) {
@@ -462,6 +485,32 @@ function CollaboratorsPage() {
                   Inativos não aparecem na escala de novos eventos.
                 </p>
               </div>
+              {canLinkProfile && (
+                <div className="space-y-2">
+                  <Label>Conta de acesso</Label>
+                  <Select
+                    value={form.profile_id || NO_PROFILE}
+                    onValueChange={(value) =>
+                      setForm({ ...form, profile_id: value === NO_PROFILE ? "" : value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sem conta vinculada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_PROFILE}>Sem conta vinculada</SelectItem>
+                      {(profiles.data ?? []).map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.name} · {profile.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Ao vincular, o colaborador vê seus eventos e valores em “Minha agenda”.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
