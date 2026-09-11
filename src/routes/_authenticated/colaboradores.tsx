@@ -66,6 +66,7 @@ interface CollaboratorRow {
   role_title: string | null;
   notes: string | null;
   status: "active" | "inactive";
+  profile_id: string | null;
 }
 
 interface CollaboratorForm {
@@ -77,7 +78,10 @@ interface CollaboratorForm {
   role_title: string;
   notes: string;
   status: "active" | "inactive";
+  profile_id: string;
 }
+
+const NO_PROFILE = "__none__";
 
 const emptyForm: CollaboratorForm = {
   full_name: "",
@@ -88,9 +92,11 @@ const emptyForm: CollaboratorForm = {
   role_title: "",
   notes: "",
   status: "active",
+  profile_id: "",
 };
 
-const SELECT_COLUMNS = "id, full_name, nickname, phone, whatsapp, email, role_title, notes, status";
+const SELECT_COLUMNS =
+  "id, full_name, nickname, phone, whatsapp, email, role_title, notes, status, profile_id";
 
 function CollaboratorsPage() {
   const { can } = useCurrentUser();
@@ -118,6 +124,21 @@ function CollaboratorsPage() {
         .order("full_name");
       if (error) throw new Error("Não foi possível carregar os colaboradores.");
       return (data ?? []) as CollaboratorRow[];
+    },
+  });
+
+  const canLinkProfile = can("users", "view");
+
+  const profiles = useQuery({
+    queryKey: ["collaborators", "profiles-options"],
+    enabled: canView && canLinkProfile,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, username, status")
+        .order("name");
+      if (error) throw new Error("Não foi possível carregar as contas de acesso.");
+      return data ?? [];
     },
   });
 
