@@ -134,6 +134,44 @@ export function AppShell({ children }: { children: ReactNode }) {
           );
         })}
 
+        {registryItems.length > 0 && (
+          <div className="pt-4">
+            <button
+              type="button"
+              onClick={() => setRegistryOpen((v) => !v)}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent/60"
+            >
+              <FolderOpen className="size-4" />
+              <span className="flex-1 text-left">Cadastros</span>
+              <ChevronDown className={cn("size-4 transition-transform", registryOpen && "rotate-180")} />
+            </button>
+            {registryOpen && (
+              <div className="mt-1 space-y-1 pl-4">
+                {registryItems.map((item) => {
+                  const active = pathname === item.to;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.label}
+                      to={item.to!}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        active
+                          ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
+                      )}
+                    >
+                      <Icon className="size-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {settingsItems.length > 0 && (
           <div className="pt-4">
             <button

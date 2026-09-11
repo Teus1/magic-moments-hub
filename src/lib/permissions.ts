@@ -11,6 +11,7 @@ export type ModuleKey =
   | "calendar"
   | "services"
   | "collaborators"
+  | "portal"
   | "users"
   | "roles"
   | "settings";
@@ -32,6 +33,7 @@ export const MODULES: ModuleDefinition[] = [
     label: "Colaboradores",
     description: "Operadores dos eventos",
   },
+  { key: "portal", label: "Minha agenda", description: "Portal do colaborador" },
   { key: "users", label: "Usuários", description: "Equipe interna" },
   { key: "roles", label: "Roles e permissões", description: "Papéis de acesso" },
   { key: "settings", label: "Configurações", description: "Configurações do sistema" },
