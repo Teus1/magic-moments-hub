@@ -177,6 +177,7 @@ function CollaboratorsPage() {
       role_title: row.role_title ?? "",
       notes: row.notes ?? "",
       status: row.status,
+      profile_id: row.profile_id ?? "",
     });
     setDialogOpen(true);
   }
