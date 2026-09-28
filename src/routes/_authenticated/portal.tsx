@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   BookHeart,
   BriefcaseBusiness,
@@ -113,9 +113,13 @@ function CollaboratorPortalPage() {
     queryKey: ["collaborator-portal", "profile"],
     enabled: canView,
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("Sua sessão expirou. Entre novamente.");
       const { data, error } = await supabase
         .from("collaborators")
         .select("id, full_name, nickname, role_title, status")
+        .eq("profile_id", userId)
         .maybeSingle();
       if (error) throw new Error("Não foi possível carregar seu perfil de colaborador.");
       return data as CollaboratorProfile | null;
@@ -123,18 +127,23 @@ function CollaboratorPortalPage() {
   });
 
   const schedule = useQuery({
-    queryKey: ["collaborator-portal", "schedule"],
+    queryKey: ["collaborator-portal", "schedule", collaborator.data?.id],
     enabled: canView && Boolean(collaborator.data),
     queryFn: async () => {
-      const { data, error } = await supabase.from("event_collaborators").select(`
-        id, agreed_value, paid_value, role_title, notes,
-        event:events!event_collaborators_event_id_fkey (
-          id, name, event_type, event_date, start_time, end_time, venue, address, status, notes,
-          has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook,
-          client:clients!events_client_id_fkey (full_name, phone, whatsapp, email),
-          service:services!events_service_id_fkey (name, color)
-        )
-      `);
+      const collaboratorId = collaborator.data?.id;
+      if (!collaboratorId) return [];
+      const { data, error } = await supabase
+        .from("event_collaborators")
+        .select(`
+          id, agreed_value, paid_value, role_title, notes,
+          event:events!event_collaborators_event_id_fkey (
+            id, name, event_type, event_date, start_time, end_time, venue, address, status, notes,
+            has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook,
+            client:clients!events_client_id_fkey (full_name, phone, whatsapp, email),
+            service:services!events_service_id_fkey (name, color)
+          )
+        `)
+        .eq("collaborator_id", collaboratorId);
       if (error) throw new Error("Não foi possível carregar sua agenda.");
       return (data ?? []) as unknown as ScheduleItem[];
     },
@@ -463,7 +472,7 @@ function InfoBlock({
 }: {
   icon: typeof MapPin;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="flex items-start gap-3">
