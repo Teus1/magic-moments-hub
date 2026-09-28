@@ -210,6 +210,12 @@ function CollaboratorPortalPage() {
             Carregando sua agenda...
           </CardContent>
         </Card>
+      ) : collaborator.isError ? (
+        <Card className="border-destructive/30 bg-card/80">
+          <CardContent className="py-12 text-center text-sm text-destructive">
+            {collaborator.error.message}
+          </CardContent>
+        </Card>
       ) : !collaborator.data ? (
         <Card className="border-primary/15 bg-card/80">
           <CardContent className="flex flex-col items-center py-12 text-center">
