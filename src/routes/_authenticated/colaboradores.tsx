@@ -195,6 +195,12 @@ function CollaboratorsPage() {
     mutationFn: async () => {
       const fullName = form.full_name.trim();
       if (fullName.length < 2) throw new Error("Informe o nome do colaborador.");
+      if (!editing && form.account_username.trim().length < 3) {
+        throw new Error("Informe um login com pelo menos 3 caracteres.");
+      }
+      if (!editing && form.account_password.length < 8) {
+        throw new Error("A senha inicial deve ter pelo menos 8 caracteres.");
+      }
 
       const payload = {
         full_name: fullName,
@@ -541,7 +547,7 @@ function CollaboratorsPage() {
                   Inativos não aparecem na escala de novos eventos.
                 </p>
               </div>
-              {canLinkProfile && (
+              {editing && canLinkProfile && (
                 <div className="space-y-2">
                   <Label>Conta de acesso</Label>
                   <Select

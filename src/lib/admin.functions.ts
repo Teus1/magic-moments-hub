@@ -150,6 +150,9 @@ export const createCollaboratorWithAccount = createServerFn({ method: "POST" })
       user_metadata: { name: fullName, username },
     });
     if (created.error || !created.data.user) {
+      if (created.error?.code === "weak_password") {
+        throw new Error("Escolha uma senha mais segura, que não seja conhecida em vazamentos de dados.");
+      }
       throw new Error(created.error?.message ?? "Não foi possível criar a conta de acesso.");
     }
 
