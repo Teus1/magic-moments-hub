@@ -37,9 +37,21 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  async function getHomePath(userId: string) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("roles(slug)")
+      .eq("id", userId)
+      .maybeSingle();
+    return data?.roles?.slug === "colaborador" ? "/portal" : "/dashboard";
+  }
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/dashboard", replace: true });
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        const destination = await getHomePath(data.user.id);
+        navigate({ to: destination, replace: true });
+      }
     });
   }, [navigate]);
 
@@ -51,7 +63,12 @@ function AuthPage() {
       });
       if (error) throw new Error("Login ou senha inválidos.");
     },
-    onSuccess: () => navigate({ to: "/dashboard", replace: true }),
+    onSuccess: async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error("Não foi possível confirmar sua sessão.");
+      const destination = await getHomePath(data.user.id);
+      navigate({ to: destination, replace: true });
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
