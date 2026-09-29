@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { HardHat, MessageCircle, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { formatPhone, onlyDigits } from "@/lib/clients";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { createCollaboratorWithAccount } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/colaboradores")({
   head: () => ({
@@ -79,6 +81,8 @@ interface CollaboratorForm {
   notes: string;
   status: "active" | "inactive";
   profile_id: string;
+  account_username: string;
+  account_password: string;
 }
 
 const NO_PROFILE = "__none__";
@@ -93,6 +97,8 @@ const emptyForm: CollaboratorForm = {
   notes: "",
   status: "active",
   profile_id: "",
+  account_username: "",
+  account_password: "",
 };
 
 const SELECT_COLUMNS =
@@ -101,6 +107,7 @@ const SELECT_COLUMNS =
 function CollaboratorsPage() {
   const { can } = useCurrentUser();
   const queryClient = useQueryClient();
+  const createCollaborator = useServerFn(createCollaboratorWithAccount);
 
   const canView = can("collaborators", "view");
   const canCreate = can("collaborators", "create");
@@ -178,6 +185,8 @@ function CollaboratorsPage() {
       notes: row.notes ?? "",
       status: row.status,
       profile_id: row.profile_id ?? "",
+      account_username: "",
+      account_password: "",
     });
     setDialogOpen(true);
   }
@@ -205,11 +214,20 @@ function CollaboratorsPage() {
         return;
       }
 
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("collaborators")
-        .insert({ ...payload, created_by: userData.user?.id ?? null });
-      if (error) throw new Error(error.message || "Não foi possível cadastrar o colaborador.");
+      await createCollaborator({
+        data: {
+          fullName,
+          nickname: payload.nickname,
+          phone: payload.phone,
+          whatsapp: payload.whatsapp,
+          email: payload.email,
+          roleTitle: payload.role_title,
+          notes: payload.notes,
+          status: payload.status,
+          username: form.account_username,
+          password: form.account_password,
+        },
+      });
     },
     onSuccess: () => {
       toast.success(editing ? "Colaborador atualizado." : "Colaborador cadastrado.");
@@ -422,6 +440,44 @@ function CollaboratorsPage() {
                 />
               </div>
             </div>
+
+            {!editing && (
+              <div className="rounded-lg border border-primary/15 bg-primary/5 p-4">
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-foreground">Acesso à Minha agenda</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A conta será criada automaticamente com a role Colaborador.
+                  </p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="c-username">
+                      Login<span className="ml-1 text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="c-username"
+                      value={form.account_username}
+                      onChange={(event) => setForm({ ...form, account_username: event.target.value })}
+                      placeholder="Ex.: joao.silva"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="c-password">
+                      Senha inicial<span className="ml-1 text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="c-password"
+                      type="password"
+                      value={form.account_password}
+                      onChange={(event) => setForm({ ...form, account_password: event.target.value })}
+                      placeholder="Mínimo de 8 caracteres"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
