@@ -6,3 +6,4 @@
 - [x] Unificar a criação de colaborador com sua conta de acesso e role Colaborador
 - [x] Garantir vínculo único entre colaborador e conta
 - [ ] Validar cadastro, login e visualização restrita da Minha agenda
+- [x] Permitir exclusão definitiva de usuários com confirmação e proteção da própria conta

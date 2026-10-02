@@ -2,10 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { KeyRound, Plus } from "lucide-react";
+import { KeyRound, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/app-shell";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,13 +38,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { createSystemUser, setUserPassword } from "@/lib/admin.functions";
+import { createSystemUser, deleteSystemUser, setUserPassword } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/usuarios")({
   head: () => ({
     meta: [
       { title: "Usuários — Magic Moments" },
       { name: "description", content: "Gestão da equipe interna e acessos ao painel." },
+      { property: "og:title", content: "Usuários — Magic Moments" },
+      { property: "og:description", content: "Gestão da equipe interna e acessos ao painel." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -43,13 +56,15 @@ export const Route = createFileRoute("/_authenticated/configuracoes/usuarios")({
 });
 
 function UsersPage() {
-  const { can } = useCurrentUser();
+  const { can, user: currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
   const createUser = useServerFn(createSystemUser);
   const resetPassword = useServerFn(setUserPassword);
+  const deleteUser = useServerFn(deleteSystemUser);
 
   const [openCreate, setOpenCreate] = useState(false);
   const [passwordFor, setPasswordFor] = useState<{ id: string; name: string } | null>(null);
+  const [deleteFor, setDeleteFor] = useState<{ id: string; name: string } | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [form, setForm] = useState({
     name: "",
@@ -118,8 +133,10 @@ function UsersPage() {
   });
 
   const passwordMutation = useMutation({
-    mutationFn: () =>
-      resetPassword({ data: { userId: passwordFor!.id, password: newPassword } }),
+    mutationFn: () => {
+      if (!passwordFor) throw new Error("Selecione um usuário.");
+      return resetPassword({ data: { userId: passwordFor.id, password: newPassword } });
+    },
     onSuccess: () => {
       toast.success("Senha redefinida.");
       setPasswordFor(null);
@@ -128,7 +145,23 @@ function UsersPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => {
+      if (!deleteFor) throw new Error("Selecione um usuário.");
+      return deleteUser({ data: { userId: deleteFor.id } });
+    },
+    onSuccess: () => {
+      toast.success("Usuário excluído definitivamente.");
+      setDeleteFor(null);
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["available-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["collaborators"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const canEdit = can("users", "edit");
+  const canDelete = can("users", "delete");
 
   return (
     <AppShell>
@@ -145,7 +178,7 @@ function UsersPage() {
       />
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -219,6 +252,19 @@ function UsersPage() {
                         >
                           <KeyRound className="mr-1 size-4" /> Senha
                         </Button>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Excluir ${user.name}`}
+                            title={user.id === currentUser?.id ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
+                            disabled={user.id === currentUser?.id}
+                            onClick={() => setDeleteFor({ id: user.id, name: user.name })}
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </TableCell>
@@ -337,6 +383,29 @@ function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteFor !== null} onOpenChange={(open) => !open && !deleteMutation.isPending && setDeleteFor(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">Excluir usuário definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A conta de <strong className="text-foreground">{deleteFor?.name}</strong> perderá o acesso imediatamente.
+              Os registros operacionais e o histórico serão preservados. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+            >
+              <Trash2 />
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir definitivamente"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
