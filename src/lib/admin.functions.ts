@@ -209,3 +209,27 @@ export const setUserPassword = createServerFn({ method: "POST" })
     if (error) throw new Error("Não foi possível redefinir a senha.");
     return { ok: true };
   });
+
+export const deleteSystemUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    await assertCan(context.supabase, "users", "delete");
+    if (!data.userId) throw new Error("Usuário inválido.");
+    if (data.userId === context.userId) {
+      throw new Error("Você não pode excluir a própria conta.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (profileError) throw new Error("Não foi possível verificar o usuário.");
+    if (!profile) throw new Error("Este usuário não existe mais.");
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error("Não foi possível excluir o usuário.");
+    return { ok: true };
+  });

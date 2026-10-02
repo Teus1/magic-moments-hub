@@ -13,3 +13,4 @@
 
 - Keep collaborator self-service at `/portal`, reading assignments through RLS-protected `event_collaborators`; this limits each account to its own schedule and compensation.
 - Create every new collaborator together with a linked login using the `colaborador` role; this prevents orphaned staff records and grants only portal access by default.
+- Delete user accounts only through a protected server function and preserve operational history by nulling profile references; this keeps privileged access off the client and avoids data loss.
