@@ -436,7 +436,7 @@ function EventsPage() {
       if (toAdd.length > 0) {
         const { error } = await supabase.from("event_collaborators").insert(
           toAdd.map((collaboratorId) => ({
-            event_id: eventId!,
+            event_id: eventId,
             collaborator_id: collaboratorId,
             created_by: currentUserId,
             agreed_value: parseCurrencyInput(teamValues[collaboratorId]?.agreed ?? ""),
