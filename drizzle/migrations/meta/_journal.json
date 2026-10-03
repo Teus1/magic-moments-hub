@@ -8,6 +8,13 @@
       "when": 1790992641483,
       "tag": "0000_create_event_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790992700692,
+      "tag": "0001_allow_event_delete_to_remove_attachments",
+      "breakpoints": true
     }
   ]
 }

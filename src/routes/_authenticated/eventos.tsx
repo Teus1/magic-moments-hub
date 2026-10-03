@@ -464,7 +464,11 @@ function EventsPage() {
         const storagePath = `${eventId}/${pending.category}/${safeFileName(pending.file.name)}`;
         const { error: uploadError } = await supabase.storage
           .from(ATTACHMENTS_BUCKET)
-          .upload(storagePath, pending.file, { contentType: pending.file.type || undefined });
+          .upload(
+            storagePath,
+            pending.file,
+            pending.file.type ? { contentType: pending.file.type } : {},
+          );
         if (uploadError) throw new Error(`Não foi possível enviar ${pending.file.name}.`);
 
         const { error: recordError } = await supabase.from("event_attachments").insert({
