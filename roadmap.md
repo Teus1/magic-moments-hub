@@ -7,3 +7,5 @@
 - [x] Garantir vínculo único entre colaborador e conta
 - [ ] Validar cadastro, login e visualização restrita da Minha agenda
 - [x] Permitir exclusão definitiva de usuários com confirmação e proteção da própria conta
+- [ ] Adicionar anexos privados de comprovantes e documentos aos eventos
+- [ ] Validar múltiplos anexos, download, exclusão, limite de 20 MB e visual móvel
