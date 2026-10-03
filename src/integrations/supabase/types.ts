@@ -151,6 +151,57 @@ export type Database = {
           },
         ]
       }
+      event_attachments: {
+        Row: {
+          category: Database["public"]["Enums"]["event_attachment_category"]
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          mime_type: string | null
+          original_name: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["event_attachment_category"]
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          mime_type?: string | null
+          original_name: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["event_attachment_category"]
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          mime_type?: string | null
+          original_name?: string
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attachments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_collaborators: {
         Row: {
           agreed_value: number
@@ -548,6 +599,7 @@ export type Database = {
       touch_last_login: { Args: never; Returns: undefined }
     }
     Enums: {
+      event_attachment_category: "receipt" | "document"
       event_status: "planned" | "cancelled"
       record_status: "active" | "inactive"
       user_status: "active" | "inactive"
@@ -678,6 +730,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      event_attachment_category: ["receipt", "document"],
       event_status: ["planned", "cancelled"],
       record_status: ["active", "inactive"],
       user_status: ["active", "inactive"],
