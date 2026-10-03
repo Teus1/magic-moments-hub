@@ -1,16 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   BookHeart,
   CalendarDays,
+  Download,
+  FileText,
   HardHat,
   MapPin,
   PartyPopper,
   Pencil,
   Plus,
+  ReceiptText,
   Search,
   Trash2,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,6 +81,13 @@ export const Route = createFileRoute("/_authenticated/eventos")({
         name: "description",
         content: "Gestão dos eventos da Magic Moments: datas, serviços, responsáveis e valores.",
       },
+      { property: "og:title", content: "Eventos — Magic Moments" },
+      {
+        property: "og:description",
+        content: "Gestão dos eventos da Magic Moments: datas, serviços, responsáveis e valores.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -107,6 +119,25 @@ interface EventRow {
   services: { id: string; name: string; color: string } | null;
 }
 
+type AttachmentCategory = "receipt" | "document";
+
+interface EventAttachment {
+  id: string;
+  event_id: string;
+  category: AttachmentCategory;
+  original_name: string;
+  storage_path: string;
+  mime_type: string | null;
+  size_bytes: number;
+  created_at: string;
+}
+
+interface PendingAttachment {
+  id: string;
+  category: AttachmentCategory;
+  file: File;
+}
+
 const SELECT_COLUMNS = `
   id, client_id, service_id, name, event_type, event_date, start_time, end_time,
   venue, address, status, contracted_value, received_value, balance_value,
@@ -118,6 +149,19 @@ const SELECT_COLUMNS = `
 
 
 const NONE = "__none__";
+const ATTACHMENTS_BUCKET = "event-attachments";
+const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function safeFileName(name: string) {
+  const extension = name.includes(".") ? `.${name.split(".").pop()}` : "";
+  return `${crypto.randomUUID()}${extension.toLowerCase().replace(/[^a-z0-9.]/g, "")}`;
+}
 
 /** Marcador visual de campo obrigatório. */
 function RequiredMark() {
@@ -145,6 +189,9 @@ function EventsPage() {
   const [showErrors, setShowErrors] = useState(false);
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [teamValues, setTeamValues] = useState<Record<string, { agreed: string; paid: string }>>({});
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
 
   const events = useQuery({
     queryKey: ["events"],
@@ -227,6 +274,19 @@ function EventsPage() {
     },
   });
 
+  const attachments = useQuery({
+    queryKey: ["event-attachments"],
+    enabled: canView,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_attachments")
+        .select("id, event_id, category, original_name, storage_path, mime_type, size_bytes, created_at")
+        .order("created_at", { ascending: true });
+      if (error) throw new Error("Não foi possível carregar os anexos dos eventos.");
+      return (data ?? []) as EventAttachment[];
+    },
+  });
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (events.data ?? []).filter((event) => {
@@ -265,6 +325,7 @@ function EventsPage() {
     setForm(emptyEventForm);
     setTeamIds([]);
     setTeamValues({});
+    setPendingAttachments([]);
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -302,6 +363,7 @@ function EventsPage() {
         ]),
       ),
     );
+    setPendingAttachments([]);
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -397,6 +459,28 @@ function EventsPage() {
           .eq("collaborator_id", collaboratorId);
         if (error) throw new Error("Não foi possível salvar os valores da equipe.");
       }
+
+      for (const pending of pendingAttachments) {
+        const storagePath = `${eventId}/${pending.category}/${safeFileName(pending.file.name)}`;
+        const { error: uploadError } = await supabase.storage
+          .from(ATTACHMENTS_BUCKET)
+          .upload(storagePath, pending.file, { contentType: pending.file.type || undefined });
+        if (uploadError) throw new Error(`Não foi possível enviar ${pending.file.name}.`);
+
+        const { error: recordError } = await supabase.from("event_attachments").insert({
+          event_id: eventId,
+          category: pending.category,
+          original_name: pending.file.name,
+          storage_path: storagePath,
+          mime_type: pending.file.type || null,
+          size_bytes: pending.file.size,
+          created_by: currentUserId,
+        });
+        if (recordError) {
+          await supabase.storage.from(ATTACHMENTS_BUCKET).remove([storagePath]);
+          throw new Error(`Não foi possível registrar ${pending.file.name}.`);
+        }
+      }
     },
     onSuccess: () => {
       toast.success(editing ? "Evento atualizado." : "Evento cadastrado.");
@@ -405,13 +489,24 @@ function EventsPage() {
       setForm(emptyEventForm);
       setTeamIds([]);
       setTeamValues({});
+      setPendingAttachments([]);
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-attachments"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const filePaths = (attachments.data ?? [])
+        .filter((attachment) => attachment.event_id === id)
+        .map((attachment) => attachment.storage_path);
+      if (filePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from(ATTACHMENTS_BUCKET)
+          .remove(filePaths);
+        if (storageError) throw new Error("Não foi possível remover os anexos do evento.");
+      }
       const { error } = await supabase.from("events").delete().eq("id", id);
       if (error) throw new Error("Não foi possível excluir o evento.");
     },
@@ -422,6 +517,48 @@ function EventsPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachment: EventAttachment) => {
+      const { error: storageError } = await supabase.storage
+        .from(ATTACHMENTS_BUCKET)
+        .remove([attachment.storage_path]);
+      if (storageError) throw new Error("Não foi possível remover o arquivo.");
+      const { error } = await supabase.from("event_attachments").delete().eq("id", attachment.id);
+      if (error) throw new Error("O arquivo foi removido, mas não foi possível atualizar sua lista.");
+    },
+    onSuccess: () => {
+      toast.success("Anexo excluído.");
+      queryClient.invalidateQueries({ queryKey: ["event-attachments"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  function addAttachments(category: AttachmentCategory, files: FileList | null) {
+    if (!files) return;
+    const selected = Array.from(files);
+    const tooLarge = selected.filter((file) => file.size > MAX_ATTACHMENT_SIZE);
+    if (tooLarge.length > 0) {
+      toast.error(`${tooLarge.length === 1 ? "O arquivo excede" : "Alguns arquivos excedem"} o limite de 20 MB.`);
+    }
+    setPendingAttachments((current) => [
+      ...current,
+      ...selected
+        .filter((file) => file.size <= MAX_ATTACHMENT_SIZE)
+        .map((file) => ({ id: crypto.randomUUID(), category, file })),
+    ]);
+  }
+
+  async function downloadAttachment(attachment: EventAttachment) {
+    const { data, error } = await supabase.storage
+      .from(ATTACHMENTS_BUCKET)
+      .createSignedUrl(attachment.storage_path, 60, { download: attachment.original_name });
+    if (error || !data.signedUrl) {
+      toast.error("Não foi possível baixar o arquivo.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
 
   if (!canView) {
     return (
@@ -1023,6 +1160,123 @@ function EventsPage() {
                   {formatCurrency(balance)}
                 </div>
               </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(
+                [
+                  {
+                    category: "receipt" as const,
+                    title: "Comprovantes",
+                    description: "Comprovantes de pagamentos e transferências.",
+                    icon: ReceiptText,
+                    inputRef: receiptInputRef,
+                  },
+                  {
+                    category: "document" as const,
+                    title: "Contratos e documentos",
+                    description: "Contratos e outros documentos do evento.",
+                    icon: FileText,
+                    inputRef: documentInputRef,
+                  },
+                ]
+              ).map((group) => {
+                const Icon = group.icon;
+                const saved = editing
+                  ? (attachments.data ?? []).filter(
+                      (attachment) =>
+                        attachment.event_id === editing.id && attachment.category === group.category,
+                    )
+                  : [];
+                const pending = pendingAttachments.filter(
+                  (attachment) => attachment.category === group.category,
+                );
+                return (
+                  <section key={group.category} className="space-y-3 rounded-lg border border-border bg-card/70 p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="size-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <Label className="text-sm font-medium">{group.title}</Label>
+                        <p className="text-xs text-muted-foreground">{group.description}</p>
+                      </div>
+                    </div>
+
+                    <input
+                      ref={group.inputRef}
+                      type="file"
+                      multiple
+                      className="sr-only"
+                      aria-label={`Selecionar ${group.title.toLowerCase()}`}
+                      onChange={(event) => {
+                        addAttachments(group.category, event.target.files);
+                        event.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-dashed"
+                      onClick={() => group.inputRef.current?.click()}
+                    >
+                      <Upload className="size-4" /> Adicionar arquivos
+                    </Button>
+                    <p className="text-xs text-muted-foreground">Vários arquivos, até 20 MB cada.</p>
+
+                    {(saved.length > 0 || pending.length > 0) && (
+                      <ul className="space-y-2" aria-label={`Arquivos de ${group.title.toLowerCase()}`}>
+                        {saved.map((attachment) => (
+                          <li key={attachment.id} className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-3 py-2">
+                            <FileText className="size-4 shrink-0 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-medium">{attachment.original_name}</p>
+                              <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size_bytes)}</p>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" aria-label={`Baixar ${attachment.original_name}`} onClick={() => downloadAttachment(attachment)}>
+                              <Download className="size-4" />
+                            </Button>
+                            {canEdit && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Excluir ${attachment.original_name}`}
+                                disabled={deleteAttachmentMutation.isPending}
+                                onClick={() => deleteAttachmentMutation.mutate(attachment)}
+                              >
+                                <Trash2 className="size-4 text-destructive" />
+                              </Button>
+                            )}
+                          </li>
+                        ))}
+                        {pending.map((attachment) => (
+                          <li key={attachment.id} className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
+                            <FileText className="size-4 shrink-0 text-primary" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-medium">{attachment.file.name}</p>
+                              <p className="text-xs text-muted-foreground">Novo · {formatFileSize(attachment.file.size)}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Remover ${attachment.file.name}`}
+                              onClick={() =>
+                                setPendingAttachments((current) =>
+                                  current.filter((item) => item.id !== attachment.id),
+                                )
+                              }
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                );
+              })}
             </div>
 
 
