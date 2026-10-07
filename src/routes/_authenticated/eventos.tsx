@@ -150,6 +150,26 @@ const SELECT_COLUMNS = `
 
 const NONE = "__none__";
 const ATTACHMENTS_BUCKET = "event-attachments";
+
+type PaymentMethod = "pix" | "credit" | "debit" | "cash" | "boleto" | "transfer" | "previous_balance";
+interface PaymentDraft {
+  amount: string;
+  paid_at: string;
+  method: PaymentMethod;
+}
+const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: "pix", label: "Pix" },
+  { value: "credit", label: "Crédito" },
+  { value: "debit", label: "Débito" },
+  { value: "cash", label: "Dinheiro" },
+  { value: "boleto", label: "Boleto" },
+  { value: "transfer", label: "Transferência" },
+  { value: "previous_balance", label: "Saldo anterior" },
+];
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
 
 function formatFileSize(bytes: number) {
@@ -190,6 +210,7 @@ function EventsPage() {
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [teamValues, setTeamValues] = useState<Record<string, { agreed: string; paid: string }>>({});
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [payments, setPayments] = useState<PaymentDraft[]>([]);
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -326,6 +347,7 @@ function EventsPage() {
     setTeamIds([]);
     setTeamValues({});
     setPendingAttachments([]);
+    setPayments([]);
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -364,6 +386,25 @@ function EventsPage() {
       ),
     );
     setPendingAttachments([]);
+    setPayments([]);
+    supabase
+      .from("event_payments")
+      .select("amount, paid_at, method")
+      .eq("event_id", event.id)
+      .order("paid_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          toast.error("Não foi possível carregar os recebimentos.");
+          return;
+        }
+        setPayments(
+          (data ?? []).map((p) => ({
+            amount: String(p.amount).replace(".", ","),
+            paid_at: p.paid_at,
+            method: p.method as PaymentMethod,
+          })),
+        );
+      });
     setShowErrors(false);
     setDialogOpen(true);
   }
@@ -376,7 +417,6 @@ function EventsPage() {
       if (!form.event_date) throw new Error("Informe a data do evento.");
 
       const contracted = parseCurrencyInput(form.contracted_value);
-      const received = parseCurrencyInput(form.received_value);
 
       const payload = {
         client_id: form.client_id,
@@ -395,7 +435,6 @@ function EventsPage() {
         has_guestbook: form.has_guestbook,
         status: form.status,
         contracted_value: contracted,
-        received_value: received,
         notes: form.notes.trim() || null,
       };
 
@@ -460,6 +499,19 @@ function EventsPage() {
         if (error) throw new Error("Não foi possível salvar os valores da equipe.");
       }
 
+      const paymentRows = payments
+        .map((p) => ({ amount: parseCurrencyInput(p.amount), paid_at: p.paid_at, method: p.method }))
+        .filter((p) => p.amount > 0);
+      if (paymentRows.some((p) => !p.paid_at)) throw new Error("Informe a data de cada recebimento.");
+      const { error: delPayError } = await supabase.from("event_payments").delete().eq("event_id", eventId);
+      if (delPayError) throw new Error("Não foi possível atualizar os recebimentos.");
+      if (paymentRows.length) {
+        const { error: payError } = await supabase
+          .from("event_payments")
+          .insert(paymentRows.map((p) => ({ ...p, event_id: eventId!, created_by: currentUserId })));
+        if (payError) throw new Error("Não foi possível salvar os recebimentos.");
+      }
+
       for (const pending of pendingAttachments) {
         const storagePath = `${eventId}/${pending.category}/${safeFileName(pending.file.name)}`;
         const { error: uploadError } = await supabase.storage
@@ -493,6 +545,7 @@ function EventsPage() {
       setForm(emptyEventForm);
       setTeamIds([]);
       setTeamValues({});
+      setPayments([]);
       setPendingAttachments([]);
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-attachments"] });
@@ -572,7 +625,11 @@ function EventsPage() {
     );
   }
 
-  const balance = parseCurrencyInput(form.contracted_value) - parseCurrencyInput(form.received_value);
+  const receivedTotal = payments.reduce((sum, p) => sum + parseCurrencyInput(p.amount), 0);
+  const balance = parseCurrencyInput(form.contracted_value) - receivedTotal;
+  function updatePayment(index: number, patch: Partial<PaymentDraft>) {
+    setPayments((list) => list.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+  }
 
   return (
     <AppShell>
@@ -1149,14 +1206,10 @@ function EventsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="e-received">Valor recebido (R$)</Label>
-                <Input
-                  id="e-received"
-                  inputMode="decimal"
-                  value={form.received_value}
-                  onChange={(event) => setForm({ ...form, received_value: event.target.value })}
-                  placeholder="0,00"
-                />
+                <Label>Valor recebido (total)</Label>
+                <div className="flex h-11 items-center rounded-lg border border-input bg-muted/40 px-3.5 text-sm font-medium">
+                  {formatCurrency(receivedTotal)}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Saldo</Label>
@@ -1165,6 +1218,79 @@ function EventsPage() {
                 </div>
               </div>
             </div>
+
+            <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium">Recebimentos</p>
+                  <p className="text-xs text-muted-foreground">Cada pagamento do cliente com data e forma.</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPayments((list) => [...list, { amount: "", paid_at: todayIso(), method: "pix" }])
+                  }
+                >
+                  <Plus className="mr-1 size-4" /> Adicionar
+                </Button>
+              </div>
+              {payments.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum recebimento registrado.</p>
+              )}
+              {payments.map((payment, index) => (
+                <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Valor (R$)</Label>
+                    <Input
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={payment.amount}
+                      onChange={(e) => updatePayment(index, { amount: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Data</Label>
+                    <Input
+                      type="date"
+                      value={payment.paid_at}
+                      onChange={(e) => updatePayment(index, { paid_at: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Forma</Label>
+                    <Select
+                      value={payment.method}
+                      onValueChange={(value) => updatePayment(index, { method: value as PaymentMethod })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_METHODS.filter(
+                          (m) => m.value !== "previous_balance" || payment.method === "previous_balance",
+                        ).map((m) => (
+                          <SelectItem key={m.value} value={m.value}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remover recebimento"
+                    onClick={() => setPayments((list) => list.filter((_, i) => i !== index))}
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
 
             <div className="grid gap-4 sm:grid-cols-2">
               {(

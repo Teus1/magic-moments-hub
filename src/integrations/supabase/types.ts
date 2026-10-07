@@ -263,6 +263,51 @@ export type Database = {
           },
         ]
       }
+      event_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          paid_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
@@ -601,6 +646,14 @@ export type Database = {
     Enums: {
       event_attachment_category: "receipt" | "document"
       event_status: "planned" | "cancelled"
+      payment_method:
+        | "pix"
+        | "credit"
+        | "debit"
+        | "cash"
+        | "boleto"
+        | "transfer"
+        | "previous_balance"
       record_status: "active" | "inactive"
       user_status: "active" | "inactive"
     }
@@ -732,6 +785,15 @@ export const Constants = {
     Enums: {
       event_attachment_category: ["receipt", "document"],
       event_status: ["planned", "cancelled"],
+      payment_method: [
+        "pix",
+        "credit",
+        "debit",
+        "cash",
+        "boleto",
+        "transfer",
+        "previous_balance",
+      ],
       record_status: ["active", "inactive"],
       user_status: ["active", "inactive"],
     },
