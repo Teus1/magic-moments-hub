@@ -627,6 +627,54 @@ export type Database = {
           },
         ]
       }
+      task_groups: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          created_by: string | null
+          event_date: string | null
+          id: string
+          observations: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          id?: string
+          observations?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          id?: string
+          observations?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_groups_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_groups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
@@ -637,6 +685,7 @@ export type Database = {
           created_by: string | null
           description: string
           due_date: string | null
+          group_id: string | null
           id: string
           observations: string
           status: string
@@ -652,6 +701,7 @@ export type Database = {
           created_by?: string | null
           description?: string
           due_date?: string | null
+          group_id?: string | null
           id?: string
           observations?: string
           status?: string
@@ -667,6 +717,7 @@ export type Database = {
           created_by?: string | null
           description?: string
           due_date?: string | null
+          group_id?: string | null
           id?: string
           observations?: string
           status?: string
@@ -693,6 +744,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
             referencedColumns: ["id"]
           },
         ]

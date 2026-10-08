@@ -29,6 +29,13 @@
       "when": 1791427256962,
       "tag": "0003_create_tasks_boards",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791428647800,
+      "tag": "0004_art_task_groups",
+      "breakpoints": true
     }
   ]
 }
