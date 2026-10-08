@@ -20,7 +20,7 @@ async function requestPlaces(path: string, mask: string, body?: unknown) {
       "Content-Type": "application/json",
       "X-Goog-FieldMask": mask,
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? JSON.stringify(body) : null,
   });
   if (!response.ok) {
     const text = await response.text();
@@ -52,7 +52,7 @@ export const getTravelPlaceSuggestions = createServerFn({ method: "POST" })
     const result = (async () => {
       const payload = await requestPlaces("places:autocomplete", "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text", {
         input: data.input, sessionToken: data.sessionToken, languageCode: "pt-BR", regionCode: "BR",
-        locationBias: { circle: { center: { latitude: -14.235, longitude: -51.9253 }, radius: 50000 } },
+        locationBias: { rectangle: { low: { latitude: -33.75, longitude: -73.99 }, high: { latitude: 5.28, longitude: -34.79 } } },
       }) as { suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[] };
       return (payload.suggestions ?? []).flatMap(({ placePrediction: place }) => place?.placeId && place.text?.text ? [{ placeId: place.placeId, text: place.text.text }] : []).slice(0, 5);
     })();

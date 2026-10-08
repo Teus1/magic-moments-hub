@@ -24,8 +24,9 @@ export function TravelPlaceInput({ id, value, onChange, placeholder, disabled }:
 
   useEffect(() => {
     const current = ++version.current;
-    setSuggestions([]); setActive(-1); setSearched(false); setBusy(false); setError("");
+    setSuggestions([]); setActive(-1); setSearched(false); setBusy(false);
     if (!focused || disabled || selecting || value.trim().length < 3 || selected.current === value) return;
+    setError("");
     const timeout = setTimeout(async () => {
       token.current ??= crypto.randomUUID();
       setBusy(true);
@@ -55,8 +56,8 @@ export function TravelPlaceInput({ id, value, onChange, placeholder, disabled }:
   return <div className="relative min-w-0">
     <Input ref={inputRef} id={id} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={`${id}-options`} aria-activedescendant={active >= 0 ? `${id}-option-${active}` : undefined}
       required minLength={5} maxLength={300} autoComplete="off" disabled={disabled || selecting} placeholder={placeholder} value={value}
-      onFocus={() => setFocused(true)} onBlur={() => { setFocused(false); token.current = null; }}
-      onChange={(event) => { version.current++; selected.current = null; setSuggestions([]); setActive(-1); onChange(event.target.value); }}
+      onFocus={() => setFocused(true)} onBlur={() => { version.current++; setFocused(false); token.current = null; }}
+      onChange={(event) => { version.current++; selected.current = null; setError(""); setFocused(true); setSuggestions([]); setActive(-1); onChange(event.target.value); }}
       onKeyDown={(event) => {
         if (event.key === "Escape") { event.preventDefault(); setFocused(false); token.current = null; }
         if ((event.key === "ArrowDown" || event.key === "ArrowUp") && suggestions.length) {
@@ -69,7 +70,7 @@ export function TravelPlaceInput({ id, value, onChange, placeholder, disabled }:
       <div id={`${id}-options`} role="listbox" aria-label="Locais sugeridos" className="max-h-72 overflow-y-auto p-1">
         {suggestions.map((item, index) => <Button key={item.placeId} id={`${id}-option-${index}`} type="button" role="option" aria-selected={index === active} variant="ghost"
           className={`h-auto min-h-11 w-full justify-start gap-2 whitespace-normal py-3 text-left ${index === active ? "bg-accent text-accent-foreground" : ""}`}
-          onMouseDown={(event) => event.preventDefault()} onClick={() => void choose(item)}><MapPin className="size-4 shrink-0 text-primary" /><span className="min-w-0 break-words">{item.text}</span></Button>)}
+          tabIndex={-1} onPointerDown={(event) => event.preventDefault()} onClick={() => void choose(item)}><MapPin className="size-4 shrink-0 text-primary" /><span className="min-w-0 break-words">{item.text}</span></Button>)}
         {busy && <p role="status" className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" />Buscando locais…</p>}
         {searched && !busy && !suggestions.length && !error && <p role="status" className="px-3 py-3 text-sm text-muted-foreground">Nenhum local encontrado.</p>}
         {error && <p role="alert" className="break-words px-3 py-3 text-sm text-destructive">{error}</p>}
