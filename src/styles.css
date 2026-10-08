@@ -38,6 +38,12 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-task-pending: var(--task-pending);
+  --color-task-pending-border: var(--task-pending-border);
+  --color-task-pending-foreground: var(--task-pending-foreground);
+  --color-task-completed: var(--task-completed);
+  --color-task-completed-border: var(--task-completed-border);
+  --color-task-completed-foreground: var(--task-completed-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -91,6 +97,12 @@
   --success-foreground: oklch(0.99 0 0);
   --warning: oklch(0.78 0.15 68);
   --warning-foreground: oklch(0.26 0.05 68);
+  --task-pending: oklch(0.975 0.04 95);
+  --task-pending-border: oklch(0.9 0.1 95);
+  --task-pending-foreground: oklch(0.46 0.09 85);
+  --task-completed: oklch(0.97 0.03 150);
+  --task-completed-border: oklch(0.89 0.07 150);
+  --task-completed-foreground: oklch(0.42 0.1 150);
   --destructive: oklch(0.58 0.2 25);
   --destructive-foreground: oklch(0.99 0 0);
 
@@ -147,4 +159,15 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-elev-1);
+}
+
+@utility task-progress {
+  appearance: none;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: var(--muted);
+  color: var(--primary);
+  &::-webkit-progress-bar { background-color: var(--muted); }
+  &::-webkit-progress-value { background-color: var(--primary); border-radius: 9999px; }
+  &::-moz-progress-bar { background-color: var(--primary); border-radius: 9999px; }
 }
