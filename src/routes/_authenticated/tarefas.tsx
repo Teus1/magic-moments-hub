@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Check, ClipboardList, LoaderCircle, Plus, RotateCcw, Search, Trash2, Pencil } from "lucide-react";
+import { ArrowDownUp, Check, ClipboardList, LoaderCircle, Plus, RotateCcw, Search, Trash2, Pencil } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { TaskBoard } from "@/components/task-board";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ function TasksPage() {
   const options = useQuery({ queryKey: ["task-options"], queryFn: loadTaskOptions, enabled: canView });
   const [category, setCategory] = useState<TaskCategory>("art"), [search, setSearch] = useState(""), [assigneeFilter, setAssigneeFilter] = useState("all");
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [dateOrder, setDateOrder] = useState<"asc" | "desc">("asc");
   const [editor, setEditor] = useState<Editor | null>(null), [draft, setDraft] = useState<Draft>(emptyDraft);
   const [deleting, setDeleting] = useState<{ kind: "group" | "task"; id: string; title: string } | null>(null);
   const [error, setError] = useState(""), [formError, setFormError] = useState("");
@@ -75,11 +76,19 @@ function TasksPage() {
   }
   const matchesAssignee = (id: string | null) => assigneeFilter === "all" || (assigneeFilter === "none" ? !id : id === assigneeFilter);
   const matchesText = (text: string) => text.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR"));
-  const boardItems: BoardItem[] = category === "art" ? (groups.data ?? []).filter((group) => {
+  const boardItems: (BoardItem & { created_at: string })[] = category === "art" ? (groups.data ?? []).filter((group) => {
     const sub = (tasks.data ?? []).filter((task) => task.group_id === group.id);
     return (matchesAssignee(group.assignee_id) || sub.some((task) => matchesAssignee(task.assignee_id))) && matchesText(`${group.title} ${group.observations} ${sub.map((task) => `${task.title} ${task.observations}`).join(" ")}`);
   }).map((group) => { const progress = groupProgress((tasks.data ?? []).filter((task) => task.group_id === group.id)); return { ...group, date: group.event_date, status: progress.status, progress }; })
     : (tasks.data ?? []).filter((task) => task.category === "daily" && matchesAssignee(task.assignee_id) && matchesText(`${task.title} ${task.observations}`)).map((task) => ({ ...task, date: null, status: task.status === "completed" ? "completed" : "pending" }));
+  boardItems.sort((a, b) => {
+    const aDate = category === "art" ? a.date : a.created_at;
+    const bDate = category === "art" ? b.date : b.created_at;
+    if (!aDate && !bDate) return a.title.localeCompare(b.title, "pt-BR") || a.id.localeCompare(b.id);
+    if (!aDate) return 1;
+    if (!bDate) return -1;
+    return (dateOrder === "asc" ? aDate.localeCompare(bDate) : bDate.localeCompare(aDate)) || a.title.localeCompare(b.title, "pt-BR") || a.id.localeCompare(b.id);
+  });
   const field = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const requestDelete = (kind: "group" | "task", id: string, title: string) => { setError(""); setDeleting({ kind, id, title }); };
   if (userLoading) return <AppShell><PageHeader title="Tarefas" /><LoaderCircle className="size-5 animate-spin text-primary" /></AppShell>;
@@ -87,7 +96,7 @@ function TasksPage() {
   return <AppShell>
     <PageHeader title="Tarefas" action={canCreate ? <Button onClick={() => category === "art" ? openGroup() : openTask()}><Plus />{category === "art" ? "Nova tarefa principal" : "Nova tarefa"}</Button> : undefined} />
     <Tabs value={category} onValueChange={(value) => { if (value === "art" || value === "daily") setCategory(value); }} className="mb-6"><TabsList className="h-auto flex-wrap"><TabsTrigger value="art">Validação de artes</TabsTrigger><TabsTrigger value="daily">Dia a dia</TabsTrigger></TabsList></Tabs>
-    <div className="mb-7 flex flex-col gap-3 lg:flex-row"><div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-3.5 size-4 text-muted-foreground" /><Input aria-label="Buscar tarefas" placeholder="Buscar tarefas…" value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" /></div><Select value={assigneeFilter} onValueChange={setAssigneeFilter}><SelectTrigger aria-label="Filtrar por responsável" className="w-full lg:w-60"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os responsáveis</SelectItem><SelectItem value="none">Sem responsável</SelectItem>{options.data?.assignees.map((person) => <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>)}</SelectContent></Select></div>
+    <div className="mb-7 flex flex-col gap-3 xl:flex-row"><div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-3.5 size-4 text-muted-foreground" /><Input aria-label="Buscar tarefas" placeholder="Buscar tarefas…" value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" /></div><Select value={assigneeFilter} onValueChange={setAssigneeFilter}><SelectTrigger aria-label="Filtrar por responsável" className="w-full xl:w-60"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os responsáveis</SelectItem><SelectItem value="none">Sem responsável</SelectItem>{options.data?.assignees.map((person) => <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>)}</SelectContent></Select><Select value={dateOrder} onValueChange={(value) => { if (value === "asc" || value === "desc") setDateOrder(value); }}><SelectTrigger aria-label={category === "art" ? "Ordenar por data do evento" : "Ordenar por data de criação"} className="w-full xl:w-72"><span className="flex min-w-0 items-center gap-2"><ArrowDownUp className="size-4 shrink-0 text-muted-foreground" /><SelectValue /></span></SelectTrigger><SelectContent><SelectItem value="asc">{category === "art" ? "Evento: data crescente" : "Criação: data crescente"}</SelectItem><SelectItem value="desc">{category === "art" ? "Evento: data decrescente" : "Criação: data decrescente"}</SelectItem></SelectContent></Select></div>
     {(error || tasks.error || groups.error || options.error) && <div role="alert" className="mb-5 text-sm text-destructive"><p>{error || message(tasks.error ?? groups.error ?? options.error)}</p><Button variant="outline" size="sm" onClick={() => { setError(""); void refresh(); void options.refetch(); }}>Tentar novamente</Button></div>}
     {tasks.isLoading || groups.isLoading || options.isLoading ? <p role="status" className="flex items-center gap-2 py-10 text-muted-foreground"><LoaderCircle className="size-5 animate-spin" />Carregando tarefas…</p> : <TaskBoard tasks={boardItems} assignees={assignees} canEdit={category === "daily" && canEdit} busy={busy} onOpen={(item) => { if (category === "art") setSelectedGroup(item.id); else { const task = tasks.data?.find((row) => row.id === item.id); if (task) openTask(task); } }} onMove={(item, status) => move.mutate({ id: item.id, status })} />}
     <Dialog open={Boolean(activeGroup)} onOpenChange={(open) => { if (!open && !busy) setSelectedGroup(null); }}>
