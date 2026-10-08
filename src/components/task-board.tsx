@@ -21,7 +21,7 @@ function TaskCard({ task, assignees, canEdit, busy, onOpen, onMove }: Omit<Board
   return <article ref={setNodeRef} style={transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined}
     className={cn("relative rounded-lg border border-border bg-card p-4 shadow-sm", isDragging && "opacity-30")}>
     <div className="flex items-start gap-2">
-      <Button variant="ghost" onClick={() => onOpen(task)} className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left text-base font-semibold hover:bg-transparent hover:text-primary"><span className="break-words">{task.title}</span></Button>
+      {task.progress ? <span className="min-w-0 flex-1 break-words text-base font-semibold">{task.title}</span> : <Button variant="ghost" onClick={() => onOpen(task)} className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left text-base font-semibold hover:bg-transparent hover:text-primary"><span className="break-words">{task.title}</span></Button>}
       {canEdit && <Button variant="ghost" size="icon" {...attributes} {...listeners} aria-label={`Mover ${task.title}`} title="Mover tarefa" disabled={busy} className="size-8 shrink-0 touch-none text-muted-foreground"><GripVertical /></Button>}
     </div>
     {task.progress && <p className="mt-2 text-sm font-medium text-primary">{task.progress.completed} de {task.progress.total} concluídas</p>}
@@ -32,6 +32,7 @@ function TaskCard({ task, assignees, canEdit, busy, onOpen, onMove }: Omit<Board
     </div>
     {task.progress && !task.date && <p className="mt-3 text-xs text-muted-foreground">Data do evento a definir</p>}
     {canEdit && <div className="mt-4 border-t border-border pt-2"><Button variant="ghost" size="sm" disabled={busy} onClick={() => onMove(task, task.status === "pending" ? "completed" : "pending")} className="text-primary">{task.status === "pending" ? <Check /> : <RotateCcw />}{task.status === "pending" ? "Concluir" : "Reabrir"}</Button></div>}
+    {task.progress && <Button variant="ghost" aria-label={task.title} onClick={() => onOpen(task)} className="absolute inset-0 z-10 h-full w-full rounded-lg p-0 hover:bg-primary/5 focus-visible:ring-inset" />}
   </article>;
 }
 
