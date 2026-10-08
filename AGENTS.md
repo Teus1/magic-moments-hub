@@ -10,6 +10,8 @@
 <!-- LOVABLE:END -->
 
 ## Project architecture
+- Store both task categories in one RLS-protected tasks table with independent action permissions; expose only minimal client and assignee choices through permission-checked RPCs so task access does not grant user management access.
+- Use dnd-kit for task column moves and retain explicit complete/reopen commands; this supports keyboard and touch interaction without making drag mandatory.
 
 - Keep collaborator self-service at `/portal`, reading assignments through RLS-protected `event_collaborators`; this limits each account to its own schedule and compensation.
 - Create every new collaborator together with a linked login using the `colaborador` role; this prevents orphaned staff records and grants only portal access by default.

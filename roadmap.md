@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Criar quadros de Validação de artes e Dia a dia com cadastro, observações e movimentação
+- [ ] Aplicar permissões próprias de Tarefas e acesso interno restrito
+- [ ] Validar tarefas, persistência e acessos no computador e celular
+
 - [x] Adicionar sugestões de locais do Google Maps na origem e no destino
 - [x] Verificar controles da busca sem consultas reais ao Google Maps
 - [ ] Validar sugestões reais em domínio autorizado — depende do usuário
