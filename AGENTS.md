@@ -22,3 +22,4 @@
 - Keep travel route queries in an authenticated, Events-view-authorized server function with bounded inputs and short-lived bounded cache; this protects billable Google Maps calls and private credentials.
 - Calculate outbound and return routes separately and preserve unknown toll prices as unavailable; this avoids fabricated zero tolls and symmetric-trip assumptions.
 - Query Places suggestions and selected-place details through authenticated Events-view server functions, with debounced app-owned inputs and per-interaction session tokens; this protects credentials and avoids unsupported browser Places calls.
+- Use the linked owner-provided Google Maps connection for both browser rendering and authenticated Places/Routes calls, keeping server credentials inside handlers and the browser host allowlist in a tested helper; this supports custom domains without exposing private credentials or development hostnames.
