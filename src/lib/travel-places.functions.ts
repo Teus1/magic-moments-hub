@@ -7,10 +7,8 @@ const gateway = "https://connector-gateway.lovable.dev/google_maps/places/v1";
 export type TravelPlaceSuggestion = { placeId: string; text: string };
 const suggestionsCache = new Map<string, { expires: number; result: Promise<TravelPlaceSuggestion[]> }>();
 
-async function requestPlaces(path: string, mask: string, body?: unknown) {
-  const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
-  const lovableKey = process.env['LOVABLE_API_KEY'];
-  if (!apiKey || !lovableKey) throw new Error("Conecte o Google Maps para buscar locais.");
+async function requestPlaces(credentials: { apiKey: string; lovableKey: string }, path: string, mask: string, body?: unknown) {
+  const { apiKey, lovableKey } = credentials;
   const response = await fetch(`${gateway}/${path}`, {
     method: body ? "POST" : "GET",
     signal: AbortSignal.timeout(10000),
@@ -41,6 +39,9 @@ export const getTravelPlaceSuggestions = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ input: z.string().trim().min(3).max(300), sessionToken: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }): Promise<TravelPlaceSuggestion[]> => {
     await assertCan(context.supabase, "events", "view");
+    const apiKey = process.env['GOOGLE_MAPS_API_KEY_1'];
+    const lovableKey = process.env['LOVABLE_API_KEY'];
+    if (!apiKey || !lovableKey) throw new Error("Conecte o Google Maps para buscar locais.");
     const key = JSON.stringify(data);
     const saved = suggestionsCache.get(key);
     if (saved && saved.expires > Date.now()) return saved.result;
@@ -50,7 +51,7 @@ export const getTravelPlaceSuggestions = createServerFn({ method: "POST" })
       if (oldest) suggestionsCache.delete(oldest);
     }
     const result = (async () => {
-      const payload = await requestPlaces("places:autocomplete", "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text", {
+      const payload = await requestPlaces({ apiKey, lovableKey }, "places:autocomplete", "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text", {
         input: data.input, sessionToken: data.sessionToken, languageCode: "pt-BR", regionCode: "BR",
         locationBias: { rectangle: { low: { latitude: -33.75, longitude: -73.99 }, high: { latitude: 5.28, longitude: -34.79 } } },
       }) as { suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[] };
@@ -65,7 +66,10 @@ export const resolveTravelPlace = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ placeId: z.string().min(1).max(300).regex(/^[a-zA-Z0-9_-]+$/), sessionToken: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }): Promise<string> => {
     await assertCan(context.supabase, "events", "view");
-    const place = await requestPlaces(`places/${encodeURIComponent(data.placeId)}?sessionToken=${encodeURIComponent(data.sessionToken)}&languageCode=pt-BR`, "formattedAddress") as { formattedAddress?: string };
+    const apiKey = process.env['GOOGLE_MAPS_API_KEY_1'];
+    const lovableKey = process.env['LOVABLE_API_KEY'];
+    if (!apiKey || !lovableKey) throw new Error("Conecte o Google Maps para buscar locais.");
+    const place = await requestPlaces({ apiKey, lovableKey }, `places/${encodeURIComponent(data.placeId)}?sessionToken=${encodeURIComponent(data.sessionToken)}&languageCode=pt-BR`, "formattedAddress") as { formattedAddress?: string };
     if (!place.formattedAddress) throw new Error("Este local não possui endereço disponível.");
     return place.formattedAddress;
   });

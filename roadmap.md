@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Vincular a conexão própria do Google Maps e aplicar suas credenciais ao mapa, buscas e trajetos
+- [x] Autorizar os dois domínios próprios no mapa, preservando o bloqueio dos endereços privados de desenvolvimento
+- [ ] Validar mapa, sugestões e trajeto reais no domínio próprio publicado — depende de publicação e conferência do usuário
+
 - [x] Reorganizar artes em tarefas principais e subtarefas, com data comum e conclusão automática
 - [x] Simplificar Dia a dia e preservar registros anteriores
 - [x] Validar agrupamentos, persistência e telas; manter as permissões existentes
@@ -14,7 +18,7 @@
 
 - [x] Criar calculador de deslocamento com combustível, ida e volta e pedágios estimados
 - [x] Verificar cálculos, controles e acesso autenticado sem consultas Google Maps
-- [ ] Validar trajeto e tarifas reais no endereço publicado lovable.app — depende do usuário; mapa no domínio próprio exige chave Google autorizada
+- [ ] Validar trajeto e tarifas reais no endereço publicado autorizado — depende de conferência do usuário
 
 - [x] Criar a página Minha agenda com eventos escalados e valores individuais
 - [x] Exibir detalhes operacionais, cliente, cerimonial, serviço e local

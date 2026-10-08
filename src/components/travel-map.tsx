@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPinned } from "lucide-react";
 import type { TravelRoute } from "@/lib/travel";
+import { isTravelMapHostAllowed } from "@/lib/travel-map-host";
 
 declare global { interface Window { magicTravelMapReady?: () => void } }
 let loading: Promise<void> | undefined;
@@ -23,9 +24,8 @@ export function TravelMap({ route }: { route: TravelRoute | null }) {
   useEffect(() => {
     if (!route) return;
     const host = window.location.hostname;
-    const allowed = host.endsWith(".lovable.app") || host.endsWith(".lovableproject.com");
-    if (!allowed || /-devserver-/.test(host)) {
-      setNotice("O mapa está disponível no endereço lovable.app. No domínio próprio, é necessária uma chave Google autorizada.");
+    if (!isTravelMapHostAllowed(host)) {
+      setNotice("O mapa está disponível nos endereços autorizados do sistema.");
       return;
     }
     const key = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY'];
