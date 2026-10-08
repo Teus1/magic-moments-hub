@@ -1,6 +1,6 @@
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useState } from "react";
-import { CalendarDays, Check, CheckCheck, Circle, GripVertical, RotateCcw, UserRound } from "lucide-react";
+import { CalendarDays, Check, CheckCheck, Circle, ClipboardList, GripVertical, RotateCcw, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -18,15 +18,17 @@ type BoardProps = {
 function TaskCard({ task, assignees, canEdit, busy, onOpen, onMove }: Omit<BoardProps, "tasks"> & { task: BoardItem }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id, disabled: !canEdit || busy });
   const overdue = task.status === "pending" && task.date && task.date < localToday();
+  const percentage = task.progress && task.progress.total > 0 ? Math.round(task.progress.completed / task.progress.total * 100) : 0;
   return <article ref={setNodeRef} style={transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined}
-    className={cn("relative rounded-lg border border-border bg-card p-4 shadow-sm", isDragging && "opacity-30")}>
+    className={cn("relative rounded-lg border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-card motion-reduce:transition-none", isDragging && "opacity-30")}>
     <div className="flex items-start gap-2">
       {task.progress ? <span className="min-w-0 flex-1 break-words text-base font-semibold">{task.title}</span> : <Button variant="ghost" onClick={() => onOpen(task)} className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left text-base font-semibold hover:bg-transparent hover:text-primary"><span className="break-words">{task.title}</span></Button>}
       {canEdit && <Button variant="ghost" size="icon" {...attributes} {...listeners} aria-label={`Mover ${task.title}`} title="Mover tarefa" disabled={busy} className="size-8 shrink-0 touch-none text-muted-foreground"><GripVertical /></Button>}
+      {task.progress && task.status === "completed" && <Badge variant="outline" className="shrink-0 border-task-completed-border bg-task-completed text-task-completed-foreground"><Check className="size-3" />Concluída</Badge>}
     </div>
-    {task.progress && <p className="mt-2 text-sm font-medium text-primary">{task.progress.completed} de {task.progress.total} concluídas</p>}
+    {task.progress && <div className="mt-4 space-y-2"><div className="flex items-center justify-between gap-3 text-xs font-semibold text-primary"><span>{task.progress.completed} de {task.progress.total} concluídas</span><span className="tabular-nums">{percentage}%</span></div><progress className="task-progress block h-1.5 w-full" value={task.progress.completed} max={Math.max(1, task.progress.total)} aria-label={`Progresso de ${task.title}`} /></div>}
     {task.observations && <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words text-sm text-muted-foreground">{task.observations}</p>}
-    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
       {task.assignee_id && <span className="flex min-w-0 items-center gap-1.5"><UserRound className="size-3.5 shrink-0" /><span className="break-words">{assignees.get(task.assignee_id) ?? "Responsável"}</span></span>}
       {task.date && <span className={cn("flex items-center gap-1.5", overdue && "font-medium text-destructive")}><CalendarDays className="size-3.5" />{taskDate(task.date)}{overdue ? " · Atrasada" : ""}</span>}
     </div>
@@ -38,9 +40,10 @@ function TaskCard({ task, assignees, canEdit, busy, onOpen, onMove }: Omit<Board
 
 function Column({ status, children, count }: { status: TaskStatus; children: React.ReactNode; count: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
-  return <section ref={setNodeRef} aria-label={status === "pending" ? "Tarefas pendentes" : "Tarefas concluídas"} className={cn("min-w-0 border-t-2 border-border pt-4", isOver && "border-primary bg-primary/5")}>
-    <div className="mb-5 flex items-center gap-2">{status === "pending" ? <Circle className="size-4 text-primary" /> : <CheckCheck className="size-4 text-success" />}<h2 className="font-display text-xl">{status === "pending" ? "Pendente" : "Concluída"}</h2><Badge variant="secondary">{count}</Badge></div>
-    <div className="min-h-52 space-y-3 pb-8">{children}{count === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Nenhuma tarefa {status === "pending" ? "pendente" : "concluída"}.</p>}</div>
+  const pending = status === "pending";
+  return <section ref={setNodeRef} aria-label={pending ? "Tarefas pendentes" : "Tarefas concluídas"} className={cn("flex min-h-[500px] min-w-0 flex-col rounded-lg border p-4 sm:p-5", pending ? "border-task-pending-border bg-task-pending text-task-pending-foreground" : "border-task-completed-border bg-task-completed text-task-completed-foreground", isOver && "ring-2 ring-primary")}>
+    <div className="mb-6 flex items-center gap-3">{pending ? <Circle className="size-4 shrink-0" /> : <CheckCheck className="size-5 shrink-0" />}<h2 className="font-display text-xl tracking-normal text-foreground">{pending ? "Pendente" : "Concluída"}</h2><Badge variant="outline" className={cn("border-transparent tabular-nums", pending ? "bg-task-pending-border/50 text-task-pending-foreground" : "bg-task-completed-border/50 text-task-completed-foreground")}>{count}</Badge></div>
+    <div className="flex flex-1 flex-col gap-4 text-card-foreground">{children}{count === 0 && <div className={cn("flex min-h-64 flex-1 flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 text-center", pending ? "border-task-pending-border text-task-pending-foreground" : "border-task-completed-border text-task-completed-foreground")}><span className="rounded-full bg-card p-3 shadow-sm">{pending ? <ClipboardList className="size-7" /> : <CheckCheck className="size-7" />}</span><p className="text-sm font-medium">Nenhuma tarefa {pending ? "pendente" : "concluída"}.</p></div>}</div>
   </section>;
 }
 
