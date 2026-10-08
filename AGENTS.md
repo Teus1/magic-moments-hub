@@ -17,3 +17,4 @@
 - Store event attachments in the private `event-attachments` bucket and authorize metadata and files with Events permissions; this keeps receipts and contracts unavailable to collaborator self-service.
 - Keep travel route queries in an authenticated, Events-view-authorized server function with bounded inputs and short-lived bounded cache; this protects billable Google Maps calls and private credentials.
 - Calculate outbound and return routes separately and preserve unknown toll prices as unavailable; this avoids fabricated zero tolls and symmetric-trip assumptions.
+- Query Places suggestions and selected-place details through authenticated Events-view server functions, with debounced app-owned inputs and per-interaction session tokens; this protects credentials and avoids unsupported browser Places calls.

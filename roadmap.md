@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Adicionar sugestões de locais do Google Maps na origem e no destino
+- [ ] Verificar controles da busca sem consultas reais ao Google Maps
+- [ ] Validar sugestões reais em domínio autorizado — depende do usuário
+
 - [x] Criar calculador de deslocamento com combustível, ida e volta e pedágios estimados
 - [x] Verificar cálculos, controles e acesso autenticado sem consultas Google Maps
 - [ ] Validar trajeto e tarifas reais no endereço publicado lovable.app — depende do usuário; mapa no domínio próprio exige chave Google autorizada
