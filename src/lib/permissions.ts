@@ -12,6 +12,7 @@ export type ModuleKey =
   | "services"
   | "collaborators"
   | "portal"
+  | "tasks"
   | "users"
   | "roles"
   | "settings";
@@ -23,6 +24,7 @@ export interface ModuleDefinition {
 }
 
 export const MODULES: ModuleDefinition[] = [
+  { key: "tasks", label: "Tarefas", description: "Validação de artes e atividades internas" },
   { key: "dashboard", label: "Dashboard", description: "Painel e indicadores" },
   { key: "clients", label: "Clientes", description: "Cadastro de clientes" },
   { key: "events", label: "Eventos", description: "Eventos e valores" },
