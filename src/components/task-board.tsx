@@ -23,7 +23,7 @@ function TaskCard({ task, clients, assignees, canEdit, busy, onOpen, onMove }: O
     className={cn("relative rounded-lg border border-border bg-card p-4 shadow-sm", isDragging && "opacity-30")}>
     <div className="flex items-start gap-2">
       <Button variant="ghost" onClick={() => onOpen(task)} className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left text-base font-semibold hover:bg-transparent hover:text-primary"><span className="break-words">{task.title}</span></Button>
-      {canEdit && <Button variant="ghost" size="icon" ref={undefined} {...attributes} {...listeners} aria-label={`Mover ${task.title}`} title="Mover tarefa" disabled={busy} className="size-8 shrink-0 touch-none text-muted-foreground"><GripVertical /></Button>}
+      {canEdit && <Button variant="ghost" size="icon" {...attributes} {...listeners} aria-label={`Mover ${task.title}`} title="Mover tarefa" disabled={busy} className="size-8 shrink-0 touch-none text-muted-foreground"><GripVertical /></Button>}
     </div>
     {task.client_id && <p className="mt-2 break-words text-sm font-medium text-primary">{clients.get(task.client_id) ?? "Cliente"}</p>}
     {task.observations && <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words text-sm text-muted-foreground">{task.observations}</p>}

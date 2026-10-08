@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ClipboardList, LoaderCircle, Plus, Search, Trash2 } from "lucide-react";
@@ -14,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { supabase } from "@/integrations/supabase/client";
+import { saveTask, changeTaskStatus, deleteTask } from "@/lib/tasks.functions";
 import { loadTasks, loadTaskOptions, taskQueryKey, type Task, type TaskCategory, type TaskStatus } from "@/lib/tasks";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
@@ -34,6 +35,9 @@ const message = (error: unknown) => error instanceof Error ? error.message : typ
 function TasksPage() {
   const { can, user, isLoading: userLoading } = useCurrentUser();
   const queryClient = useQueryClient();
+  const saveTaskFn = useServerFn(saveTask);
+  const changeStatusFn = useServerFn(changeTaskStatus);
+  const deleteTaskFn = useServerFn(deleteTask);
   const canView = can("tasks", "view"), canCreate = can("tasks", "create"), canEdit = can("tasks", "edit"), canDelete = can("tasks", "delete");
   const tasks = useQuery({ queryKey: taskQueryKey, queryFn: loadTasks, enabled: canView });
   const options = useQuery({ queryKey: ["task-options"], queryFn: loadTaskOptions, enabled: canView });
@@ -56,14 +60,12 @@ function TasksPage() {
     if (!draft.title.trim()) throw new Error("Informe o título da tarefa.");
     if (category === "art" && !draft.client_id) throw new Error("Selecione o cliente da validação de arte.");
     const payload = { category, status: draft.status, title: draft.title.trim(), description: draft.description.trim(), observations: draft.observations.trim(), client_id: draft.client_id || null, assignee_id: draft.assignee_id || null, due_date: draft.due_date || null };
-    const response = editing ? await supabase.from("tasks").update(payload).eq("id", editing.id).select("id").single() : await supabase.from("tasks").insert({ ...payload, created_by: user.id }).select("id").single();
-    if (response.error) throw response.error;
+    await saveTaskFn({ data: { id: editing?.id ?? null, draft: payload } });
   }, onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: taskQueryKey }); setOpen(false); }, onError: (cause) => setFormError(message(cause)) });
 
   const move = useMutation({ mutationFn: async ({ task, status }: { task: Task; status: TaskStatus }) => {
     if (!canEdit) throw new Error("Sem permissão para editar tarefas.");
-    const { error } = await supabase.from("tasks").update({ status }).eq("id", task.id).select("id").single();
-    if (error) throw error;
+    await changeStatusFn({ data: { id: task.id, status } });
   }, onMutate: async ({ task, status }) => {
     setError(""); await queryClient.cancelQueries({ queryKey: taskQueryKey });
     const previous = queryClient.getQueryData<Task[]>(taskQueryKey);
@@ -73,8 +75,7 @@ function TasksPage() {
 
   const remove = useMutation({ mutationFn: async () => {
     if (!deleting || !canDelete) throw new Error("Sem permissão para excluir esta tarefa.");
-    const { error } = await supabase.from("tasks").delete().eq("id", deleting.id).select("id").single();
-    if (error) throw error;
+    await deleteTaskFn({ data: { id: deleting.id } });
   }, onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: taskQueryKey }); setDeleting(null); setOpen(false); }, onError: (cause) => setError(message(cause)) });
 
   function openTask(task: Task | null) {
@@ -88,7 +89,7 @@ function TasksPage() {
   if (!canView) return <AppShell><PageHeader title="Tarefas" /><p className="text-muted-foreground">Você não tem permissão para acessar tarefas.</p></AppShell>;
 
   return <AppShell>
-    <PageHeader title="Tarefas" actions={canCreate ? <Button onClick={() => openTask(null)}><Plus />Nova tarefa</Button> : undefined} />
+    <PageHeader title="Tarefas" description="Organize as validações dos clientes e as atividades da equipe." action={canCreate ? <Button onClick={() => openTask(null)}><Plus />Nova tarefa</Button> : undefined} />
     <Tabs value={category} onValueChange={(value) => { if (value === "art" || value === "daily") { setCategory(value); setClientFilter("all"); } }} className="mb-6">
       <TabsList className="h-auto flex-wrap"><TabsTrigger value="art">Validação de artes</TabsTrigger><TabsTrigger value="daily">Dia a dia</TabsTrigger></TabsList>
     </Tabs>
