@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import {
   BriefcaseBusiness,
   CalendarDays,
+  ClipboardList,
   ChevronDown,
   HardHat,
   LayoutDashboard,
@@ -167,6 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           </div>
         )}
+        {can("tasks", "view") && <div className="pt-4"><Link to="/tarefas" onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors", pathname === "/tarefas" ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground" : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60")}><ClipboardList className="size-4" />Tarefas</Link></div>}
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
