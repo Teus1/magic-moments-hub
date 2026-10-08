@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   PartyPopper,
+  Route as RouteIcon,
   Settings,
   Shield,
   Sparkles,
@@ -39,6 +40,7 @@ const MAIN_NAV: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, module: "dashboard", action: "view" },
   { label: "Eventos", to: "/eventos", icon: PartyPopper, module: "events", action: "view" },
   { label: "Calendário", to: "/calendario", icon: CalendarDays, module: "calendar", action: "view" },
+  { label: "Deslocamento", to: "/deslocamento", icon: RouteIcon, module: "events", action: "view" },
   { label: "Minha agenda", to: "/portal", icon: BriefcaseBusiness, module: "portal", action: "view" },
 ];
 
