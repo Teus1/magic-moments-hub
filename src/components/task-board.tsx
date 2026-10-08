@@ -4,33 +4,33 @@ import { CalendarDays, Check, CheckCheck, Circle, GripVertical, RotateCcw, UserR
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { localToday, taskDate, type Task, type TaskStatus } from "@/lib/tasks";
+import { localToday, taskDate, type BoardItem, type TaskStatus } from "@/lib/tasks";
 
 type BoardProps = {
-  tasks: Task[];
-  clients: Map<string, string>;
+  tasks: BoardItem[];
   assignees: Map<string, string>;
   canEdit: boolean;
   busy: boolean;
-  onOpen: (task: Task) => void;
-  onMove: (task: Task, status: TaskStatus) => void;
+  onOpen: (task: BoardItem) => void;
+  onMove: (task: BoardItem, status: TaskStatus) => void;
 };
 
-function TaskCard({ task, clients, assignees, canEdit, busy, onOpen, onMove }: Omit<BoardProps, "tasks"> & { task: Task }) {
+function TaskCard({ task, assignees, canEdit, busy, onOpen, onMove }: Omit<BoardProps, "tasks"> & { task: BoardItem }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id, disabled: !canEdit || busy });
-  const overdue = task.status === "pending" && task.due_date && task.due_date < localToday();
+  const overdue = task.status === "pending" && task.date && task.date < localToday();
   return <article ref={setNodeRef} style={transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined}
     className={cn("relative rounded-lg border border-border bg-card p-4 shadow-sm", isDragging && "opacity-30")}>
     <div className="flex items-start gap-2">
       <Button variant="ghost" onClick={() => onOpen(task)} className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left text-base font-semibold hover:bg-transparent hover:text-primary"><span className="break-words">{task.title}</span></Button>
       {canEdit && <Button variant="ghost" size="icon" {...attributes} {...listeners} aria-label={`Mover ${task.title}`} title="Mover tarefa" disabled={busy} className="size-8 shrink-0 touch-none text-muted-foreground"><GripVertical /></Button>}
     </div>
-    {task.client_id && <p className="mt-2 break-words text-sm font-medium text-primary">{clients.get(task.client_id) ?? "Cliente"}</p>}
+    {task.progress && <p className="mt-2 text-sm font-medium text-primary">{task.progress.completed} de {task.progress.total} concluídas</p>}
     {task.observations && <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words text-sm text-muted-foreground">{task.observations}</p>}
     <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
       {task.assignee_id && <span className="flex min-w-0 items-center gap-1.5"><UserRound className="size-3.5 shrink-0" /><span className="break-words">{assignees.get(task.assignee_id) ?? "Responsável"}</span></span>}
-      {task.due_date && <span className={cn("flex items-center gap-1.5", overdue && "font-medium text-destructive")}><CalendarDays className="size-3.5" />{taskDate(task.due_date)}{overdue ? " · Atrasada" : ""}</span>}
+      {task.date && <span className={cn("flex items-center gap-1.5", overdue && "font-medium text-destructive")}><CalendarDays className="size-3.5" />{taskDate(task.date)}{overdue ? " · Atrasada" : ""}</span>}
     </div>
+    {task.progress && !task.date && <p className="mt-3 text-xs text-muted-foreground">Data do evento a definir</p>}
     {canEdit && <div className="mt-4 border-t border-border pt-2"><Button variant="ghost" size="sm" disabled={busy} onClick={() => onMove(task, task.status === "pending" ? "completed" : "pending")} className="text-primary">{task.status === "pending" ? <Check /> : <RotateCcw />}{task.status === "pending" ? "Concluir" : "Reabrir"}</Button></div>}
   </article>;
 }
@@ -44,7 +44,7 @@ function Column({ status, children, count }: { status: TaskStatus; children: Rea
 }
 
 export function TaskBoard(props: BoardProps) {
-  const [dragged, setDragged] = useState<Task | null>(null);
+  const [dragged, setDragged] = useState<BoardItem | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor));
   function end(event: DragEndEvent) {
     setDragged(null);

@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Reorganizar artes em tarefas principais e subtarefas, com data comum e conclusão automática
+- [x] Simplificar Dia a dia e preservar registros anteriores
+- [x] Validar agrupamentos, persistência e telas; manter as permissões existentes
+
 - [x] Criar quadros de Validação de artes e Dia a dia com cadastro, observações e movimentação
 - [x] Aplicar permissões próprias de Tarefas e acesso interno restrito
 - [x] Validar tarefas, persistência e acessos no computador e celular
