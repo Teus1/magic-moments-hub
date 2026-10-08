@@ -30,6 +30,10 @@ export const Route = createFileRoute("/_authenticated/calendario")({
   head: () => ({
     meta: [
       { title: "Calendário — Magic Moments" },
+      { property: "og:title", content: "Calendário — Magic Moments" },
+      { property: "og:description", content: "Agenda mensal dos eventos da Magic Moments." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Agenda mensal dos eventos da Magic Moments.",

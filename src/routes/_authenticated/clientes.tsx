@@ -47,6 +47,10 @@ export const Route = createFileRoute("/_authenticated/clientes")({
     meta: [
       { title: "Clientes — Magic Moments" },
       { name: "description", content: "Cadastro e histórico de clientes da Magic Moments." },
+      { property: "og:title", content: "Clientes — Magic Moments" },
+      { property: "og:description", content: "Cadastro e histórico de clientes da Magic Moments." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
