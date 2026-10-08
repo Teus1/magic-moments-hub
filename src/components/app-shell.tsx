@@ -5,7 +5,6 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   ChevronDown,
-  FolderOpen,
   HardHat,
   LayoutDashboard,
   LogOut,
@@ -43,13 +42,10 @@ const MAIN_NAV: NavItem[] = [
   { label: "Minha agenda", to: "/portal", icon: BriefcaseBusiness, module: "portal", action: "view" },
 ];
 
-const REGISTRY_NAV: NavItem[] = [
+const SETTINGS_NAV: NavItem[] = [
   { label: "Clientes", to: "/clientes", icon: UsersRound, module: "clients", action: "view" },
   { label: "Serviços", to: "/servicos", icon: Sparkles, module: "services", action: "view" },
   { label: "Colaboradores", to: "/colaboradores", icon: HardHat, module: "collaborators", action: "view" },
-];
-
-const SETTINGS_NAV: NavItem[] = [
   { label: "Usuários", to: "/configuracoes/usuarios", icon: Users, module: "users", action: "view" },
   { label: "Roles e permissões", to: "/configuracoes/roles", icon: Shield, module: "roles", action: "manage" },
 ];
@@ -62,10 +58,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(true);
-  const [registryOpen, setRegistryOpen] = useState(true);
 
   const settingsItems = SETTINGS_NAV.filter((item) => can(item.module, item.action));
-  const registryItems = REGISTRY_NAV.filter((item) => can(item.module, item.action));
 
 
   async function handleSignOut() {
@@ -134,55 +128,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           );
         })}
 
-        {registryItems.length > 0 && (
-          <div className="pt-4">
-            <button
-              type="button"
-              onClick={() => setRegistryOpen((v) => !v)}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent/60"
-            >
-              <FolderOpen className="size-4" />
-              <span className="flex-1 text-left">Cadastros</span>
-              <ChevronDown className={cn("size-4 transition-transform", registryOpen && "rotate-180")} />
-            </button>
-            {registryOpen && (
-              <div className="mt-1 space-y-1 pl-4">
-                {registryItems.map((item) => {
-                  const active = pathname === item.to;
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.label}
-                      to={item.to!}
-                      onClick={() => setMobileOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        active
-                          ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
-                      )}
-                    >
-                      <Icon className="size-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
         {settingsItems.length > 0 && (
           <div className="pt-4">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => setSettingsOpen((v) => !v)}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent/60"
+              className="flex w-full justify-start gap-3 rounded-lg px-3 py-2 text-sm font-normal text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
             >
               <Settings className="size-4" />
               <span className="flex-1 text-left">Configurações</span>
               <ChevronDown className={cn("size-4 transition-transform", settingsOpen && "rotate-180")} />
-            </button>
+            </Button>
             {settingsOpen && (
               <div className="mt-1 space-y-1 pl-4">
                 {settingsItems.map((item) => {
