@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Adicionar sugestões de locais do Google Maps na origem e no destino
-- [ ] Verificar controles da busca sem consultas reais ao Google Maps
+- [x] Adicionar sugestões de locais do Google Maps na origem e no destino
+- [x] Verificar controles da busca sem consultas reais ao Google Maps
 - [ ] Validar sugestões reais em domínio autorizado — depende do usuário
 
 - [x] Criar calculador de deslocamento com combustível, ida e volta e pedágios estimados
