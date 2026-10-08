@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { useEffect, useRef, useState } from "react";
 import { MapPinned } from "lucide-react";
 import type { TravelRoute } from "@/lib/travel";

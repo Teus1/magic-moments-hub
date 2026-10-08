@@ -16,6 +16,7 @@ import { Route as AuthenticatedCalendarioRouteImport } from './routes/_authentic
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedColaboradoresRouteImport } from './routes/_authenticated/colaboradores'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDeslocamentoRouteImport } from './routes/_authenticated/deslocamento'
 import { Route as AuthenticatedEventosRouteImport } from './routes/_authenticated/eventos'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
@@ -57,6 +58,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDeslocamentoRoute =
+  AuthenticatedDeslocamentoRouteImport.update({
+    id: '/deslocamento',
+    path: '/deslocamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEventosRoute = AuthenticatedEventosRouteImport.update({
   id: '/eventos',
   path: '/eventos',
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/deslocamento': typeof AuthenticatedDeslocamentoRoute
   '/eventos': typeof AuthenticatedEventosRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/servicos': typeof AuthenticatedServicosRoute
@@ -105,6 +113,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/deslocamento': typeof AuthenticatedDeslocamentoRoute
   '/eventos': typeof AuthenticatedEventosRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/servicos': typeof AuthenticatedServicosRoute
@@ -120,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/colaboradores': typeof AuthenticatedColaboradoresRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/deslocamento': typeof AuthenticatedDeslocamentoRoute
   '/_authenticated/eventos': typeof AuthenticatedEventosRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/colaboradores'
     | '/dashboard'
+    | '/deslocamento'
     | '/eventos'
     | '/portal'
     | '/servicos'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/colaboradores'
     | '/dashboard'
+    | '/deslocamento'
     | '/eventos'
     | '/portal'
     | '/servicos'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/colaboradores'
     | '/_authenticated/dashboard'
+    | '/_authenticated/deslocamento'
     | '/_authenticated/eventos'
     | '/_authenticated/portal'
     | '/_authenticated/servicos'
@@ -226,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/deslocamento': {
+      id: '/_authenticated/deslocamento'
+      path: '/deslocamento'
+      fullPath: '/deslocamento'
+      preLoaderRoute: typeof AuthenticatedDeslocamentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/eventos': {
       id: '/_authenticated/eventos'
       path: '/eventos'
@@ -269,6 +289,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedColaboradoresRoute: typeof AuthenticatedColaboradoresRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDeslocamentoRoute: typeof AuthenticatedDeslocamentoRoute
   AuthenticatedEventosRoute: typeof AuthenticatedEventosRoute
   AuthenticatedPortalRoute: typeof AuthenticatedPortalRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
@@ -281,6 +302,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedColaboradoresRoute: AuthenticatedColaboradoresRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDeslocamentoRoute: AuthenticatedDeslocamentoRoute,
   AuthenticatedEventosRoute: AuthenticatedEventosRoute,
   AuthenticatedPortalRoute: AuthenticatedPortalRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,

@@ -1,7 +1,8 @@
 # Roadmap
 
-- [ ] Criar calculador de deslocamento com combustível, ida e volta e pedágios estimados
-- [ ] Verificar cálculos e acesso; consulta real Google Maps depende de validação pelo usuário
+- [x] Criar calculador de deslocamento com combustível, ida e volta e pedágios estimados
+- [x] Verificar cálculos, controles e acesso autenticado sem consultas Google Maps
+- [ ] Validar trajeto e tarifas reais no endereço publicado lovable.app — depende do usuário; mapa no domínio próprio exige chave Google autorizada
 
 - [x] Criar a página Minha agenda com eventos escalados e valores individuais
 - [x] Exibir detalhes operacionais, cliente, cerimonial, serviço e local

@@ -10,6 +10,8 @@ export const Route = createFileRoute("/")({
           "Painel interno da Magic Moments para gestão de clientes, eventos, serviços e equipe.",
       },
       { property: "og:title", content: "Magic Moments — Painel interno" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Sistema interno de gestão de eventos da Magic Moments.",

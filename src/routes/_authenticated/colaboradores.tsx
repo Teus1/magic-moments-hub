@@ -48,6 +48,10 @@ export const Route = createFileRoute("/_authenticated/colaboradores")({
   head: () => ({
     meta: [
       { title: "Colaboradores — Magic Moments" },
+      { property: "og:title", content: "Colaboradores — Magic Moments" },
+      { property: "og:description", content: "Operadores dos eventos da Magic Moments." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Cadastro dos operadores que trabalham nos eventos da Magic Moments.",

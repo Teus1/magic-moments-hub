@@ -34,6 +34,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     meta: [
       { title: "Dashboard — Magic Moments" },
       { name: "description", content: "Visão geral operacional da Magic Moments." },
+      { property: "og:title", content: "Dashboard — Magic Moments" },
+      { property: "og:description", content: "Visão geral operacional da Magic Moments." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),

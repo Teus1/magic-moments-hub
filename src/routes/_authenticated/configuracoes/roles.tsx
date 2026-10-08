@@ -29,6 +29,10 @@ export const Route = createFileRoute("/_authenticated/configuracoes/roles")({
     meta: [
       { title: "Roles e permissões — Magic Moments" },
       { name: "description", content: "Configure papéis de acesso e permissões por módulo." },
+      { property: "og:title", content: "Roles e permissões — Magic Moments" },
+      { property: "og:description", content: "Papéis de acesso e permissões da Magic Moments." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),

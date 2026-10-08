@@ -19,6 +19,8 @@ export const Route = createFileRoute("/auth")({
       { title: "Entrar — Magic Moments" },
       { name: "description", content: "Acesso restrito à equipe da Magic Moments." },
       { property: "og:title", content: "Entrar — Magic Moments" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:description", content: "Acesso restrito à equipe da Magic Moments." },
       { name: "robots", content: "noindex" },
     ],
