@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Refinar visual do Dashboard: cabeçalho, indicadores, próximos eventos e resumos compactos sem alterar consultas ou cálculos
+- [ ] Refinar sidebar mantendo destinos, permissões e expansão de Configurações
+- [ ] Verificar dados, ações e visual do Dashboard no computador, tablet e celular
+
 - [x] Vincular a conexão própria do Google Maps e aplicar suas credenciais ao mapa, buscas e trajetos
 - [x] Autorizar os dois domínios próprios no mapa, preservando o bloqueio dos endereços privados de desenvolvimento
 - [ ] Validar mapa, sugestões e trajeto reais no domínio próprio publicado — depende de publicação e conferência do usuário
