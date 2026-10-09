@@ -27,7 +27,7 @@ function CalendarPage() {
  const [editor,setEditor] = useState<{appointment:CalendarAppointment | null;start:string} | null>(null);
  const query = useQuery({queryKey:['operational-calendar',range.start,range.end],queryFn:() => fetchCalendar({data:range}),enabled:can('calendar','view')});
  const items = useMemo(() => [
-  ...(query.data?.events ?? []).map(e => ({id:`event:${e.id}`,title:e.name,...eventInterval(e),classNames:['calendar-commercial',...(e.status === 'cancelled' ? ['calendar-cancelled'] : [])],extendedProps:{detail:e.venue ?? e.client?.full_name ?? ''}})),
+  ...(query.data?.events ?? []).map(e => ({id:`event:${e.id}`,title:e.name,...eventInterval(e),displayEventEnd:!!e.end_time,classNames:['calendar-commercial',...(e.status === 'cancelled' ? ['calendar-cancelled'] : [])],extendedProps:{detail:e.venue ?? e.client?.full_name ?? ''}})),
   ...(query.data?.appointments ?? []).map(a => ({id:`appointment:${a.id}`,title:a.title,start:a.start_at,end:a.end_at,classNames:['calendar-operational',...(a.event?.status === 'cancelled' ? ['calendar-cancelled'] : [])],extendedProps:{detail:a.event?.name ?? ''}})),
  ],[query.data]);
  function openItem(id: string) {
@@ -36,7 +36,7 @@ function CalendarPage() {
  }
  if(!can('calendar','view')) return <AppShell><PageHeader title="Calendário" description="Você não tem permissão para visualizar este módulo."/></AppShell>;
  return <AppShell>
-  <div className="mb-6 flex flex-wrap items-start justify-between gap-3"><PageHeader title="Calendário" description="Agenda operacional"/>{permissions.create && <Button onClick={() => setEditor({appointment:null,start:`${range.start}T09:00`})}><Plus className="size-4"/>Novo compromisso</Button>}</div>
+  <div className="mb-6 flex flex-wrap items-start justify-between gap-3"><PageHeader title="Calendário" description="Agenda operacional"/>{permissions.create && <Button onClick={() => {const today = calendarToday();const day = today >= range.start && today < range.end ? today : range.end === addCalendarDays(range.start,1) ? range.start : `${addCalendarDays(range.start,7).slice(0,7)}-01`;setEditor({appointment:null,start:`${day}T09:00`});}}><Plus className="size-4"/>Novo compromisso</Button>}</div>
   <div className="mb-4 flex flex-wrap items-center gap-5 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="size-2.5 rounded-sm bg-primary"/>Eventos</span><span className="flex items-center gap-2"><span className="size-2.5 rounded-sm bg-accent"/>Compromissos</span><span>Horário de Brasília</span>{query.isFetching && <span role="status">Carregando agenda...</span>}</div>
   {query.isError && <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 text-sm text-destructive">{query.error.message}<Button variant="outline" size="sm" onClick={() => query.refetch()}>Tentar novamente</Button></div>}
   <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando calendário...</p>}><OperationalCalendar events={items} canCreate={permissions.create} onRange={(start,end) => setRange(prev => prev.start === start && prev.end === end ? prev : {start,end})} onItem={openItem} onSlot={start => setEditor({appointment:null,start})}/></Suspense>
