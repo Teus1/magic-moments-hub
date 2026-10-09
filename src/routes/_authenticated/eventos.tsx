@@ -74,7 +74,7 @@ import {
 } from "@/lib/events";
 
 export const Route = createFileRoute("/_authenticated/eventos")({
-  validateSearch: (search: Record<string, unknown>): { action?: "new" } => ({ action: search.action === "new" ? "new" : undefined }),
+  validateSearch: (search: Record<string, unknown>): { action?: "new" } => search['action'] === "new" ? { action: "new" } : {},
   head: () => ({
     meta: [
       { title: "Eventos — Magic Moments" },

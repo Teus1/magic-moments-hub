@@ -57,7 +57,7 @@ function monthRange() {
   return { start, end, label };
 }
 
-function Metric({ label, value, hint, highlight = false }: { label: string; value: string; hint?: string; highlight?: boolean }) {
+function Metric({ label, value, hint, highlight = false }: { label: string; value: string; hint?: string | undefined; highlight?: boolean }) {
   return <div className="min-w-0 border-l border-border pl-4 first:border-l-0 first:pl-0">
     <dt className="text-xs text-muted-foreground">{label}</dt>
     <dd className={cn("mt-2 break-words text-2xl font-semibold tabular-nums", highlight && "text-primary")}>{value}</dd>
