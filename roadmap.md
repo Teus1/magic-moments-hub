@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] Revisar vínculos e proteções existentes e conectar Google Drive para backups
+- [ ] Aprovar o plano de preservação e backup semanal completo
+- [ ] Implementar proteção contra exclusões acidentais e backups com histórico de execução
+- [ ] Validar uma cópia completa e recuperação em ambiente separado antes de ativar a rotina publicada
+
 - [x] Criar agenda mensal/diária de 24 horas e compromissos obrigatoriamente vinculados a eventos
 - [x] Aplicar permissões de Eventos aos compromissos e preservar informações e financeiro
 - [x] Testar horários, vínculo obrigatório, persistência, regras de permissões e telas do calendário; simultâneos e meia-noite validados, registros temporários removidos
