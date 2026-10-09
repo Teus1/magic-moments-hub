@@ -34,7 +34,7 @@ export function eventInterval(event: Pick<CalendarEvent, 'event_date' | 'start_t
   if (!event.start_time) return { start: event.event_date, end: addCalendarDays(event.event_date, 1), allDay: true };
   const start = `${event.event_date}T${event.start_time}`;
   const end = event.end_time ? `${event.end_time <= event.start_time ? addCalendarDays(event.event_date, 1) : event.event_date}T${event.end_time}` : undefined;
-  return { start, end, allDay: false };
+  return { start, ...(end ? { end } : {}), allDay: false };
 }
 export function appointmentPermissions(can: (module: 'calendar' | 'events', action: 'view' | 'create' | 'edit' | 'delete') => boolean) {
   const read = can('calendar', 'view') && can('events', 'view');

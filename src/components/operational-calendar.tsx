@@ -40,8 +40,8 @@ export default function OperationalCalendar({ events, onRange, onItem, onSlot, c
    datesSet={info => {setTitle(info.view.title);setView(info.view.type);onRange(info.startStr.slice(0,10),info.endStr.slice(0,10));}}
    dateClick={info => { if(info.view.type === 'dayGridMonth') ref.current?.getApi().changeView('timeGridDay',info.dateStr); else if(canCreate) onSlot(info.dateStr.slice(0,16)); }}
    eventClick={info => onItem(info.event.id)}
-   eventDidMount={info => {info.el.setAttribute('title',`${info.event.title}${info.event.extendedProps.detail ? ` — ${info.event.extendedProps.detail}` : ''}`);}}
-   eventContent={info => <div className="calendar-item-content"><span className="calendar-item-time">{info.timeText}</span><strong>{info.event.title}</strong>{info.view.type === 'timeGridDay' && <span className="calendar-item-detail">{info.event.extendedProps.detail}</span>}</div>}
+   eventDidMount={info => {info.el.setAttribute('title',`${info.event.title}${info.event.extendedProps['detail'] ? ` — ${info.event.extendedProps['detail']}` : ''}`);}}
+   eventContent={info => <div className="calendar-item-content"><span className="calendar-item-time">{info.timeText}</span><strong>{info.event.title}</strong>{info.view.type === 'timeGridDay' && <span className="calendar-item-detail">{info.event.extendedProps['detail']}</span>}</div>}
   />
  </div>;
 }
