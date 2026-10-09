@@ -171,3 +171,14 @@
   &::-webkit-progress-value { background-color: var(--primary); border-radius: 9999px; }
   &::-moz-progress-bar { background-color: var(--primary); border-radius: 9999px; }
 }
+
+/* Dashboard keeps its visual refinements local to the operational overview. */
+.dashboard-view {
+  --foreground: oklch(0.24 0.005 285);
+  --muted-foreground: oklch(0.52 0.008 285);
+  --border: oklch(0.92 0.005 285);
+}
+.dashboard-view h1, .dashboard-view h2, .dashboard-view h3 {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}

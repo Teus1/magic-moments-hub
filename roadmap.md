@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] Refinar visual do Dashboard: cabeçalho, indicadores, próximos eventos e resumos compactos sem alterar consultas ou cálculos
+- [x] Refinar sidebar mantendo destinos, permissões e expansão de Configurações
+- [x] Verificar indicadores disponíveis, estados vazios, Novo evento, navegação e visual do Dashboard no computador, tablet e celular
+- [ ] Validar listas preenchidas e detalhes com eventos reais — a sessão disponível não possui eventos cadastrados
+
 - [x] Vincular a conexão própria do Google Maps e aplicar suas credenciais ao mapa, buscas e trajetos
 - [x] Autorizar os dois domínios próprios no mapa, preservando o bloqueio dos endereços privados de desenvolvimento
 - [ ] Validar mapa, sugestões e trajeto reais no domínio próprio publicado — depende de publicação e conferência do usuário
