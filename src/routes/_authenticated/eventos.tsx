@@ -1454,7 +1454,7 @@ function EventsPage() {
             <AlertDialogTitle>Excluir evento</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir <strong>{deleting?.name}</strong>? Essa ação não pode ser
-              desfeita.
+              desfeita. Os compromissos de montagem, chegada e outros vinculados a este evento também serão excluídos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -182,3 +182,44 @@
   font-family: var(--font-body);
   letter-spacing: 0;
 }
+
+.operational-calendar {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--card);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-neutral-text-color: var(--muted-foreground);
+  --fc-today-bg-color: var(--primary-soft);
+  --fc-event-bg-color: var(--primary-soft);
+  --fc-event-border-color: var(--primary);
+  --fc-event-text-color: var(--foreground);
+  --fc-now-indicator-color: var(--destructive);
+  background: var(--card);
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.operational-calendar h2 { letter-spacing: 0; }
+.operational-calendar .fc { font-family: var(--font-body); font-size: 13px; }
+.operational-calendar .fc-col-header-cell-cushion { padding: 12px 4px; font-weight: 500; color: var(--muted-foreground); }
+.operational-calendar .fc-daygrid-day-number { padding: 9px; }
+.operational-calendar .fc-daygrid-day-frame { cursor: pointer; }
+.operational-calendar .fc-timegrid-slot { height: 32px; }
+.operational-calendar .fc-timegrid-slot-label { color: var(--muted-foreground); font-size: 11px; }
+.operational-calendar .fc-event { border-radius: 4px; cursor: pointer; overflow: hidden; }
+.operational-calendar .calendar-commercial { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+.operational-calendar .calendar-operational { background: var(--task-pending); color: var(--accent-foreground); border-color: var(--accent); }
+.operational-calendar .calendar-cancelled { opacity: 0.55; text-decoration: line-through; }
+.operational-calendar .fc-daygrid-dot-event { padding: 2px 3px; border-left: 3px solid var(--primary); }
+.operational-calendar .fc-daygrid-dot-event.calendar-operational { border-left-color: var(--accent); }
+.calendar-item-content { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px; padding: 2px 4px; min-width: 0; width: 100%; }
+.calendar-item-content strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.calendar-item-time { font-size: 10px; flex-shrink: 0; }
+.calendar-item-detail { width: 100%; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.operational-calendar .fc-timegrid-event .calendar-item-content { align-content: start; height: 100%; }
+.operational-calendar .fc-timegrid-event .calendar-item-content strong { width: 100%; white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+ .operational-calendar { padding: 8px; }
+ .operational-calendar .fc { font-size: 11px; }
+ .operational-calendar .fc-daygrid-event .calendar-item-time { display: none; }
+ .operational-calendar .fc-daygrid-event .calendar-item-content { padding: 1px; }
+}

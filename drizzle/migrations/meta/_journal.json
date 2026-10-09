@@ -36,6 +36,13 @@
       "when": 1791428647800,
       "tag": "0004_art_task_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791511001286,
+      "tag": "0005_calendar_operational_appointments",
+      "breakpoints": true
     }
   ]
 }
