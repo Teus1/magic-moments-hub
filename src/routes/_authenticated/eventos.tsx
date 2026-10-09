@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookHeart,
   CalendarDays,
@@ -74,6 +74,7 @@ import {
 } from "@/lib/events";
 
 export const Route = createFileRoute("/_authenticated/eventos")({
+  validateSearch: (search: Record<string, unknown>): { action?: "new" } => ({ action: search.action === "new" ? "new" : undefined }),
   head: () => ({
     meta: [
       { title: "Eventos — Magic Moments" },
@@ -195,6 +196,8 @@ function RequiredMark() {
 function EventsPage() {
   const { can } = useCurrentUser();
   const queryClient = useQueryClient();
+  const routeSearch = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   const canView = can("events", "view");
   const canCreate = can("events", "create");
@@ -408,6 +411,12 @@ function EventsPage() {
     setShowErrors(false);
     setDialogOpen(true);
   }
+
+  useEffect(() => {
+    if (routeSearch.action !== "new" || !canCreate) return;
+    openCreate();
+    void navigate({ to: "/eventos", search: {}, replace: true });
+  }, [routeSearch.action, canCreate, navigate]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {

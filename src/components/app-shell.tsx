@@ -54,7 +54,7 @@ const SETTINGS_NAV: NavItem[] = [
 ];
 
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, contentClassName }: { children: ReactNode; contentClassName?: string }) {
   const { user, can } = useCurrentUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -80,8 +80,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const sidebar = (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center gap-3 px-5 py-6">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+      <div className="flex items-center gap-3 px-5 py-5">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-card">
           <img src={logo} alt="Magic Moments" width={48} height={48} className="size-10 object-contain" />
         </span>
         <div className="leading-tight">
@@ -100,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             return (
               <div
                 key={item.label}
-                className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/45"
+                className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2.5 text-sm text-sidebar-foreground/45"
               >
                 <Icon className="size-4" />
                 <span className="flex-1">{item.label}</span>
@@ -116,12 +116,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           return (
             <Link
               key={item.label}
-              to={item.to!}
+              to={item.to ?? "/"}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
                 active
-                  ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                  ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border"
                   : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60",
               )}
             >
@@ -136,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Button
               variant="ghost"
               onClick={() => setSettingsOpen((v) => !v)}
-              className="flex w-full justify-start gap-3 rounded-lg px-3 py-2 text-sm font-normal text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+              className="flex w-full justify-start gap-3 rounded-md px-3 py-2.5 text-sm font-normal text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
             >
               <Settings className="size-4" />
               <span className="flex-1 text-left">Configurações</span>
@@ -150,12 +150,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   return (
                     <Link
                       key={item.label}
-                      to={item.to!}
+                      to={item.to ?? "/"}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
                         active
-                          ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                          ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border"
                           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
                       )}
                     >
@@ -168,7 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           </div>
         )}
-        {can("tasks", "view") && <div className="pt-4"><Link to="/tarefas" onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors", pathname === "/tarefas" ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground" : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60")}><ClipboardList className="size-4" />Tarefas</Link></div>}
+        {can("tasks", "view") && <div className="pt-4"><Link to="/tarefas" onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors", pathname === "/tarefas" ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border" : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60")}><ClipboardList className="size-4" />Tarefas</Link></div>}
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
@@ -225,7 +225,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Button>
           <span className="font-display text-base">Magic Moments</span>
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+        <main className={cn("mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8", contentClassName)}>{children}</main>
       </div>
     </div>
   );
