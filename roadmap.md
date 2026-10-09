@@ -1,8 +1,8 @@
 # Roadmap
 
-- [ ] Implementar seleção mensal, resumo financeiro e gráfico anual no Dashboard
-- [ ] Exibir lista paginada do mês e apenas um botão Novo evento
-- [ ] Testar cálculos, navegação de período e telas do Dashboard financeiro
+- [x] Implementar seleção mensal, resumo financeiro e gráfico anual no Dashboard
+- [x] Exibir lista paginada do mês e apenas um botão Novo evento
+- [x] Testar cálculos, navegação de período e telas do Dashboard financeiro; detalhes e paginação conferidos com dados simulados sem alterar registros
 
 - [x] Refinar visual do Dashboard: cabeçalho, indicadores, próximos eventos e resumos compactos sem alterar consultas ou cálculos
 - [x] Refinar sidebar mantendo destinos, permissões e expansão de Configurações
