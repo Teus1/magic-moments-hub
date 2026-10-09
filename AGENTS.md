@@ -10,6 +10,8 @@
 <!-- LOVABLE:END -->
 
 ## Project architecture
+- Use FullCalendar for monthly and 24-hour daily calendar views, storing operational appointments separately with a required event link and Events action permissions; this preserves overlap handling, commercial totals, and staff portal boundaries.
+- Store calendar appointment timestamps as America/Sao_Paulo wall times and resolve overnight event ends on the following date; this keeps operational dates stable across browser timezones.
 - Tasks live at `/tarefas` with art groups and independent daily tasks; authenticated writes and RLS enforce existing task action permissions without expanding staff portal access.
 - Store art group metadata in `task_groups` and children in `tasks.group_id`; derive completion from a nonempty set of completed children and read dates from the parent to prevent stale copied deadlines.
 - Load all task groups and tasks with pagination and expose only minimal assignee choices through a permission-checked RPC; task access must not grant client or user management access.
