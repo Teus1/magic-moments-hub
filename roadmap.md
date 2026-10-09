@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Criar agenda mensal/diária de 24 horas e compromissos obrigatoriamente vinculados a eventos
+- [ ] Aplicar permissões de Eventos aos compromissos e preservar informações e financeiro
+- [ ] Testar horários, vínculo obrigatório, persistência, permissões e telas do calendário
+
 - [x] Implementar seleção mensal, resumo financeiro e gráfico anual no Dashboard
 - [x] Exibir lista paginada do mês e apenas um botão Novo evento
 - [x] Testar cálculos, navegação de período e telas do Dashboard financeiro; detalhes e paginação conferidos com dados simulados sem alterar registros

@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_appointments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_at: string
+          event_id: string
+          id: string
+          observations: string
+          start_at: string
+          title: string
+          updated_at: string
+          venue: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_at: string
+          event_id: string
+          id?: string
+          observations?: string
+          start_at: string
+          title: string
+          updated_at?: string
+          venue?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_at?: string
+          event_id?: string
+          id?: string
+          observations?: string
+          start_at?: string
+          title?: string
+          updated_at?: string
+          venue?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_appointments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_appointments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
