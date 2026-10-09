@@ -1,14 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, CheckCircle2, Plus } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { annualFinance, currentMonth, monthBounds, shiftMonth, type FinancialEvent } from "@/lib/dashboard-finance";
 import { EVENT_DISPLAY_STATUS_CLASSES, EVENT_DISPLAY_STATUS_LABELS, formatCurrency, formatEventDate, formatTimeRange, resolveEventStatus, type EventStatus } from "@/lib/events";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -40,30 +44,11 @@ interface DashboardEvent {
   services: { name: string; color: string } | null;
 }
 
-function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function monthRange() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = d.getMonth();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const start = `${year}-${pad(month + 1)}-01`;
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const end = `${year}-${pad(month + 1)}-${pad(lastDay)}`;
-  const label = new Date(year, month, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  return { start, end, label };
-}
-
-function Metric({ label, value, hint, highlight = false }: { label: string; value: string; hint?: string | undefined; highlight?: boolean }) {
-  return <div className="min-w-0 border-l border-border pl-4 first:border-l-0 first:pl-0">
-    <dt className="text-xs text-muted-foreground">{label}</dt>
-    <dd className={cn("mt-2 break-words text-2xl font-semibold tabular-nums", highlight && "text-primary")}>{value}</dd>
-    {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-  </div>;
-}
+const PAGE_SIZE = 10;
+const chartConfig = {
+  contracted: { label: "Contratado", color: "var(--primary)" },
+  received: { label: "Recebido", color: "var(--accent)" },
+};
 
 function QueryFeedback({ loading, error, empty, onRetry }: { loading: boolean; error: boolean; empty: string; onRetry: () => void }) {
   if (loading) return <p role="status" className="py-6 text-sm text-muted-foreground">Carregando…</p>;
@@ -73,165 +58,100 @@ function QueryFeedback({ loading, error, empty, onRetry }: { loading: boolean; e
 
 function DashboardPage() {
   const { user, can, isPending: userPending } = useCurrentUser();
+  const [month, setMonth] = useState(currentMonth);
+  const [page, setPage] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<DashboardEvent | null>(null);
   const canViewEvents = can("events", "view");
-  const canViewClients = can("clients", "view");
-  const canViewServices = can("services", "view");
-  const canViewCollaborators = can("collaborators", "view");
+  const year = Number(month.slice(0, 4));
+  const { start, end } = monthBounds(month);
+  const monthLabel = new Date(`${month}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  function selectMonth(value: string) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value) || Number(value.slice(0, 4)) < 1 || Number(value.slice(0, 4)) > 9999) return;
+    setMonth(value); setPage(0);
+  }
 
-  const { start, end, label: monthLabel } = useMemo(monthRange, []);
-  const today = useMemo(todayISO, []);
-
+  const financialEvents = useQuery({
+    queryKey: ["dashboard", "annual-finance", year], enabled: canViewEvents,
+    queryFn: async () => {
+      const events: FinancialEvent[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase.from("events")
+          .select("id,event_date,status,contracted_value,received_value")
+          .gte("event_date", `${year}-01-01`).lte("event_date", `${year}-12-31`)
+          .order("id").range(offset, offset + 499);
+        if (error) throw error;
+        events.push(...(data ?? []));
+        if ((data?.length ?? 0) < 500) return events;
+      }
+    },
+  });
   const monthEvents = useQuery({
-    queryKey: ["dashboard", "month-events", start, end],
-    enabled: canViewEvents,
+    queryKey: ["dashboard", "month-list", start, end, page], enabled: canViewEvents,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select(
-          "id, name, event_date, start_time, end_time, venue, status, contracted_value, received_value, clients:client_id (full_name), services:service_id (name, color)",
-        )
-        .gte("event_date", start)
-        .lte("event_date", end)
-        .order("event_date", { ascending: true });
+      const { data, error, count } = await supabase.from("events")
+        .select("id,name,event_date,start_time,end_time,venue,status,contracted_value,received_value,clients:client_id(full_name),services:service_id(name,color)", { count: "exact" })
+        .gte("event_date", start).lte("event_date", end)
+        .order("event_date").order("start_time").order("id")
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
-      return (data ?? []) as unknown as DashboardEvent[];
+      return { events: (data ?? []) as unknown as DashboardEvent[], count: count ?? 0 };
     },
   });
-
-  const upcoming = useQuery({
-    queryKey: ["dashboard", "upcoming", today],
-    enabled: canViewEvents,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select(
-          "id, name, event_date, start_time, end_time, venue, status, contracted_value, received_value, clients:client_id (full_name), services:service_id (name, color)",
-        )
-        .gte("event_date", today)
-        .neq("status", "cancelled")
-        .order("event_date", { ascending: true })
-        .limit(5);
-      if (error) throw error;
-      return (data ?? []) as unknown as DashboardEvent[];
-    },
-  });
-
-  const recent = useQuery({
-    queryKey: ["dashboard", "recent", today],
-    enabled: canViewEvents,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select(
-          "id, name, event_date, start_time, end_time, venue, status, contracted_value, received_value, clients:client_id (full_name), services:service_id (name, color)",
-        )
-        .lt("event_date", today)
-        .neq("status", "cancelled")
-        .order("event_date", { ascending: false })
-        .limit(5);
-      if (error) throw error;
-      return (data ?? []) as unknown as DashboardEvent[];
-    },
-  });
-
-  const totals = useQuery({
-    queryKey: ["dashboard", "totals", canViewClients, canViewServices, canViewCollaborators],
-    queryFn: async () => {
-      const [clients, services, collaborators] = await Promise.all([
-        canViewClients
-          ? supabase.from("clients").select("id", { count: "exact", head: true })
-          : Promise.resolve({ count: null }),
-        canViewServices
-          ? supabase.from("services").select("id", { count: "exact", head: true }).eq("status", "active")
-          : Promise.resolve({ count: null }),
-        canViewCollaborators
-          ? supabase.from("collaborators").select("id", { count: "exact", head: true }).eq("status", "active")
-          : Promise.resolve({ count: null }),
-      ]);
-      return {
-        clients: clients.count ?? null,
-        services: services.count ?? null,
-        collaborators: collaborators.count ?? null,
-      };
-    },
-    enabled: canViewClients || canViewServices || canViewCollaborators,
-  });
-
-  const events = monthEvents.data ?? [];
-  const activeEvents = events.filter((e) => e.status !== "cancelled");
-  const contracted = activeEvents.reduce((sum, e) => sum + Number(e.contracted_value || 0), 0);
-  const received = activeEvents.reduce((sum, e) => sum + Number(e.received_value || 0), 0);
-  const balance = contracted - received;
-  const doneCount = activeEvents.filter((e) => resolveEventStatus(e.status, e.event_date) === "done").length;
-  const cancelledCount = events.length - activeEvents.length;
-
-  const byService = useMemo(() => {
-    const map = new Map<string, { name: string; color: string; count: number }>();
-    for (const e of activeEvents) {
-      const name = e.services?.name ?? "Sem serviço";
-      const color = e.services?.color ?? "var(--primary)";
-      const current = map.get(name);
-      if (current) current.count += 1;
-      else map.set(name, { name, color, count: 1 });
-    }
-    return [...map.values()].sort((a, b) => b.count - a.count);
-  }, [activeEvents]);
-
-  const monthValue = (value: string) => monthEvents.isPending || monthEvents.isError ? "—" : value;
-  const totalValue = (value: number | null | undefined) => totals.isPending || totals.isError || value == null ? "—" : String(value);
-  const createAction = can("events", "create") ? <Button asChild className="shadow-none"><Link to="/eventos" search={{ action: "new" }}><Plus />Novo evento</Link></Button> : null;
+  const chartData = useMemo(() => annualFinance(financialEvents.data ?? [], year), [financialEvents.data, year]);
+  const totals = chartData.find(item => item.month === month);
+  const value = (amount: number) => financialEvents.isPending || financialEvents.isError ? "—" : formatCurrency(amount);
+  const totalPages = Math.max(1, Math.ceil((monthEvents.data?.count ?? 0) / PAGE_SIZE));
 
   return <AppShell contentClassName="max-w-[1440px] py-6 lg:px-10">
     <div className="dashboard-view space-y-7">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <div><p className="mb-1 text-xs font-medium text-muted-foreground">Dashboard <span className="mx-2 text-border">/</span><span className="capitalize">{monthLabel}</span></p>
-          <h1 className="text-2xl font-semibold">{user?.name ? `Olá, ${user.name.split(" ")[0]}` : "Visão geral"}</h1>
-        </div>{createAction}
+        <div><p className="mb-1 text-xs font-medium text-muted-foreground">Dashboard</p><h1 className="text-2xl font-semibold">{user?.name ? `Olá, ${user.name.split(" ")[0]}` : "Visão geral"}</h1></div>
+        {can("events", "create") && <Button asChild className="shadow-none"><Link to="/eventos" search={{ action: "new" }}><Plus />Novo evento</Link></Button>}
       </header>
-
-      <section aria-label="Indicadores" className="grid gap-6 border-y border-border py-5 xl:grid-cols-[1.15fr_1fr]">
-        {(canViewEvents || canViewClients || canViewServices || canViewCollaborators) && <div className="min-w-0">
-          <h2 className="mb-4 text-xs font-semibold uppercase text-muted-foreground">Operacional</h2>
-          <dl className="grid grid-cols-2 gap-y-5 md:grid-cols-4">
-            {canViewEvents && <Metric label="Eventos no mês" value={monthValue(String(activeEvents.length))} hint={monthEvents.isSuccess ? `${doneCount} realizados · ${cancelledCount} cancelados` : undefined} highlight />}
-            {canViewClients && <Metric label="Clientes cadastrados" value={totalValue(totals.data?.clients)} />}
-            {canViewServices && <Metric label="Serviços ativos" value={totalValue(totals.data?.services)} />}
-            {canViewCollaborators && <Metric label="Colaboradores ativos" value={totalValue(totals.data?.collaborators)} />}
-          </dl>
-          {totals.isError && <QueryFeedback loading={false} error empty="" onRetry={() => { void totals.refetch(); }} />}
-        </div>}
-        {canViewEvents && <div className="min-w-0 border-t border-border pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
-          <h2 className="mb-4 text-xs font-semibold uppercase text-muted-foreground">Financeiro <span className="ml-2 font-normal normal-case">· eventos do mês</span></h2>
-          <dl className="grid grid-cols-1 gap-y-4 sm:grid-cols-3">
-            <Metric label="Valor contratado" value={monthValue(formatCurrency(contracted))} />
-            <Metric label="Valor recebido" value={monthValue(formatCurrency(received))} />
-            <Metric label="Saldo a receber" value={monthValue(formatCurrency(balance))} highlight />
-          </dl>
-        </div>}
-        {canViewEvents && monthEvents.isError && <QueryFeedback loading={false} error empty="" onRetry={() => { void monthEvents.refetch(); }} />}
-        {!canViewEvents && !userPending && <p className="text-sm text-muted-foreground">Você não tem permissão para visualizar os indicadores de eventos.</p>}
-      </section>
-
-      {canViewEvents && <>
-        <section aria-labelledby="upcoming-title">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 id="upcoming-title" className="flex items-center gap-2 text-lg font-semibold"><CalendarDays className="size-4 text-primary" />Próximos eventos</h2>
-            <Button variant="link" size="sm" asChild><Link to="/eventos">Ver todos<ArrowRight /></Link></Button>
-          </div>
-          {upcoming.isPending || upcoming.isError ? <QueryFeedback loading={upcoming.isPending} error={upcoming.isError} empty="" onRetry={() => { void upcoming.refetch(); }} /> : upcoming.data?.length ? <>
-            <div className="hidden grid-cols-[120px_minmax(0,1.6fr)_minmax(0,1fr)_110px_40px] gap-5 border-b border-border pb-2 text-xs text-muted-foreground md:grid"><span>Data e horário</span><span>Evento / cliente</span><span>Serviço</span><span>Status</span><span /></div>
-            <div className="divide-y divide-border">{upcoming.data.map((event) => <EventLine key={event.id} event={event} onOpen={() => setSelectedEvent(event)} />)}</div>
-          </> : <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border bg-muted/30 px-4 py-6"><div><p className="text-sm font-medium">Nenhum evento agendado.</p><p className="mt-1 text-xs text-muted-foreground">Os próximos compromissos aparecerão aqui.</p></div>{createAction}</div>}
-        </section>
-
-        <div className="grid gap-7 border-t border-border pt-6 lg:grid-cols-[1.4fr_1fr]">
-          <section aria-labelledby="recent-title"><h2 id="recent-title" className="mb-4 flex items-center gap-2 text-sm font-semibold"><CheckCircle2 className="size-4 text-muted-foreground" />Realizados recentemente</h2>
-            {recent.isPending || recent.isError || !recent.data?.length ? <QueryFeedback loading={recent.isPending} error={recent.isError} empty="Nenhum evento realizado ainda." onRetry={() => { void recent.refetch(); }} /> : <div className="divide-y divide-border">{recent.data.map(event => <div key={event.id} className="flex items-center justify-between gap-3 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium">{event.name}</p><p className="mt-1 truncate text-xs text-muted-foreground">{formatEventDate(event.event_date)} · {event.clients?.full_name ?? "Cliente não informado"}</p></div><Button variant="ghost" size="icon" aria-label={`Abrir detalhes de ${event.name}`} onClick={() => setSelectedEvent(event)}><ArrowRight /></Button></div>)}</div>}
-          </section>
-          <section aria-labelledby="service-title" className="lg:border-l lg:border-border lg:pl-7"><h2 id="service-title" className="mb-4 text-sm font-semibold">Eventos por serviço</h2>
-            {monthEvents.isPending || monthEvents.isError || !byService.length ? <QueryFeedback loading={monthEvents.isPending} error={monthEvents.isError} empty="Nenhum evento no mês." onRetry={() => { void monthEvents.refetch(); }} /> : <div className="space-y-4">{byService.map(item => <div key={item.name}><div className="mb-2 flex justify-between gap-3 text-xs"><span className="truncate">{item.name}</span><span className="font-semibold tabular-nums">{item.count}</span></div><progress className="task-progress h-1.5 w-full" value={item.count} max={activeEvents.length} aria-label={`${item.name}: ${item.count} eventos`} /></div>)}</div>}
-          </section>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold capitalize">{monthLabel}</h2>
+        <div className="flex max-w-full flex-wrap items-center gap-2">
+          <Button variant="outline" size="icon" aria-label="Mês anterior" onClick={() => selectMonth(shiftMonth(month, -1))}><ChevronLeft /></Button>
+          <Input type="month" aria-label="Selecionar mês e ano" value={month} onChange={event => selectMonth(event.target.value)} className="w-[180px] bg-card" />
+          <Button variant="outline" size="icon" aria-label="Próximo mês" onClick={() => selectMonth(shiftMonth(month, 1))}><ChevronRight /></Button>
+          <Button variant="ghost" size="sm" disabled={month === currentMonth()} onClick={() => selectMonth(currentMonth())}>Mês atual</Button>
         </div>
+      </div>
+      {!canViewEvents && !userPending && <p className="text-sm text-muted-foreground">Você não tem permissão para visualizar os indicadores de eventos.</p>}
+      {canViewEvents && <>
+        <section aria-label="Resumo financeiro" className="border-y border-border py-5">
+          <h2 className="mb-4 text-xs font-semibold uppercase text-muted-foreground">Financeiro <span className="ml-2 font-normal normal-case">· eventos do mês</span></h2>
+          <dl className="grid gap-5 sm:grid-cols-3">
+            {[ ["Valor contratado", totals?.contracted ?? 0], ["Valor recebido", totals?.received ?? 0], ["Saldo a receber", totals?.balance ?? 0] ].map(([label, amount], index) => <div key={label} className="min-w-0 sm:border-l sm:border-border sm:pl-5 sm:first:border-l-0 sm:first:pl-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className={cn("mt-2 break-words text-2xl font-semibold tabular-nums", index === 2 && "text-primary")}>{value(Number(amount))}</dd></div>)}
+          </dl>
+          {financialEvents.isError && <QueryFeedback loading={false} error empty="" onRetry={() => { void financialEvents.refetch(); }} />}
+        </section>
+        <section aria-labelledby="finance-chart-title">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 id="finance-chart-title" className="text-lg font-semibold">Demonstrativo financeiro <span className="font-normal text-muted-foreground">· {year}</span></h2><div className="flex gap-4 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="size-2.5 rounded-sm bg-primary" />Contratado</span><span className="flex items-center gap-2"><span className="size-2.5 rounded-sm bg-accent" />Recebido</span></div></div>
+          {financialEvents.isPending || financialEvents.isError ? <QueryFeedback loading={financialEvents.isPending} error={financialEvents.isError} empty="" onRetry={() => { void financialEvents.refetch(); }} /> : <>
+            <div className="overflow-x-auto">
+              <ChartContainer config={chartConfig} className="h-[270px] min-w-[640px] w-full aspect-auto" aria-label={`Valores contratados e recebidos por mês de ${year}`}>
+                <BarChart accessibilityLayer data={chartData} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tickMargin={10} interval={0} tick={({ x, y, payload }) => <text x={x} y={Number(y) + 16} textAnchor="middle" fill={chartData[payload.index]?.month === month ? "var(--primary)" : "var(--muted-foreground)"} fontWeight={chartData[payload.index]?.month === month ? 700 : 400}>{payload.value}</text>} />
+                  <YAxis axisLine={false} tickLine={false} width={65} tickFormatter={amount => new Intl.NumberFormat("pt-BR", { notation: "compact", style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(amount)} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(amount, name) => <div className="flex w-full items-center justify-between gap-5"><span className="text-muted-foreground">{name === "contracted" ? "Contratado" : "Recebido"}</span><span className="font-semibold tabular-nums">{formatCurrency(Number(amount))}</span></div>} />} />
+                  <Bar dataKey="contracted" fill="var(--color-contracted)" radius={[3, 3, 0, 0]} maxBarSize={24}>{chartData.map(item => <Cell key={item.month} fillOpacity={item.month === month ? 1 : 0.65} />)}</Bar>
+                  <Bar dataKey="received" fill="var(--color-received)" radius={[3, 3, 0, 0]} maxBarSize={24}>{chartData.map(item => <Cell key={item.month} fillOpacity={item.month === month ? 1 : 0.65} />)}</Bar>
+                </BarChart>
+              </ChartContainer>
+            </div>
+            {!chartData.some(item => item.contracted || item.received) && <p className="mt-3 text-xs text-muted-foreground">Nenhum valor registrado para os eventos deste ano.</p>}
+          </>}
+        </section>
+        <section aria-labelledby="events-title" className="border-t border-border pt-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 id="events-title" className="flex items-center gap-2 text-lg font-semibold"><CalendarDays className="size-4 text-primary" />Eventos do mês {monthEvents.isSuccess && <span className="text-sm font-normal text-muted-foreground">({monthEvents.data.count})</span>}</h2><Button variant="link" size="sm" asChild><Link to="/eventos">Ver todos<ArrowRight /></Link></Button></div>
+          {monthEvents.isPending || monthEvents.isError || !monthEvents.data?.events.length ? <QueryFeedback loading={monthEvents.isPending} error={monthEvents.isError} empty="Nenhum evento neste mês." onRetry={() => { void monthEvents.refetch(); }} /> : <>
+            <div className="hidden grid-cols-[120px_minmax(0,1.6fr)_minmax(0,1fr)_110px_40px] gap-5 border-b border-border pb-2 text-xs text-muted-foreground md:grid"><span>Data e horário</span><span>Evento / cliente</span><span>Serviço</span><span>Status</span><span /></div>
+            <div className="divide-y divide-border">{monthEvents.data.events.map(event => <EventLine key={event.id} event={event} onOpen={() => setSelectedEvent(event)} />)}</div>
+          </>}
+          {totalPages > 1 && <div className="mt-4 flex items-center justify-end gap-3 border-t border-border pt-4"><span className="text-xs text-muted-foreground">Página {page + 1} de {totalPages}</span><Button variant="outline" size="icon" aria-label="Página anterior" disabled={page === 0} onClick={() => setPage(value => value - 1)}><ChevronLeft /></Button><Button variant="outline" size="icon" aria-label="Próxima página" disabled={page + 1 >= totalPages} onClick={() => setPage(value => value + 1)}><ChevronRight /></Button></div>}
+        </section>
       </>}
     </div>
     <Dialog open={selectedEvent !== null} onOpenChange={open => { if (!open) setSelectedEvent(null); }}><DialogContent className="max-w-lg">

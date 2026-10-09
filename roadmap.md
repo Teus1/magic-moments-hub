@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Implementar seleção mensal, resumo financeiro e gráfico anual no Dashboard
+- [ ] Exibir lista paginada do mês e apenas um botão Novo evento
+- [ ] Testar cálculos, navegação de período e telas do Dashboard financeiro
+
 - [x] Refinar visual do Dashboard: cabeçalho, indicadores, próximos eventos e resumos compactos sem alterar consultas ou cálculos
 - [x] Refinar sidebar mantendo destinos, permissões e expansão de Configurações
 - [x] Verificar indicadores disponíveis, estados vazios, Novo evento, navegação e visual do Dashboard no computador, tablet e celular
