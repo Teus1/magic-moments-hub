@@ -35,13 +35,12 @@ export const intakeEventSchema = z.object({
   duration_minutes: z.number().int().min(1, "Informe a duração.").max(1439, "Duração máxima de 23h59.").nullable(),
   venue: text(300), address: text(500), venue_city: text(150), venue_state: text(2),
   latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), place_id: text(300).nullable(),
-  attraction_start_location: text(300),
   attraction_id: z.union([z.literal(""), z.string().uuid()]),
   has_ceremonial: z.boolean(), ceremonial_name: text(150), ceremonial_contact: text(150), contact_via_ceremonial: z.boolean(),
   has_guestbook: z.boolean(),
 });
 export type IntakeEvent = z.infer<typeof intakeEventSchema>;
-export const emptyIntakeEvent: IntakeEvent = { start_time: "", duration_minutes: null, venue: "", address: "", venue_city: "", venue_state: "", latitude: null, longitude: null, place_id: null, attraction_start_location: "", attraction_id: "", has_ceremonial: false, ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false, has_guestbook: false };
+export const emptyIntakeEvent: IntakeEvent = { start_time: "", duration_minutes: null, venue: "", address: "", venue_city: "", venue_state: "", latitude: null, longitude: null, place_id: null, attraction_id: "", has_ceremonial: false, ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false, has_guestbook: false };
 export const intakeSchema = clientSchema.extend({
   cpf: text(14).refine(validCpf, "Informe um CPF válido."),
   whatsapp: text(20).refine(value => /^\d{10,11}$/.test(onlyDigits(value)), "Informe DDD e número do WhatsApp."),
