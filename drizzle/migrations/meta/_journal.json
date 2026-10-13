@@ -43,6 +43,13 @@
       "when": 1791511001286,
       "tag": "0005_calendar_operational_appointments",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791852015384,
+      "tag": "0006_client_preregistration_event_duration",
+      "breakpoints": true
     }
   ]
 }
