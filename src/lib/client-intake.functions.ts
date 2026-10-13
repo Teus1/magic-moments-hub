@@ -58,12 +58,12 @@ export async function pendingInvitation(token: string) {
   if (response.error || !response.data || response.data.status !== "pending" || new Date(response.data.expires_at).getTime() <= Date.now()) throw new Error("Link inválido ou expirado.");
   return supabaseAdmin;
 }
-export const publicAttractions = createServerFn({ method: "POST" })
+export const publicServices = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ token: tokenSchema }).parse(input))
   .handler(async ({ data }) => {
     const admin = await pendingInvitation(data.token);
-    const response = await admin.from("attractions").select("id,name,description").eq("status", "active").order("sort_order").order("name");
-    if (response.error) throw new Error("Não foi possível carregar as atrações.");
+    const response = await admin.from("services").select("id,name,description").eq("status", "active").order("name");
+    if (response.error) throw new Error("Não foi possível carregar os serviços.");
     return response.data;
   });
 export const markIntakeNotified = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
