@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      attractions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          status: Database["public"]["Enums"]["record_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["record_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attractions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_appointments: {
         Row: {
           created_at: string
@@ -76,6 +117,7 @@ export type Database = {
           event_id: string | null
           expires_at: string
           id: string
+          notified_at: string | null
           payload: Json | null
           received_at: string | null
           reviewed_at: string | null
@@ -90,6 +132,7 @@ export type Database = {
           event_id?: string | null
           expires_at?: string
           id?: string
+          notified_at?: string | null
           payload?: Json | null
           received_at?: string | null
           reviewed_at?: string | null
@@ -104,6 +147,7 @@ export type Database = {
           event_id?: string | null
           expires_at?: string
           id?: string
+          notified_at?: string | null
           payload?: Json | null
           received_at?: string | null
           reviewed_at?: string | null
@@ -439,6 +483,8 @@ export type Database = {
       events: {
         Row: {
           address: string | null
+          attraction_id: string | null
+          attraction_start_location: string | null
           balance_value: number | null
           ceremonial_contact: string | null
           ceremonial_name: string | null
@@ -471,6 +517,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          attraction_id?: string | null
+          attraction_start_location?: string | null
           balance_value?: number | null
           ceremonial_contact?: string | null
           ceremonial_name?: string | null
@@ -503,6 +551,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          attraction_id?: string | null
+          attraction_start_location?: string | null
           balance_value?: number | null
           ceremonial_contact?: string | null
           ceremonial_name?: string | null
@@ -534,6 +584,13 @@ export type Database = {
           venue_state?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "events_attraction_id_fkey"
+            columns: ["attraction_id"]
+            isOneToOne: false
+            referencedRelation: "attractions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_client_id_fkey"
             columns: ["client_id"]
@@ -907,6 +964,44 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_notification_recipients: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_notification_recipients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
