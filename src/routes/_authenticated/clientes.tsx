@@ -205,7 +205,7 @@ function ClientsPage() {
         }
       />
 
-      <ClientIntakePanel clients={clients.data ?? []} canCreate={canCreate} canEdit={canEdit} canCreateEvent={can("events", "create")} />
+      <ClientIntakePanel clients={clients.data ?? []} canCreate={canCreate} canEdit={canEdit} canDelete={canDelete} canCreateEvent={can("events", "create")} />
 
       <Card className="mb-6">
         <CardContent className="flex flex-wrap items-center gap-4 py-4">

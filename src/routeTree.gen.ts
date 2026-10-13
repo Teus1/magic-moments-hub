@@ -22,6 +22,7 @@ import { Route as AuthenticatedEventosRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
+import { Route as FTokenRouteImport } from './routes/f/$token'
 import { Route as AuthenticatedConfiguracoesFichaContratoRouteImport } from './routes/_authenticated/configuracoes/ficha-contrato'
 import { Route as AuthenticatedConfiguracoesRolesRouteImport } from './routes/_authenticated/configuracoes/roles'
 import { Route as AuthenticatedConfiguracoesUsuariosRouteImport } from './routes/_authenticated/configuracoes/usuarios'
@@ -92,6 +93,11 @@ const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   path: '/tarefas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const FTokenRoute = FTokenRouteImport.update({
+  id: '/f/$token',
+  path: '/f/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedConfiguracoesFichaContratoRoute =
   AuthenticatedConfiguracoesFichaContratoRouteImport.update({
     id: '/configuracoes/ficha-contrato',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof AuthenticatedPortalRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/f/$token': typeof FTokenRoute
   '/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/portal': typeof AuthenticatedPortalRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/f/$token': typeof FTokenRoute
   '/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/f/$token': typeof FTokenRoute
   '/_authenticated/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/_authenticated/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/_authenticated/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/servicos'
     | '/tarefas'
+    | '/f/$token'
     | '/configuracoes/ficha-contrato'
     | '/configuracoes/roles'
     | '/configuracoes/usuarios'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/servicos'
     | '/tarefas'
+    | '/f/$token'
     | '/configuracoes/ficha-contrato'
     | '/configuracoes/roles'
     | '/configuracoes/usuarios'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal'
     | '/_authenticated/servicos'
     | '/_authenticated/tarefas'
+    | '/f/$token'
     | '/_authenticated/configuracoes/ficha-contrato'
     | '/_authenticated/configuracoes/roles'
     | '/_authenticated/configuracoes/usuarios'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   PreCadastroRoute: typeof PreCadastroRoute
+  FTokenRoute: typeof FTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTarefasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/f/$token': {
+      id: '/f/$token'
+      path: '/f/$token'
+      fullPath: '/f/$token'
+      preLoaderRoute: typeof FTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/configuracoes/ficha-contrato': {
       id: '/_authenticated/configuracoes/ficha-contrato'
       path: '/configuracoes/ficha-contrato'
@@ -383,6 +403,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   PreCadastroRoute: PreCadastroRoute,
+  FTokenRoute: FTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

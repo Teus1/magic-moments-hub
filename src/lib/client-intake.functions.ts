@@ -4,17 +4,18 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "@/lib/admin.server";
 import { clientPayload, clientSchema, intakeSchema, validCpf, type IntakeRow } from "@/lib/client-intake";
 import { onlyDigits } from "@/lib/clients";
+import { intakeRecipientSchema, intakeTokenSchema, newIntakeToken } from "@/lib/intake-links";
 
-const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
+const tokenSchema = intakeTokenSchema;
 async function hashToken(token: string) {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 export const createIntakeLink = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ client_id: z.string().uuid().nullable(), event_id: z.string().uuid().nullable() }).parse(input))
+  .inputValidator((input: unknown) => z.object({ client_id: z.string().uuid().nullable(), event_id: z.string().uuid().nullable(), recipient_name: intakeRecipientSchema }).parse(input))
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, "clients", "create");
-    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), value => value.toString(16).padStart(2, "0")).join("");
+    const token = newIntakeToken();
     const result = await context.supabase.from("client_preregistrations").insert({ ...data, token_hash: await hashToken(token), created_by: context.userId }).select("id").single();
     if (result.error) throw new Error("Não foi possível gerar o link. Verifique o cliente e suas permissões.");
     return { token, id: result.data.id };
@@ -24,11 +25,20 @@ export const listIntakes = createServerFn({ method: "POST" }).middleware([requir
     await assertCan(context.supabase, "clients", "view");
     const rows: IntakeRow[] = [];
     for (let offset = 0; ; offset += 500) {
-      const response = await context.supabase.from("client_preregistrations").select("id,status,client_id,event_id,payload,created_at,received_at,reviewed_at,expires_at,notified_at").order("created_at", { ascending: false }).order("id").range(offset, offset + 499);
+      const response = await context.supabase.from("client_preregistrations").select("id,recipient_name,status,client_id,event_id,payload,created_at,received_at,reviewed_at,expires_at,notified_at").is("deleted_at", null).order("created_at", { ascending: false }).order("id").range(offset, offset + 499);
       if (response.error) throw new Error("Não foi possível carregar os pré-cadastros.");
       rows.push(...response.data as unknown as IntakeRow[]);
       if (response.data.length < 500) return rows;
     }
+  });
+export const deleteIntakeLink = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCan(context.supabase, "clients", "view");
+    await assertCan(context.supabase, "clients", "delete");
+    const result = await context.supabase.rpc("delete_client_intake_link", { _id: data.id });
+    if (result.error) throw new Error("Não foi possível excluir o link. Confira suas permissões.");
+    return { ok: true };
   });
 // Possession of a single-use, expiring invitation authorizes only its submission.
 // No public read returns names, CPF, previous answers or internal associations.
@@ -36,7 +46,7 @@ export const intakeLinkStatus = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ token: tokenSchema }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const response = await supabaseAdmin.from("client_preregistrations").select("status,expires_at").eq("token_hash", await hashToken(data.token)).maybeSingle();
+    const response = await supabaseAdmin.from("client_preregistrations").select("status,expires_at").is("deleted_at", null).eq("token_hash", await hashToken(data.token)).maybeSingle();
     if (response.error) throw new Error("Não foi possível verificar o link. Tente novamente.");
     if (!response.data || new Date(response.data.expires_at).getTime() <= Date.now()) return { status: "expired" as const };
     return { status: response.data.status === "pending" ? "pending" as const : "received" as const };
@@ -44,7 +54,7 @@ export const intakeLinkStatus = createServerFn({ method: "POST" })
 /** Resolve a valid pending invitation; used to authorize public helper reads. */
 export async function pendingInvitation(token: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const response = await supabaseAdmin.from("client_preregistrations").select("id,status,expires_at").eq("token_hash", await hashToken(token)).maybeSingle();
+    const response = await supabaseAdmin.from("client_preregistrations").select("id,status,expires_at").is("deleted_at", null).eq("token_hash", await hashToken(token)).maybeSingle();
   if (response.error || !response.data || response.data.status !== "pending" || new Date(response.data.expires_at).getTime() <= Date.now()) throw new Error("Link inválido ou expirado.");
   return supabaseAdmin;
 }
@@ -82,7 +92,7 @@ export const reviewIntake = createServerFn({ method: "POST" }).middleware([requi
     if (data.corrections) {
       const c = data.corrections;
       if (!validCpf(c.cpf) || !/^\d{10,11}$/.test(onlyDigits(c.whatsapp)) || !c.email) throw new Error("Confira CPF, WhatsApp e e-mail antes de validar.");
-      const current = await context.supabase.from("client_preregistrations").select("payload,status").eq("id", data.id).single();
+       const current = await context.supabase.from("client_preregistrations").select("payload,status").is("deleted_at", null).eq("id", data.id).single();
       if (current.error || current.data.status !== "received") throw new Error("Ficha não disponível para correção.");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const payload = { ...(current.data.payload as Record<string, unknown>), ...c, cpf: onlyDigits(c.cpf), whatsapp: onlyDigits(c.whatsapp), zip_code: onlyDigits(c.zip_code) };
