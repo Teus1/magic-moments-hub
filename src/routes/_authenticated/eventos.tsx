@@ -1,4 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { TravelPlaceInput } from "@/components/travel-place-input";
+import { saveEventDetails } from "@/lib/events.functions";
+import { listIntakes } from "@/lib/client-intake.functions";
+import { calculatedEnd, durationFromTimes, hoursToMinutes } from "@/lib/event-timing";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -74,7 +80,7 @@ import {
 } from "@/lib/events";
 
 export const Route = createFileRoute("/_authenticated/eventos")({
-  validateSearch: (search: Record<string, unknown>): { action?: "new" } => search['action'] === "new" ? { action: "new" } : {},
+  validateSearch: (search: Record<string, unknown>): { action?: "new"; intake?: string } => ({ ...(search["action"] === "new" ? { action: "new" as const } : {}), ...(z.string().uuid().safeParse(search["intake"]).success ? { intake: String(search["intake"]) } : {}) }),
   head: () => ({
     meta: [
       { title: "Eventos — Magic Moments" },
@@ -104,6 +110,13 @@ interface EventRow {
   event_date: string;
   start_time: string | null;
   end_time: string | null;
+  duration_minutes: number | null;
+  venue_city: string | null;
+  venue_state: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  place_id: string | null;
+  preregistration_id: string | null;
   venue: string | null;
   address: string | null;
   has_ceremonial: boolean;
@@ -116,7 +129,7 @@ interface EventRow {
   received_value: number;
   balance_value: number | null;
   notes: string | null;
-  clients: { id: string; full_name: string; phone: string | null } | null;
+  clients: { id: string; full_name: string; whatsapp: string | null } | null;
   services: { id: string; name: string; color: string } | null;
 }
 
@@ -141,10 +154,10 @@ interface PendingAttachment {
 
 const SELECT_COLUMNS = `
   id, client_id, service_id, name, event_type, event_date, start_time, end_time,
-  venue, address, status, contracted_value, received_value, balance_value,
+  venue, address, duration_minutes, venue_city, venue_state, latitude, longitude, place_id, preregistration_id, status, contracted_value, received_value, balance_value,
   has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook,
   notes,
-  clients:client_id (id, full_name, phone),
+  clients:client_id (id, full_name, whatsapp),
   services:service_id (id, name, color)
 `;
 
@@ -197,6 +210,10 @@ function EventsPage() {
   const { can } = useCurrentUser();
   const queryClient = useQueryClient();
   const routeSearch = Route.useSearch();
+  const saveDetails = useServerFn(saveEventDetails);
+  const fetchIntakes = useServerFn(listIntakes);
+  const [intakeId, setIntakeId] = useState<string | null>(null);
+
   const navigate = Route.useNavigate();
 
   const canView = can("events", "view");
@@ -208,6 +225,8 @@ function EventsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [form, setForm] = useState<EventForm>(emptyEventForm);
+  const durationMinutes = hoursToMinutes(form.duration_hours);
+  const computedEnd = calculatedEnd(form.start_time, durationMinutes);
   const [deleting, setDeleting] = useState<EventRow | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [teamIds, setTeamIds] = useState<string[]>([]);
@@ -345,6 +364,7 @@ function EventsPage() {
   }, [filtered]);
 
   function openCreate() {
+    setIntakeId(null);
     setEditing(null);
     setForm(emptyEventForm);
     setTeamIds([]);
@@ -356,6 +376,7 @@ function EventsPage() {
   }
 
   function openEdit(event: EventRow) {
+    setIntakeId(event.preregistration_id);
     setEditing(event);
     setForm({
       client_id: event.client_id,
@@ -364,7 +385,9 @@ function EventsPage() {
       event_type: event.event_type ?? "",
       event_date: event.event_date,
       start_time: event.start_time ? event.start_time.slice(0, 5) : "",
-      end_time: event.end_time ? event.end_time.slice(0, 5) : "",
+      end_time: event.end_time ?? "",
+      duration_hours: (event.duration_minutes ?? durationFromTimes(event.start_time, event.end_time)) ? String((event.duration_minutes ?? durationFromTimes(event.start_time, event.end_time) ?? 0) / 60) : "",
+      venue_city: event.venue_city ?? "", venue_state: event.venue_state ?? "", latitude: event.latitude, longitude: event.longitude, place_id: event.place_id,
       venue: event.venue ?? "",
       address: event.address ?? "",
       has_ceremonial: event.has_ceremonial ?? false,
@@ -414,9 +437,16 @@ function EventsPage() {
 
   useEffect(() => {
     if (routeSearch.action !== "new" || !canCreate) return;
-    openCreate();
+    const intake = routeSearch.intake;
     void navigate({ to: "/eventos", search: {}, replace: true });
-  }, [routeSearch.action, canCreate, navigate]);
+    if (!intake) { openCreate(); return; }
+    void fetchIntakes().then(rows => {
+      const row = rows.find(item => item.id === intake);
+      if (!row || row.status !== "reviewed" || !row.client_id || !row.payload || row.event_id) { toast.error("Pré-cadastro não disponível para criar evento."); return; }
+      openCreate(); setIntakeId(row.id);
+      setForm(current => ({ ...current, client_id: row.client_id ?? "", name: row.payload?.event_title ?? "", event_type: row.payload?.event_type ?? "", event_date: row.payload?.event_date ?? "" }));
+    }).catch(() => toast.error("Não foi possível carregar o pré-cadastro."));
+  }, [routeSearch.action, routeSearch.intake, canCreate, navigate, fetchIntakes]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -425,6 +455,8 @@ function EventsPage() {
       if (!form.client_id) throw new Error("Selecione o cliente do evento.");
       if (!form.event_date) throw new Error("Informe a data do evento.");
 
+      if (form.duration_hours && (!durationMinutes || !form.start_time)) throw new Error("Informe início e duração válida (até 23h59).");
+      if (form.start_time && !durationMinutes && !editing) throw new Error("Informe a duração do evento.");
       const contracted = parseCurrencyInput(form.contracted_value);
 
       const payload = {
@@ -434,7 +466,11 @@ function EventsPage() {
         event_type: form.event_type.trim() || null,
         event_date: form.event_date,
         start_time: form.start_time || null,
-        end_time: form.end_time || null,
+        end_time: computedEnd?.time ?? (form.end_time || null),
+        duration_minutes: durationMinutes,
+        venue_city: form.venue_city.trim() || null, venue_state: form.venue_state.trim().toUpperCase() || null,
+        latitude: form.latitude, longitude: form.longitude, place_id: form.place_id,
+        preregistration_id: intakeId,
         venue: form.venue.trim() || null,
         address: form.address.trim() || null,
         has_ceremonial: form.has_ceremonial,
@@ -450,22 +486,8 @@ function EventsPage() {
       const { data: userData } = await supabase.auth.getUser();
       const currentUserId = userData.user?.id ?? null;
 
-      let eventId = editing?.id ?? null;
-
-      if (editing) {
-        const { error } = await supabase.from("events").update(payload).eq("id", editing.id);
-        if (error) throw new Error(error.message || "Não foi possível salvar o evento.");
-      } else {
-        const { data, error } = await supabase
-          .from("events")
-          .insert({ ...payload, created_by: currentUserId })
-          .select("id")
-          .single();
-        if (error) throw new Error(error.message || "Não foi possível cadastrar o evento.");
-        eventId = data.id;
-      }
-
-      if (!eventId) return;
+      const result = await saveDetails({ data: { id: editing?.id ?? null, draft: payload } });
+      const eventId = result.id;
 
       // Sincroniza a equipe (colaboradores) vinculada ao evento.
       const previous = editing ? (eventTeams.data?.[editing.id] ?? []).map((m) => m.id) : [];
@@ -517,7 +539,7 @@ function EventsPage() {
       if (paymentRows.length) {
         const { error: payError } = await supabase
           .from("event_payments")
-          .insert(paymentRows.map((p) => ({ ...p, event_id: eventId!, created_by: currentUserId })));
+          .insert(paymentRows.map((p) => ({ ...p, event_id: eventId, created_by: currentUserId })));
         if (payError) throw new Error("Não foi possível salvar os recebimentos.");
       }
 
@@ -558,6 +580,7 @@ function EventsPage() {
       setPendingAttachments([]);
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-attachments"] });
+      queryClient.invalidateQueries({ queryKey: ["client-intakes"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -828,8 +851,8 @@ function EventsPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto border-primary/10 bg-background/95 p-0 shadow-elevated backdrop-blur-xl sm:max-w-3xl sm:rounded-xl">
-          <DialogHeader className="border-b border-border/70 bg-card/70 px-6 pb-5 pt-6">
+        <DialogContent className="max-h-[92vh] overflow-y-auto bg-background p-0 sm:max-w-3xl">
+          <DialogHeader className="border-b border-border px-6 pb-5 pt-6">
             <DialogTitle className="font-display">{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
             <DialogDescription>
               Informações do evento, serviço contratado e valores.
@@ -840,19 +863,22 @@ function EventsPage() {
             <p className="text-xs text-muted-foreground">
               Campos marcados com <span className="text-destructive">*</span> são obrigatórios.
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <h2 className="border-b border-border pb-2 font-semibold">Identificação do evento</h2>
+            <div className="grid gap-4 sm:grid-cols-[1.5fr_1fr]">
               <div className="space-y-2">
                 <Label htmlFor="e-name">
-                  Nome do evento
+                  Título do evento
                   <RequiredMark />
                 </Label>
                 <Input
                   id="e-name"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  placeholder="Ex.: Aniversário 15 anos da Júlia"
+                  placeholder="Ex.: Casamento Mateus e Isabella"
+                  maxLength={200}
                   className={cn(form.name.trim().length < 2 && showErrors && "border-destructive/60")}
                 />
+                {showErrors && form.name.trim().length < 2 && <p role="alert" className="text-xs text-destructive">Informe o título do evento.</p>}
               </div>
               <div className="space-y-2">
                 <Label>
@@ -940,63 +966,19 @@ function EventsPage() {
               </div>
             </div>
 
+            <h2 className="border-b border-border pb-2 pt-3 font-semibold">Data e horário</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="e-date">
-                  Data do evento
-                  <RequiredMark />
-                </Label>
-                <PickerField
-                  id="e-date"
-                  variant="date"
-                  value={form.event_date}
-                  onChange={(event) => setForm({ ...form, event_date: event.target.value })}
-                  className={cn(!form.event_date && showErrors && "border-destructive/60")}
-                />
-                <p className="text-xs text-muted-foreground">Clique para abrir o calendário.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="e-start">Início</Label>
-                <PickerField
-                  id="e-start"
-                  variant="time"
-                  value={form.start_time}
-                  onChange={(event) => setForm({ ...form, start_time: event.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">Clique para escolher o horário.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="e-end">Término</Label>
-                <PickerField
-                  id="e-end"
-                  variant="time"
-                  value={form.end_time}
-                  onChange={(event) => setForm({ ...form, end_time: event.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">Opcional.</p>
-              </div>
+              <div className="space-y-2"><Label htmlFor="e-date">Data do evento<RequiredMark /></Label><PickerField id="e-date" variant="date" value={form.event_date} onChange={event => setForm({ ...form, event_date: event.target.value })} />{showErrors && !form.event_date && <p role="alert" className="text-xs text-destructive">Informe a data do evento.</p>}</div>
+              <div className="space-y-2"><Label htmlFor="e-start">Horário de início</Label><PickerField id="e-start" variant="time" value={form.start_time} onChange={event => setForm({ ...form, start_time: event.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="e-duration">Duração (horas)</Label><Input id="e-duration" inputMode="decimal" list="event-durations" value={form.duration_hours} onChange={event => setForm({ ...form, duration_hours: event.target.value })} placeholder="Ex.: 4 ou 2,5" /><datalist id="event-durations">{[2,3,4,5,6].map(hours => <option key={hours} value={hours}>{hours} horas</option>)}</datalist>{form.duration_hours && !durationMinutes && <p role="alert" className="text-xs text-destructive">Informe duração de 1 minuto a 23h59.</p>}</div>
             </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="e-venue">Local</Label>
-                <Input
-                  id="e-venue"
-                  value={form.venue}
-                  onChange={(event) => setForm({ ...form, venue: event.target.value })}
-                  placeholder="Ex.: Espaço Villa Real"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="e-address">Endereço</Label>
-                <Input
-                  id="e-address"
-                  value={form.address}
-                  onChange={(event) => setForm({ ...form, address: event.target.value })}
-                  placeholder="Rua, número, bairro, cidade"
-                />
-              </div>
-            </div>
+            <div className="border-l-2 border-primary bg-muted px-4 py-3"><p className="text-xs text-muted-foreground">Término calculado</p><output id="e-end" className="mt-1 block font-semibold">{computedEnd ? `${computedEnd.time}${computedEnd.nextDay ? " · dia seguinte" : ""}` : editing?.end_time ? `${editing.end_time.slice(0,5)} · horário histórico; revise a duração` : "A definir"}</output></div>
+            <h2 className="border-b border-border pb-2 pt-3 font-semibold">Localização</h2>
+            <div className="space-y-2"><Label htmlFor="e-venue">Local do evento</Label><TravelPlaceInput id="e-venue" required={false} value={form.venue} placeholder="Busque um salão, chácara, hotel ou endereço" onChange={value => setForm({ ...form, venue: value, place_id: null, latitude: null, longitude: null })} onSelect={place => setForm(current => ({ ...current, venue: place.name || place.address, address: place.address, venue_city: place.city, venue_state: place.state, latitude: place.latitude, longitude: place.longitude, place_id: place.placeId }))} /></div>
+            <div className="space-y-2"><Label htmlFor="e-address">Endereço completo</Label><Input id="e-address" maxLength={1000} value={form.address} onChange={event => setForm({ ...form, address: event.target.value })} placeholder="Rua, número, bairro e complemento" /></div>
+            <div className="grid gap-4 sm:grid-cols-[2fr_1fr]"><div className="space-y-2"><Label htmlFor="e-city">Cidade</Label><Input id="e-city" maxLength={150} value={form.venue_city} onChange={event => setForm({ ...form, venue_city: event.target.value })} /></div><div className="space-y-2"><Label htmlFor="e-state">UF</Label><Input id="e-state" maxLength={2} value={form.venue_state} onChange={event => setForm({ ...form, venue_state: event.target.value.toUpperCase() })} /></div></div>
+            {editing && form.address && <Button variant="outline" size="sm" asChild><Link to="/deslocamento" search={{ event: editing.id }}><MapPin className="size-4" />Calcular deslocamento</Link></Button>}
+            <h2 className="border-b border-border pb-2 pt-3 font-semibold">Informações operacionais</h2>
 
             <div className="space-y-4 rounded-lg border border-primary/10 bg-primary-soft/50 p-4">
               <div className="flex items-center justify-between gap-4">
