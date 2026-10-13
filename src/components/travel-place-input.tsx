@@ -3,11 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { LoaderCircle, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getTravelPlaceSuggestions, resolveTravelPlace, type TravelPlaceSuggestion } from "@/lib/travel-places.functions";
+import { getTravelPlaceSuggestions, resolveTravelPlace, type TravelPlaceSuggestion, type TravelPlace } from "@/lib/travel-places.functions";
 
-type Props = { id: string; value: string; onChange: (value: string) => void; placeholder: string; disabled?: boolean };
+type Props = { id: string; value: string; onChange: (value: string) => void; onSelect?: (place: TravelPlace) => void; placeholder: string; disabled?: boolean; required?: boolean };
 
-export function TravelPlaceInput({ id, value, onChange, placeholder, disabled }: Props) {
+export function TravelPlaceInput({ id, value, onChange, onSelect, placeholder, disabled, required = true }: Props) {
   const search = useServerFn(getTravelPlaceSuggestions);
   const resolve = useServerFn(resolveTravelPlace);
   const [focused, setFocused] = useState(false);
@@ -46,8 +46,10 @@ export function TravelPlaceInput({ id, value, onChange, placeholder, disabled }:
     version.current++;
     setSelecting(true); setSuggestions([]); setError("");
     try {
-      const address = await resolve({ data: { placeId: item.placeId, sessionToken } });
-      selected.current = address; onChange(address); setFocused(false);
+      const place = await resolve({ data: { placeId: item.placeId, sessionToken } });
+      selected.current = onSelect ? place.name || place.address : place.address;
+      if (onSelect) onSelect(place); else onChange(place.address);
+      setFocused(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível selecionar o local.");
     } finally { token.current = null; setSelecting(false); setBusy(false); }
@@ -55,7 +57,7 @@ export function TravelPlaceInput({ id, value, onChange, placeholder, disabled }:
   const open = focused && !disabled && (busy || selecting || searched || Boolean(error));
   return <div className="relative min-w-0">
     <Input ref={inputRef} id={id} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={`${id}-options`} aria-activedescendant={active >= 0 ? `${id}-option-${active}` : undefined}
-      required minLength={5} maxLength={300} autoComplete="off" disabled={disabled || selecting} placeholder={placeholder} value={value}
+      required={required} minLength={required ? 5 : undefined} maxLength={300} autoComplete="off" disabled={disabled || selecting} placeholder={placeholder} value={value}
       onFocus={() => setFocused(true)} onBlur={() => { version.current++; setFocused(false); token.current = null; }}
       onChange={(event) => { version.current++; selected.current = null; setError(""); setFocused(true); setSuggestions([]); setActive(-1); onChange(event.target.value); }}
       onKeyDown={(event) => {

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -64,6 +64,80 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_preregistrations: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          event_id: string | null
+          expires_at: string
+          id: string
+          payload: Json | null
+          received_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          token_hash: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json | null
+          received_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          token_hash: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json | null
+          received_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_preregistrations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_preregistrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_preregistrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_preregistrations_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -373,20 +447,27 @@ export type Database = {
           contracted_value: number
           created_at: string
           created_by: string | null
+          duration_minutes: number | null
           end_time: string | null
           event_date: string
           event_type: string | null
           has_ceremonial: boolean
           has_guestbook: boolean
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
           notes: string | null
+          place_id: string | null
+          preregistration_id: string | null
           received_value: number
           service_id: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["event_status"]
           updated_at: string
           venue: string | null
+          venue_city: string | null
+          venue_state: string | null
         }
         Insert: {
           address?: string | null
@@ -398,20 +479,27 @@ export type Database = {
           contracted_value?: number
           created_at?: string
           created_by?: string | null
+          duration_minutes?: number | null
           end_time?: string | null
           event_date: string
           event_type?: string | null
           has_ceremonial?: boolean
           has_guestbook?: boolean
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
           notes?: string | null
+          place_id?: string | null
+          preregistration_id?: string | null
           received_value?: number
           service_id?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
           venue?: string | null
+          venue_city?: string | null
+          venue_state?: string | null
         }
         Update: {
           address?: string | null
@@ -423,20 +511,27 @@ export type Database = {
           contracted_value?: number
           created_at?: string
           created_by?: string | null
+          duration_minutes?: number | null
           end_time?: string | null
           event_date?: string
           event_type?: string | null
           has_ceremonial?: boolean
           has_guestbook?: boolean
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           notes?: string | null
+          place_id?: string | null
+          preregistration_id?: string | null
           received_value?: number
           service_id?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
           venue?: string | null
+          venue_city?: string | null
+          venue_state?: string | null
         }
         Relationships: [
           {
@@ -451,6 +546,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_preregistration_id_fkey"
+            columns: ["preregistration_id"]
+            isOneToOne: false
+            referencedRelation: "client_preregistrations"
             referencedColumns: ["id"]
           },
           {
@@ -823,6 +925,14 @@ export type Database = {
       is_client_of_my_events: { Args: { _client_id: string }; Returns: boolean }
       is_scheduled_for_event: { Args: { _event_id: string }; Returns: boolean }
       my_collaborator_id: { Args: never; Returns: string }
+      review_client_preregistration: {
+        Args: { _client_id: string; _fill_missing: boolean; _id: string }
+        Returns: string
+      }
+      submit_client_preregistration: {
+        Args: { _hash: string; _payload: Json }
+        Returns: string
+      }
       task_assignee_options: {
         Args: never
         Returns: {

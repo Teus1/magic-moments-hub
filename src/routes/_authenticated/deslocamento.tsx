@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 import { ArrowDownUp, Calculator, Fuel, LoaderCircle, Route as RouteIcon } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -14,6 +17,7 @@ import { getTravelRoute } from "@/lib/travel.functions";
 import { calculateTravelCost, type TravelRoute } from "@/lib/travel";
 
 export const Route = createFileRoute("/_authenticated/deslocamento")({
+  validateSearch: (search: Record<string, unknown>) => ({ event: z.string().uuid().safeParse(search["event"]).success ? String(search["event"]) : undefined }),
   head: () => ({ meta: [
     { title: "Deslocamento — Magic Moments" },
     { name: "description", content: "Cálculo de trajetos, combustível e pedágios para eventos Magic Moments." },
@@ -33,6 +37,13 @@ const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFracti
 function TravelPage() {
   const { can } = useCurrentUser();
   const fetchRoute = useServerFn(getTravelRoute);
+  const { event: eventId } = Route.useSearch();
+  const eventLocation = useQuery({ queryKey: ["travel-event", eventId], enabled: Boolean(eventId) && can("events", "view"), queryFn: async () => {
+    if (!eventId) return null;
+    const result = await supabase.from("events").select("address,venue,venue_city,venue_state").eq("id", eventId).single();
+    if (result.error) throw new Error("Não foi possível carregar o endereço do evento.");
+    return result.data;
+  } });
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [roundTrip, setRoundTrip] = useState(true);
@@ -45,6 +56,11 @@ function TravelPage() {
   const [submitted, setSubmitted] = useState<{ origin: string; destination: string; roundTrip: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (!eventLocation.data) return;
+    setDestination(eventLocation.data.address ?? [eventLocation.data.venue, eventLocation.data.venue_city, eventLocation.data.venue_state].filter(Boolean).join(", "));
+    setResult(null); setSubmitted(null);
+  }, [eventLocation.data]);
   const distance = result ? result.outbound.distanceKm + (result.inbound?.distanceKm ?? 0) : 0;
   const tollKnown = result && result.outbound.toll !== null && (!result.inbound || result.inbound.toll !== null);
   const estimatedToll = tollKnown && result ? (result.outbound.toll ?? 0) + (result.inbound?.toll ?? 0) : null;
@@ -73,7 +89,7 @@ function TravelPage() {
           <h2 className="flex items-center gap-2 font-display text-xl"><RouteIcon className="size-5 text-primary" /> Trajeto</h2>
           <div className="space-y-2"><Label htmlFor="travel-origin">Origem</Label><TravelPlaceInput id="travel-origin" disabled={loading} placeholder="Endereço, cidade e estado" value={origin} onChange={(value) => { setOrigin(value); clearRoute(); }} /></div>
           <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => { setOrigin(destination); setDestination(origin); clearRoute(); }}><ArrowDownUp className="size-4" /> Inverter</Button></div>
-          <div className="space-y-2"><Label htmlFor="travel-destination">Destino</Label><TravelPlaceInput id="travel-destination" disabled={loading} placeholder="Endereço do evento, cidade e estado" value={destination} onChange={(value) => { setDestination(value); clearRoute(); }} /></div>
+          <div className="space-y-2"><Label htmlFor="travel-destination">Destino</Label><TravelPlaceInput id="travel-destination" disabled={loading} placeholder="Endereço do evento, cidade e estado" value={destination} onChange={(value) => { setDestination(value); clearRoute(); }} />{eventLocation.isError && <p role="alert" className="text-sm text-destructive">{eventLocation.error.message}</p>}</div>
           <div className="flex flex-wrap gap-x-8 gap-y-4">
             <div className="flex items-center gap-3"><Switch id="round-trip" disabled={loading} checked={roundTrip} onCheckedChange={(value) => { setRoundTrip(value); clearRoute(); }} /><Label htmlFor="round-trip">Ida e volta</Label></div>
             <div className="flex items-center gap-3"><Switch id="avoid-tolls" disabled={loading} checked={avoidTolls} onCheckedChange={(value) => { setAvoidTolls(value); clearRoute(); }} /><Label htmlFor="avoid-tolls">Evitar pedágios</Label></div>

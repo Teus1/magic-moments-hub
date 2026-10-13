@@ -1,3 +1,8 @@
+import { useServerFn } from "@tanstack/react-start";
+import { ClientFields } from "@/components/client-fields";
+import { ClientIntakePanel } from "@/components/client-intake-panel";
+import { saveClient } from "@/lib/client-intake.functions";
+import { clientSchema } from "@/lib/client-intake";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -26,18 +31,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   emptyClientForm,
   formatBirthDate,
-  formatCpf,
-  formatPhone,
-  formatZip,
-  lookupZipCode,
   onlyDigits,
   type ClientForm,
 } from "@/lib/clients";
@@ -94,7 +93,8 @@ function ClientsPage() {
   const [editing, setEditing] = useState<ClientRow | null>(null);
   const [form, setForm] = useState<ClientForm>(emptyClientForm);
   const [deleting, setDeleting] = useState<ClientRow | null>(null);
-  const [zipLoading, setZipLoading] = useState(false);
+  const save = useServerFn(saveClient);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const clients = useQuery({
     queryKey: ["clients"],
@@ -115,18 +115,20 @@ function ClientsPage() {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      const phones = `${onlyDigits(client.phone ?? "")}${onlyDigits(client.whatsapp ?? "")}${onlyDigits(client.cpf ?? "")}`;
+      const phones = `${onlyDigits(client.whatsapp ?? "")}${onlyDigits(client.cpf ?? "")}`;
       return haystack.includes(term) || (digits.length > 0 && phones.includes(digits));
     });
   }, [clients.data, search]);
 
   function openCreate() {
+    setFieldErrors({});
     setEditing(null);
     setForm(emptyClientForm);
     setDialogOpen(true);
   }
 
   function openEdit(client: ClientRow) {
+    setFieldErrors({});
     setEditing(client);
     setForm({
       full_name: client.full_name,
@@ -150,38 +152,13 @@ function ClientsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const name = form.full_name.trim();
-      if (name.length < 2) throw new Error("Informe o nome do cliente.");
-
-      const payload = {
-        full_name: name,
-        birth_date: form.birth_date || null,
-        cpf: form.cpf.trim() || null,
-        rg: form.rg.trim() || null,
-        phone: form.phone.trim() || null,
-        whatsapp: form.whatsapp.trim() || null,
-        email: form.email.trim() || null,
-        zip_code: form.zip_code.trim() || null,
-        address: form.address.trim() || null,
-        address_number: form.address_number.trim() || null,
-        address_complement: form.address_complement.trim() || null,
-        neighborhood: form.neighborhood.trim() || null,
-        city: form.city.trim() || null,
-        state: form.state.trim().toUpperCase() || null,
-        notes: form.notes.trim() || null,
-      };
-
-      if (editing) {
-        const { error } = await supabase.from("clients").update(payload).eq("id", editing.id);
-        if (error) throw new Error("Não foi possível salvar o cliente.");
-        return;
+      const checked = clientSchema.safeParse(form);
+      if (!checked.success) {
+        setFieldErrors(Object.fromEntries(checked.error.issues.map(issue => [issue.path[0], issue.message])));
+        throw new Error("Confira os campos indicados.");
       }
-
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("clients")
-        .insert({ ...payload, created_by: userData.user?.id ?? null });
-      if (error) throw new Error("Não foi possível cadastrar o cliente.");
+      setFieldErrors({});
+      return save({ data: { id: editing?.id ?? null, draft: checked.data } });
     },
     onSuccess: () => {
       toast.success(editing ? "Cliente atualizado." : "Cliente cadastrado.");
@@ -206,25 +183,6 @@ function ClientsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  async function handleZipBlur() {
-    const digits = onlyDigits(form.zip_code);
-    if (digits.length !== 8) return;
-    setZipLoading(true);
-    const result = await lookupZipCode(digits);
-    setZipLoading(false);
-    if (!result) {
-      toast.error("CEP não encontrado.");
-      return;
-    }
-    setForm((current) => ({
-      ...current,
-      address: result.address || current.address,
-      neighborhood: result.neighborhood || current.neighborhood,
-      city: result.city || current.city,
-      state: result.state || current.state,
-    }));
-  }
-
   if (!canView) {
     return (
       <AppShell>
@@ -247,6 +205,8 @@ function ClientsPage() {
         }
       />
 
+      <ClientIntakePanel clients={clients.data ?? []} canCreate={canCreate} canEdit={canEdit} canCreateEvent={can("events", "create")} />
+
       <Card className="mb-6">
         <CardContent className="flex flex-wrap items-center gap-4 py-4">
           <div className="relative min-w-56 flex-1">
@@ -254,7 +214,7 @@ function ClientsPage() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por nome, telefone, e-mail ou cidade"
+              placeholder="Buscar por nome, WhatsApp, e-mail ou cidade"
               className="pl-9"
               aria-label="Buscar clientes"
             />
@@ -308,7 +268,7 @@ function ClientsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {client.phone && <p>{client.phone}</p>}
+                    
                     {client.whatsapp && (
                       <a
                         href={`https://wa.me/55${onlyDigits(client.whatsapp)}`}
@@ -320,7 +280,7 @@ function ClientsPage() {
                       </a>
                     )}
                     {client.email && <p className="text-xs text-muted-foreground">{client.email}</p>}
-                    {!client.phone && !client.whatsapp && !client.email && (
+                    {!client.whatsapp && !client.email && (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
@@ -361,152 +321,7 @@ function ClientsPage() {
             <DialogDescription>Dados de contato e endereço usados nos eventos.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="c-name">Nome completo</Label>
-              <Input
-                id="c-name"
-                value={form.full_name}
-                onChange={(event) => setForm({ ...form, full_name: event.target.value })}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="c-birth">Data de nascimento</Label>
-                <Input
-                  id="c-birth"
-                  type="date"
-                  value={form.birth_date}
-                  onChange={(event) => setForm({ ...form, birth_date: event.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-cpf">CPF</Label>
-                <Input
-                  id="c-cpf"
-                  value={form.cpf}
-                  onChange={(event) => setForm({ ...form, cpf: formatCpf(event.target.value) })}
-                  placeholder="000.000.000-00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-rg">RG</Label>
-                <Input
-                  id="c-rg"
-                  value={form.rg}
-                  maxLength={20}
-                  onChange={(event) => setForm({ ...form, rg: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="c-phone">Telefone</Label>
-                <Input
-                  id="c-phone"
-                  value={form.phone}
-                  onChange={(event) => setForm({ ...form, phone: formatPhone(event.target.value) })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-whatsapp">WhatsApp</Label>
-                <Input
-                  id="c-whatsapp"
-                  value={form.whatsapp}
-                  onChange={(event) => setForm({ ...form, whatsapp: formatPhone(event.target.value) })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-email">E-mail</Label>
-                <Input
-                  id="c-email"
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => setForm({ ...form, email: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="c-zip">CEP</Label>
-                <Input
-                  id="c-zip"
-                  value={form.zip_code}
-                  onChange={(event) => setForm({ ...form, zip_code: formatZip(event.target.value) })}
-                  onBlur={handleZipBlur}
-                  placeholder={zipLoading ? "Buscando..." : "00000-000"}
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="c-address">Endereço</Label>
-                <Input
-                  id="c-address"
-                  value={form.address}
-                  onChange={(event) => setForm({ ...form, address: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="c-number">Número</Label>
-                <Input
-                  id="c-number"
-                  value={form.address_number}
-                  onChange={(event) => setForm({ ...form, address_number: event.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-complement">Complemento</Label>
-                <Input
-                  id="c-complement"
-                  value={form.address_complement}
-                  onChange={(event) => setForm({ ...form, address_complement: event.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-neighborhood">Bairro</Label>
-                <Input
-                  id="c-neighborhood"
-                  value={form.neighborhood}
-                  onChange={(event) => setForm({ ...form, neighborhood: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="c-city">Cidade</Label>
-                <Input
-                  id="c-city"
-                  value={form.city}
-                  onChange={(event) => setForm({ ...form, city: event.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-state">UF</Label>
-                <Input
-                  id="c-state"
-                  maxLength={2}
-                  value={form.state}
-                  onChange={(event) => setForm({ ...form, state: event.target.value.toUpperCase() })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="c-notes">Observações</Label>
-              <Textarea
-                id="c-notes"
-                rows={3}
-                value={form.notes}
-                onChange={(event) => setForm({ ...form, notes: event.target.value })}
-              />
-            </div>
-          </div>
+          <ClientFields value={form} onChange={next => setForm(current => ({ ...current, ...next }))} errors={fieldErrors} />
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
