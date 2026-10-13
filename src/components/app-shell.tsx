@@ -17,8 +17,7 @@ import {
   Sparkles,
   Users,
   UsersRound,
-  X,
-} from "lucide-react";
+  X, FileSignature } from "lucide-react";
 
 import logo from "@/assets/magic-moments-logo.png";
 import { Button } from "@/components/ui/button";
@@ -49,6 +48,7 @@ const SETTINGS_NAV: NavItem[] = [
   { label: "Clientes", to: "/clientes", icon: UsersRound, module: "clients", action: "view" },
   { label: "Serviços", to: "/servicos", icon: Sparkles, module: "services", action: "view" },
   { label: "Colaboradores", to: "/colaboradores", icon: HardHat, module: "collaborators", action: "view" },
+  { label: "Ficha de contrato", to: "/configuracoes/ficha-contrato", icon: FileSignature, module: "settings", action: "view" },
   { label: "Usuários", to: "/configuracoes/usuarios", icon: Users, module: "users", action: "view" },
   { label: "Roles e permissões", to: "/configuracoes/roles", icon: Shield, module: "roles", action: "manage" },
 ];
