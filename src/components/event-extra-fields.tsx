@@ -17,7 +17,7 @@ export function EventExtraFields({ value, onChange, idPrefix, errors = {} }: { v
     <div className="space-y-2">
       <Label htmlFor={`${idPrefix}-guests`}>Quantidade aproximada de convidados</Label>
       <Input id={`${idPrefix}-guests`} inputMode="numeric" maxLength={6} value={value.guest_count} onChange={e => onChange({ guest_count: e.target.value.replace(/\D/g, "") })} placeholder="Ex.: 150" />
-      {errors.guest_count && <p className="text-xs text-destructive">{errors.guest_count}</p>}
+      {errors["guest_count"] && <p className="text-xs text-destructive">{errors["guest_count"]}</p>}
     </div>
     <div className="space-y-2">
       <Label>{SOCIAL_MEDIA_QUESTION}</Label>
@@ -36,7 +36,7 @@ export function EventExtraFields({ value, onChange, idPrefix, errors = {} }: { v
         {REFERRAL_OPTIONS.map(o => <div key={o.value} className="flex items-center gap-2"><RadioGroupItem id={`${idPrefix}-ref-${o.value}`} value={o.value} /><Label htmlFor={`${idPrefix}-ref-${o.value}`} className="font-normal">{o.label}</Label></div>)}
       </RadioGroup>
       {value.referral_source === "outro" && <Input aria-label="Onde nos conheceu" maxLength={150} value={value.referral_other} onChange={e => onChange({ referral_other: e.target.value })} placeholder="Conte onde nos conheceu" />}
-      {errors.referral_other && <p className="text-xs text-destructive">{errors.referral_other}</p>}
+      {errors["referral_other"] && <p className="text-xs text-destructive">{errors["referral_other"]}</p>}
     </div>
   </div>;
 }
