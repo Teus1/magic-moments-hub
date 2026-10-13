@@ -268,14 +268,6 @@ function EventsPage() {
     },
   });
 
-  const attractions = useQuery({
-    queryKey: ["attractions"],
-    queryFn: async () => {
-      const r = await supabase.from("attractions").select("id,name,status").order("sort_order").order("name");
-      if (r.error) throw r.error;
-      return r.data;
-    },
-  });
   const services = useQuery({
     queryKey: ["events", "services-options"],
     enabled: canView,

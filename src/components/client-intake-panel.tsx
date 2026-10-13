@@ -32,7 +32,6 @@ export function ClientIntakePanel({ clients, canCreate, canEdit, canDelete, canC
   const cache = useQueryClient();
   const deleted = useMutation({ mutationFn: async () => { if (!deleting) throw new Error("Selecione o link."); return remove({ data: { id: deleting.id } }); }, onSuccess: () => { setDeleting(null); setSelected(null); void cache.invalidateQueries({ queryKey: ["client-intakes"] }); toast.success("Link excluído."); }, onError: error => toast.error(error.message) });
   const intakes = useQuery({ queryKey: ["client-intakes"], queryFn: () => fetchList() });
-  const attractions = useQuery({ queryKey: ["attractions"], queryFn: async () => { const r = await supabase.from("attractions").select("id,name,status").order("sort_order").order("name"); if (r.error) throw r.error; return r.data; } });
   const recipients = useQuery({ queryKey: ["whatsapp-recipients"], queryFn: async () => { const r = await supabase.from("whatsapp_notification_recipients").select("id,name,phone,active").eq("active", true).order("name"); if (r.error) throw r.error; return r.data; } });
   const [generating, setGenerating] = useState(false); const [link, setLink] = useState(""); const [linkClient, setLinkClient] = useState("new");
   const [selected, setSelected] = useState<IntakeRow | null>(null); const [target, setTarget] = useState("new"); const [fill, setFill] = useState(false); const [filter, setFilter] = useState("open");
