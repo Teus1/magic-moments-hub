@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TravelMap } from "@/components/travel-map";
 import { TravelPlaceInput } from "@/components/travel-place-input";
+import { UpcomingTravelList } from "@/components/upcoming-travel-list";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { getTravelRoute } from "@/lib/travel.functions";
 import { calculateTravelCost, type TravelRoute } from "@/lib/travel";
@@ -83,6 +84,8 @@ function TravelPage() {
   if (!can("events", "view")) return <AppShell><PageHeader title="Deslocamento" /><p className="text-muted-foreground">Você não tem permissão para acessar esta página.</p></AppShell>;
   return <AppShell>
     <PageHeader title="Deslocamento" />
+    <div className="mb-10"><UpcomingTravelList /></div>
+    <h2 className="mb-4 border-b border-border pb-2 font-display text-xl">Simulador</h2>
     <div className="grid gap-8 xl:grid-cols-[1fr_1.1fr]">
       <div>
         <form onSubmit={calculate} className="space-y-5">
