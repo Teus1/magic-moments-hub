@@ -36,6 +36,11 @@ export interface EventForm {
   has_guestbook: boolean;
   attraction_id: string;
   attraction_start_location: string;
+  guest_count: string;
+  social_media_consent: boolean | null;
+  instagram_handles: string;
+  referral_source: string;
+  referral_other: string;
   status: EventStatus;
   contracted_value: string;
   received_value: string;
@@ -65,6 +70,11 @@ export const emptyEventForm: EventForm = {
   has_guestbook: false,
   attraction_id: "",
   attraction_start_location: "",
+  guest_count: "",
+  social_media_consent: null,
+  instagram_handles: "",
+  referral_source: "",
+  referral_other: "",
   status: "planned",
   contracted_value: "",
   received_value: "",

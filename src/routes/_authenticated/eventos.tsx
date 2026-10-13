@@ -1,4 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
+import { EventExtraFields } from "@/components/event-extra-fields";
+import { parseGuestCount, type ReferralSource } from "@/lib/event-extra";
 import { z } from "zod";
 import { TravelPlaceInput } from "@/components/travel-place-input";
 import { saveEventDetails } from "@/lib/events.functions";
@@ -126,6 +128,11 @@ interface EventRow {
   has_guestbook: boolean;
   attraction_id: string | null;
   attraction_start_location: string | null;
+  guest_count: number | null;
+  social_media_consent: boolean | null;
+  instagram_handles: string | null;
+  referral_source: string | null;
+  referral_other: string | null;
   status: EventStatus;
   contracted_value: number;
   received_value: number;
@@ -157,7 +164,7 @@ interface PendingAttachment {
 const SELECT_COLUMNS = `
   id, client_id, service_id, name, event_type, event_date, start_time, end_time,
   venue, address, duration_minutes, venue_city, venue_state, latitude, longitude, place_id, preregistration_id, status, contracted_value, received_value, balance_value,
-  has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook, attraction_id, attraction_start_location,
+  has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook, attraction_id, attraction_start_location, guest_count, social_media_consent, instagram_handles, referral_source, referral_other,
   notes,
   clients:client_id (id, full_name, whatsapp),
   services:service_id (id, name, color)
@@ -407,6 +414,11 @@ function EventsPage() {
       has_guestbook: event.has_guestbook ?? false,
       attraction_id: event.attraction_id ?? "",
       attraction_start_location: event.attraction_start_location ?? "",
+      guest_count: event.guest_count ? String(event.guest_count) : "",
+      social_media_consent: event.social_media_consent,
+      instagram_handles: event.instagram_handles ?? "",
+      referral_source: event.referral_source ?? "",
+      referral_other: event.referral_other ?? "",
 
       status: event.status,
       contracted_value: String(event.contracted_value ?? 0),
@@ -457,7 +469,7 @@ function EventsPage() {
       if (!row || row.status !== "reviewed" || !row.client_id || !row.payload || row.event_id) { toast.error("Pré-cadastro não disponível para criar evento."); return; }
       openCreate(); setIntakeId(row.id);
       const ev = row.payload.event;
-      setForm(current => ({ ...current, client_id: row.client_id ?? "", name: row.payload?.event_title ?? "", event_type: row.payload?.event_type ?? "", event_date: row.payload?.event_date ?? "", ...(ev ? { start_time: ev.start_time, duration_hours: ev.duration_minutes ? String(ev.duration_minutes / 60) : "", venue: ev.venue, address: ev.address, venue_city: ev.venue_city, venue_state: ev.venue_state, latitude: ev.latitude, longitude: ev.longitude, place_id: ev.place_id, attraction_id: ev.attraction_id, has_ceremonial: ev.has_ceremonial, ceremonial_name: ev.ceremonial_name, ceremonial_contact: ev.ceremonial_contact, contact_via_ceremonial: ev.contact_via_ceremonial, has_guestbook: ev.has_guestbook } : {}), notes: row.payload?.notes ?? "" }));
+      setForm(current => ({ ...current, client_id: row.client_id ?? "", name: row.payload?.event_title ?? "", event_type: row.payload?.event_type ?? "", event_date: row.payload?.event_date ?? "", ...(ev ? { start_time: ev.start_time, duration_hours: ev.duration_minutes ? String(ev.duration_minutes / 60) : "", venue: ev.venue, address: ev.address, venue_city: ev.venue_city, venue_state: ev.venue_state, latitude: ev.latitude, longitude: ev.longitude, place_id: ev.place_id, attraction_id: ev.attraction_id, ...(ev.service_id ? { service_id: ev.service_id } : {}), guest_count: ev.guest_count ? String(ev.guest_count) : "", social_media_consent: ev.social_media_consent ?? null, instagram_handles: ev.instagram_handles ?? "", referral_source: ev.referral_source ?? "", referral_other: ev.referral_other ?? "", has_ceremonial: ev.has_ceremonial, ceremonial_name: ev.ceremonial_name, ceremonial_contact: ev.ceremonial_contact, contact_via_ceremonial: ev.contact_via_ceremonial, has_guestbook: ev.has_guestbook } : {}), notes: row.payload?.notes ?? "" }));
     }).catch(() => toast.error("Não foi possível carregar o pré-cadastro."));
   }, [routeSearch.action, routeSearch.intake, canCreate, navigate, fetchIntakes]);
 
@@ -493,6 +505,11 @@ function EventsPage() {
         has_guestbook: form.has_guestbook,
         attraction_id: form.attraction_id || null,
         attraction_start_location: form.attraction_start_location.trim() || null,
+        guest_count: parseGuestCount(form.guest_count),
+        social_media_consent: form.social_media_consent,
+        instagram_handles: form.social_media_consent ? form.instagram_handles.trim() || null : null,
+        referral_source: (form.referral_source || null) as ReferralSource | null,
+        referral_other: form.referral_source === "outro" ? form.referral_other.trim() || null : null,
         status: form.status,
         contracted_value: contracted,
         notes: form.notes.trim() || null,
@@ -1105,6 +1122,10 @@ function EventsPage() {
                   onCheckedChange={(checked) => setForm({ ...form, has_guestbook: checked })}
                 />
               </div>
+            </div>
+
+            <div className="rounded-lg border border-border p-4">
+              <EventExtraFields idPrefix="e" value={form} onChange={(next) => setForm({ ...form, ...next })} />
             </div>
 
             <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">

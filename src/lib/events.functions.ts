@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "@/lib/admin.server";
+import { REFERRAL_VALUES } from "@/lib/event-extra";
 import { isoDate } from "@/lib/client-intake";
 import { calculatedEnd, eventTimeSchema } from "@/lib/event-timing";
 const nullableText = (max: number) => z.string().trim().max(max).nullable();
@@ -12,6 +13,7 @@ export const eventDraftSchema = z.object({
   venue: nullableText(300), address: nullableText(1000), venue_city: nullableText(150), venue_state: z.string().regex(/^[A-Z]{2}$/).nullable(),
   latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), place_id: nullableText(300),
   has_ceremonial: z.boolean(), ceremonial_name: nullableText(200), ceremonial_contact: nullableText(255), contact_via_ceremonial: z.boolean(), has_guestbook: z.boolean(), attraction_id: z.string().uuid().nullable(), attraction_start_location: nullableText(300),
+  guest_count: z.number().int().min(1).max(100000).nullable(), social_media_consent: z.boolean().nullable(), instagram_handles: nullableText(300), referral_source: z.enum(REFERRAL_VALUES).nullable(), referral_other: nullableText(150),
   status: z.enum(["planned", "cancelled"]), contracted_value: z.number().finite().min(0), notes: nullableText(40000), preregistration_id: z.string().uuid().nullable(),
 });
 export const saveEventDetails = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
