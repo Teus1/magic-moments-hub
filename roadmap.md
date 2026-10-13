@@ -55,3 +55,4 @@
 - [x] Permitir exclusão definitiva de usuários com confirmação e proteção da própria conta
 - [x] Adicionar anexos privados de comprovantes e documentos aos eventos
 - [x] Validar múltiplos anexos, download, exclusão, limite de 20 MB e visual móvel
+- [x] Ficha e Eventos: serviços como atração, convidados, redes sociais (@ Instagram) e Como nos conheceu
