@@ -5,6 +5,7 @@ import { assertCan } from "@/lib/admin.server";
 
 const gateway = "https://connector-gateway.lovable.dev/google_maps/places/v1";
 export type TravelPlaceSuggestion = { placeId: string; text: string };
+export type TravelPlace = { address: string; name: string; city: string; state: string; latitude: number | null; longitude: number | null; placeId: string };
 const suggestionsCache = new Map<string, { expires: number; result: Promise<TravelPlaceSuggestion[]> }>();
 
 async function requestPlaces(credentials: { apiKey: string; lovableKey: string }, path: string, mask: string, body?: unknown) {
@@ -64,12 +65,13 @@ export const getTravelPlaceSuggestions = createServerFn({ method: "POST" })
 export const resolveTravelPlace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ placeId: z.string().min(1).max(300).regex(/^[a-zA-Z0-9_-]+$/), sessionToken: z.string().uuid() }).parse(data))
-  .handler(async ({ data, context }): Promise<string> => {
+  .handler(async ({ data, context }): Promise<TravelPlace> => {
     await assertCan(context.supabase, "events", "view");
     const apiKey = process.env['GOOGLE_MAPS_API_KEY_1'];
     const lovableKey = process.env['LOVABLE_API_KEY'];
     if (!apiKey || !lovableKey) throw new Error("Conecte o Google Maps para buscar locais.");
-    const place = await requestPlaces({ apiKey, lovableKey }, `places/${encodeURIComponent(data.placeId)}?sessionToken=${encodeURIComponent(data.sessionToken)}&languageCode=pt-BR`, "formattedAddress") as { formattedAddress?: string };
+    const place = await requestPlaces({ apiKey, lovableKey }, `places/${encodeURIComponent(data.placeId)}?sessionToken=${encodeURIComponent(data.sessionToken)}&languageCode=pt-BR`, "id,displayName,formattedAddress,addressComponents,location") as { id?: string; displayName?: { text?: string }; formattedAddress?: string; addressComponents?: { longText: string; shortText: string; types: string[] }[]; location?: { latitude?: number; longitude?: number } };
     if (!place.formattedAddress) throw new Error("Este local não possui endereço disponível.");
-    return place.formattedAddress;
+    const component = (type: string) => place.addressComponents?.find(item => item.types.includes(type));
+    return { address: place.formattedAddress, name: place.displayName?.text ?? "", city: component("administrative_area_level_2")?.longText ?? component("locality")?.longText ?? "", state: component("administrative_area_level_1")?.shortText ?? "", latitude: place.location?.latitude ?? null, longitude: place.location?.longitude ?? null, placeId: place.id ?? data.placeId };
   });

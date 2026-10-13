@@ -21,6 +21,12 @@ export interface EventForm {
   event_date: string;
   start_time: string;
   end_time: string;
+  duration_hours: string;
+  venue_city: string;
+  venue_state: string;
+  latitude: number | null;
+  longitude: number | null;
+  place_id: string | null;
   venue: string;
   address: string;
   has_ceremonial: boolean;
@@ -42,6 +48,12 @@ export const emptyEventForm: EventForm = {
   event_date: "",
   start_time: "",
   end_time: "",
+  duration_hours: "",
+  venue_city: "",
+  venue_state: "",
+  latitude: null,
+  longitude: null,
+  place_id: null,
   venue: "",
   address: "",
   has_ceremonial: false,
