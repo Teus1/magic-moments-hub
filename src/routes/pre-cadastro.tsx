@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckCircle2, Send } from "lucide-react";
+import { CheckCircle2, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientFields } from "@/components/client-fields";
 import { emptyClientForm } from "@/lib/clients";
-import { emptyIntakeEvent, intakeSchema, type IntakeEvent } from "@/lib/client-intake";
+import { emptyIntakeEvent, intakeSchema, intakeSummaryMessage, normalizeRecipientPhone, whatsappLink, type IntakeEvent } from "@/lib/client-intake";
 import { intakeLinkStatus, publicAttractions, submitIntake } from "@/lib/client-intake.functions";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,13 +51,19 @@ export function IntakePage({ token }: { token: string }) {
     const checked = intakeSchema.safeParse({ ...form, event_title: eventTitle, event_type: eventType, event_date: eventDate, consent, event: { ...details, duration_minutes: duration === null ? null : Number.isFinite(duration) ? duration : 0, venue_state: details.venue_state.toUpperCase(), ...(details.has_ceremonial ? {} : { ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false }) } });
     if (!checked.success) { setErrors(Object.fromEntries(checked.error.issues.map(issue => [issue.path[0] === "event" ? `event.${String(issue.path[1])}` : issue.path[0], issue.message]))); throw new Error("Confira os campos indicados antes de enviar."); }
     setErrors({});
-    return submit({ data: { token, draft: checked.data, website: website as "" } });
+    const result = await submit({ data: { token, draft: checked.data, website: website as "" } });
+    const attractionName = attractions.data?.find(item => item.id === checked.data.event?.attraction_id)?.name;
+    const message = intakeSummaryMessage(checked.data, attractionName);
+    return { ...result, links: result.recipients.flatMap(r => { const phone = normalizeRecipientPhone(r.phone); return phone ? [{ name: r.name, href: whatsappLink(phone, message) }] : []; }) };
   } });
   const received = save.isSuccess || status.data?.status === "received";
+  const links = save.data?.links ?? [];
   return <main className="min-h-screen bg-background text-foreground">
     <header className="border-b border-border px-5 py-6"><div className="mx-auto flex max-w-2xl items-center gap-4"><img src={logo} alt="" className="size-14 shrink-0 object-contain" /><div><p className="font-display text-3xl text-primary">Magic Moments</p><p className="mt-1 text-sm text-muted-foreground">Ficha para elaboração do contrato</p></div></div></header>
     <div className="mx-auto max-w-2xl px-5 py-8 sm:py-10">
-      {received ? <section className="space-y-4 py-10"><CheckCircle2 className="size-10 text-success" /><h1 className="font-display text-3xl">Dados recebidos!</h1><p className="text-muted-foreground">A Magic Moments recebeu suas informações e vai utilizá-las para dar continuidade ao atendimento e à preparação do contrato.</p></section>
+      {received ? <section className="space-y-4 py-10"><CheckCircle2 className="size-10 text-success" /><h1 className="font-display text-3xl">Dados recebidos!</h1><p className="text-muted-foreground">A Magic Moments recebeu suas informações e vai utilizá-las para dar continuidade ao atendimento e à preparação do contrato.</p>
+        {links.length > 0 && <div className="space-y-3 pt-2"><p className="text-sm text-muted-foreground">Para finalizar, envie suas informações para a equipe pelo WhatsApp:</p><div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">{links.map(link => <Button key={link.href} asChild size="lg"><a href={link.href} target="_blank" rel="noopener noreferrer"><MessageCircle className="size-4" />{links.length > 1 ? `Enviar pelo WhatsApp — ${link.name}` : "Enviar minhas informações pelo WhatsApp"}</a></Button>)}</div></div>}
+      </section>
         : !token || status.data?.status === "expired" ? <section><h1 className="font-display text-2xl">Link inválido ou expirado</h1><p className="mt-3 text-muted-foreground">Solicite um novo link à equipe Magic Moments.</p></section>
         : status.isPending ? <p role="status">Verificando link…</p>
         : status.isError ? <section><p role="alert" className="text-destructive">Não foi possível verificar o link.</p><Button variant="outline" onClick={() => void status.refetch()} className="mt-4">Tentar novamente</Button></section>
