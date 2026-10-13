@@ -131,9 +131,9 @@ function DashboardPage() {
           {financialEvents.isPending || financialEvents.isError ? <QueryFeedback loading={financialEvents.isPending} error={financialEvents.isError} empty="" onRetry={() => { void financialEvents.refetch(); }} /> : <>
             <div className="overflow-x-auto">
               <ChartContainer config={chartConfig} className="h-[270px] min-w-[640px] w-full aspect-auto" aria-label={`Valores contratados e recebidos por mês de ${year}`}>
-                <BarChart accessibilityLayer data={chartData} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
+                <BarChart accessibilityLayer data={chartData} margin={{ top: 12, right: 8, bottom: 8, left: 0 }}>
                   <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tickMargin={10} interval={0} tick={({ x, y, payload }) => <text x={x} y={Number(y) + 16} textAnchor="middle" fill={chartData[payload.index]?.month === month ? "var(--primary)" : "var(--muted-foreground)"} fontWeight={chartData[payload.index]?.month === month ? 700 : 400}>{payload.value}</text>} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} height={40} tickMargin={10} interval={0} tick={({ x, y, payload }) => <text x={x} y={Number(y) + 12} textAnchor="middle" fill={chartData[payload.index]?.month === month ? "var(--primary)" : "var(--muted-foreground)"} fontWeight={chartData[payload.index]?.month === month ? 700 : 400}>{payload.value}</text>} />
                   <YAxis axisLine={false} tickLine={false} width={65} tickFormatter={amount => new Intl.NumberFormat("pt-BR", { notation: "compact", style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(amount)} />
                   <ChartTooltip content={<ChartTooltipContent formatter={(amount, name) => <div className="flex w-full items-center justify-between gap-5"><span className="text-muted-foreground">{name === "contracted" ? "Contratado" : "Recebido"}</span><span className="font-semibold tabular-nums">{formatCurrency(Number(amount))}</span></div>} />} />
                   <Bar dataKey="contracted" fill="var(--color-contracted)" radius={[3, 3, 0, 0]} maxBarSize={24}>{chartData.map(item => <Cell key={item.month} fillOpacity={item.month === month ? 1 : 0.65} />)}</Bar>
