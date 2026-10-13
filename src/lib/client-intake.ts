@@ -63,6 +63,23 @@ export function intakeNotificationMessage(payload: Pick<IntakeDraft, "full_name"
 export function whatsappLink(phone: string, message: string) {
   return `https://wa.me/${onlyDigits(phone)}?text=${encodeURIComponent(message)}`;
 }
+/** Mensagem completa que o próprio cliente envia com tudo o que preencheu na ficha. */
+export function intakeSummaryMessage(d: IntakeDraft, attractionName?: string) {
+  const yn = (v: boolean) => (v ? "Sim" : "Não");
+  const date = (v: string) => (v ? v.split("-").reverse().join("/") : "");
+  const e = d.event;
+  const dur = e?.duration_minutes ? `${Math.floor(e.duration_minutes / 60)}h${String(e.duration_minutes % 60).padStart(2, "0")}` : "";
+  const addr = [d.address, d.address_number, d.address_complement, d.neighborhood, d.city && `${d.city}${d.state ? `/${d.state}` : ""}`, d.zip_code && `CEP ${d.zip_code}`].filter(Boolean).join(", ");
+  const lines: [string, string | undefined][] = [
+    ["Nome", d.full_name], ["Nascimento", date(d.birth_date)], ["CPF", d.cpf], ["RG", d.rg], ["WhatsApp", d.whatsapp], ["E-mail", d.email], ["Endereço", addr],
+    ["Evento", d.event_title], ["Tipo", d.event_type], ["Data", date(d.event_date)], ["Início", e?.start_time], ["Duração", dur],
+    ["Local", e?.venue], ["Endereço do local", e?.address || [e?.venue_city, e?.venue_state].filter(Boolean).join("/")],
+    ["Atração", attractionName], ["Cerimonialista", e ? yn(e.has_ceremonial) : undefined],
+    ...(e?.has_ceremonial ? [["Nome do cerimonialista", e.ceremonial_name], ["Contato do cerimonialista", e.ceremonial_contact], ["Falar pelo cerimonialista", yn(e.contact_via_ceremonial)]] as [string, string][] : []),
+    ["GuestBook", e ? yn(e.has_guestbook) : undefined], ["Observações", d.notes],
+  ];
+  return ["*Ficha de contrato — Magic Moments*", "", ...lines.filter(([, v]) => v && v.trim()).map(([k, v]) => `*${k}:* ${v}`)].join("\n");
+}
 /** Normaliza para DDI 55 + DDD + número; retorna null se inválido. */
 export function normalizeRecipientPhone(value: string) {
   const digits = onlyDigits(value);

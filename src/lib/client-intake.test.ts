@@ -34,3 +34,9 @@ test("recipient phone gets country code 55", () => {
   assert.equal(normalizeRecipientPhone("(11) 99999-0000"), "5511999990000");
   assert.equal(normalizeRecipientPhone("123"), null);
 });
+
+test("resumo da ficha inclui dados preenchidos e GuestBook", async () => {
+  const { intakeSummaryMessage } = await import("./client-intake");
+  const msg = intakeSummaryMessage({ full_name: "João Silva", birth_date: "", cpf: "52998224725", rg: "", whatsapp: "11999998888", email: "j@x.com", zip_code: "", address: "", address_number: "", address_complement: "", neighborhood: "", city: "", state: "", notes: "", event_title: "Casamento", event_type: "", event_date: "2026-12-05", consent: true, event: { start_time: "20:00", duration_minutes: 90, venue: "Espaço X", address: "", venue_city: "", venue_state: "", latitude: null, longitude: null, place_id: null, attraction_id: "", has_ceremonial: false, ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false, has_guestbook: true } } as never, "Polaroide");
+  for (const s of ["João Silva", "52998224725", "05/12/2026", "1h30", "Espaço X", "*Atração:* Polaroide", "*GuestBook:* Sim"]) assert.ok(msg.includes(s), s);
+});
