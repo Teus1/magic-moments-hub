@@ -57,6 +57,13 @@
       "when": 1791852445460,
       "tag": "0007_harden_preregistration_and_duration_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791852472679,
+      "tag": "0008_serialize_intake_client_matching",
+      "breakpoints": true
     }
   ]
 }
