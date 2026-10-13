@@ -10,6 +10,8 @@
 <!-- LOVABLE:END -->
 
 ## Project architecture
+- Use expiring, single-submission hashed invitation tokens for public client intake, with no public personal-data reads; review and associate within a transactional permission-checked RPC before creating clients or suggesting events to prevent overwrites and duplicate records.
+- Reuse ClientFields and Places inputs in existing screens; persist event duration as integer minutes alongside calculated end_time and structured venue metadata to keep historical records and calendar consumers compatible.
 - Use FullCalendar for monthly and 24-hour daily calendar views, storing operational appointments separately with a required event link and Events action permissions; this preserves overlap handling, commercial totals, and staff portal boundaries.
 - Store calendar appointment timestamps as America/Sao_Paulo wall times and resolve overnight event ends on the following date; this keeps operational dates stable across browser timezones.
 - Tasks live at `/tarefas` with art groups and independent daily tasks; authenticated writes and RLS enforce existing task action permissions without expanding staff portal access.
