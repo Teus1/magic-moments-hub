@@ -44,7 +44,7 @@ function IntakePage() {
   const save = useMutation({ mutationFn: async () => {
     const parsedHours = Number(hours.replace(",", "."));
     const duration = hours.trim() ? Math.round(parsedHours * 60) : null;
-    const checked = intakeSchema.safeParse({ ...form, event_title: eventTitle, event_type: eventType, event_date: eventDate, consent, event: { ...details, duration_minutes: duration !== null && Number.isFinite(duration) ? duration : 0, venue_state: details.venue_state.toUpperCase(), ...(details.has_ceremonial ? {} : { ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false }) } });
+    const checked = intakeSchema.safeParse({ ...form, event_title: eventTitle, event_type: eventType, event_date: eventDate, consent, event: { ...details, duration_minutes: duration === null ? null : Number.isFinite(duration) ? duration : 0, venue_state: details.venue_state.toUpperCase(), ...(details.has_ceremonial ? {} : { ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false }) } });
     if (!checked.success) { setErrors(Object.fromEntries(checked.error.issues.map(issue => [issue.path[0] === "event" ? `event.${String(issue.path[1])}` : issue.path[0], issue.message]))); throw new Error("Confira os campos indicados antes de enviar."); }
     setErrors({});
     return submit({ data: { token, draft: checked.data, website: website as "" } });
