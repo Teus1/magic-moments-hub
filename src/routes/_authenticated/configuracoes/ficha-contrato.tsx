@@ -21,16 +21,10 @@ function ContractSettings() {
   const { can } = useCurrentUser();
   const canEdit = can("settings", "edit");
   const cache = useQueryClient();
-  const attractions = useQuery({ queryKey: ["attractions"], queryFn: async () => { const r = await supabase.from("attractions").select("id,name,description,status,sort_order").order("sort_order").order("name"); if (r.error) throw r.error; return r.data; } });
   const recipients = useQuery({ queryKey: ["whatsapp-recipients-all"], queryFn: async () => { const r = await supabase.from("whatsapp_notification_recipients").select("id,name,phone,active").order("name"); if (r.error) throw r.error; return r.data; } });
-  const refresh = () => { void cache.invalidateQueries({ queryKey: ["attractions"] }); void cache.invalidateQueries({ queryKey: ["whatsapp-recipients-all"] }); void cache.invalidateQueries({ queryKey: ["whatsapp-recipients"] }); };
-  const [attraction, setAttraction] = useState({ name: "", description: "" });
+  const refresh = () => { void cache.invalidateQueries({ queryKey: ["whatsapp-recipients-all"] }); void cache.invalidateQueries({ queryKey: ["whatsapp-recipients"] }); };
   const [recipient, setRecipient] = useState({ name: "", phone: "" });
   const run = (fn: () => PromiseLike<{ error: unknown }>, ok: string) => async () => { const r = await fn(); if (r.error) throw new Error("Não foi possível salvar. Confira os dados e suas permissões."); toast.success(ok); refresh(); };
-  const addAttraction = useMutation({ mutationFn: async () => {
-    const name = attraction.name.trim(); if (name.length < 2) throw new Error("Informe o nome da atração.");
-    await run(() => supabase.from("attractions").insert({ name, description: attraction.description.trim() || null, sort_order: (attractions.data?.length ?? 0) + 1 }), "Atração adicionada.")();
-    setAttraction({ name: "", description: "" });
   }, onError: (e: Error) => toast.error(e.message) });
   const addRecipient = useMutation({ mutationFn: async () => {
     const phone = normalizeRecipientPhone(recipient.phone); const name = recipient.name.trim();
