@@ -25,7 +25,6 @@ function ContractSettings() {
   const refresh = () => { void cache.invalidateQueries({ queryKey: ["whatsapp-recipients-all"] }); void cache.invalidateQueries({ queryKey: ["whatsapp-recipients"] }); };
   const [recipient, setRecipient] = useState({ name: "", phone: "" });
   const run = (fn: () => PromiseLike<{ error: unknown }>, ok: string) => async () => { const r = await fn(); if (r.error) throw new Error("Não foi possível salvar. Confira os dados e suas permissões."); toast.success(ok); refresh(); };
-  }, onError: (e: Error) => toast.error(e.message) });
   const addRecipient = useMutation({ mutationFn: async () => {
     const phone = normalizeRecipientPhone(recipient.phone); const name = recipient.name.trim();
     if (name.length < 2 || !phone) throw new Error("Informe nome e WhatsApp com DDD.");
