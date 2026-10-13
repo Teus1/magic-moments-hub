@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Verificar Clientes com sessão real e recuperação de falha de React sem tela em branco
+
 - [x] Permitir nomear e excluir links de fichas sem apagar clientes ou eventos; endereço curto no domínio próprio validado com criação, recarga, abertura e revogação autenticadas
 
 - [x] Integrar pré-cadastro por link seguro, recebimento e revisão na tela de Clientes sem duplicar ou sobrescrever registros
