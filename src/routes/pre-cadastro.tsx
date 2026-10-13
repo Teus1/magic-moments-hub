@@ -18,14 +18,18 @@ import { TravelPlaceInput } from "@/components/travel-place-input";
 import { EVENT_TYPE_SUGGESTIONS } from "@/lib/events";
 import { PickerField } from "@/components/ui/picker-field";
 import logo from "@/assets/magic-moments-logo.png";
+import { intakeTokenSchema } from "@/lib/intake-links";
 
 export const Route = createFileRoute("/pre-cadastro")({
-  validateSearch: (search: Record<string, unknown>) => ({ token: typeof search["token"] === "string" && /^[a-f0-9]{64}$/.test(search["token"]) ? search["token"] : "" }),
+  validateSearch: (search: Record<string, unknown>) => ({ token: intakeTokenSchema.safeParse(search["token"]).success ? String(search["token"]) : "" }),
   head: () => ({ meta: [{ title: "Ficha de contrato — Magic Moments" }, { name: "description", content: "Envie seus dados com segurança para o atendimento e a preparação do seu contrato Magic Moments." }, { property: "og:title", content: "Ficha de contrato — Magic Moments" }, { property: "og:description", content: "Dados para atendimento e preparação do contrato Magic Moments." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex,nofollow" }, { name: "referrer", content: "no-referrer" }] }),
-  component: IntakePage,
+  component: LegacyIntakePage,
 });
-function IntakePage() {
+function LegacyIntakePage() {
   const { token } = Route.useSearch();
+  return <IntakePage token={token} />;
+}
+export function IntakePage({ token }: { token: string }) {
   const statusFn = useServerFn(intakeLinkStatus);
   const submit = useServerFn(submitIntake);
   const status = useQuery({ queryKey: ["intake-link", token], enabled: Boolean(token), retry: false, queryFn: () => statusFn({ data: { token } }) });

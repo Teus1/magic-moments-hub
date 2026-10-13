@@ -1,6 +1,21 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { validCpf, intakeSchema } from "./client-intake";
+import { intakeRecipientSchema, intakeShareUrl, intakeTokenSchema, newIntakeToken } from "./intake-links";
+test("João can identify a new client invitation before a client exists", () => {
+  assert.equal(intakeRecipientSchema.parse(" João "), "João");
+  assert.equal(intakeRecipientSchema.safeParse(" ").success, false);
+});
+test("new links are short and use only the custom domain", () => {
+  const token = newIntakeToken();
+  assert.equal(token.length, 22);
+  const url = new URL(intakeShareUrl(token));
+  assert.equal(url.origin, "https://gerenciadormagicmoments.app");
+  assert.equal(url.pathname, `/f/${token}`);
+  assert.equal(url.search, "");
+  assert.equal(intakeTokenSchema.safeParse("a".repeat(64)).success, true);
+  assert.equal(intakeTokenSchema.safeParse("João").success, false);
+});
 describe("Client identification", () => {
   test("CPF check digits must be valid", () => { assert.equal(validCpf("529.982.247-25"), true); assert.equal(validCpf("529.982.247-24"), false); assert.equal(validCpf("111.111.111-11"), false); });
   test("A public intake requires valid CPF, WhatsApp and email", () => { assert.equal(intakeSchema.safeParse({ full_name: "Teste", cpf: "000", whatsapp: "11", email: "invalid" }).success, false); });

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "@/lib/admin.server";
+import { intakeTokenSchema } from "@/lib/intake-links";
 
 const gateway = "https://connector-gateway.lovable.dev/google_maps/places/v1";
 export type TravelPlaceSuggestion = { placeId: string; text: string };
@@ -92,7 +93,7 @@ async function authorizePublic(token: string) {
   if (!apiKey || !lovableKey) throw new Error("Busca de endereço indisponível. Digite manualmente.");
   return { apiKey, lovableKey };
 }
-const publicToken = z.string().regex(/^[a-f0-9]{64}$/);
+const publicToken = intakeTokenSchema;
 export const getPublicPlaceSuggestions = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ token: publicToken, input: z.string().trim().min(3).max(300), sessionToken: z.string().uuid() }).parse(data))
   .handler(async ({ data }): Promise<TravelPlaceSuggestion[]> => {

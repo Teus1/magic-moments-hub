@@ -52,7 +52,7 @@ export const intakeSchema = clientSchema.extend({
 });
 export type IntakeDraft = z.infer<typeof intakeSchema>;
 export interface IntakeRow {
-  id: string; status: "pending" | "received" | "reviewed"; client_id: string | null; event_id: string | null;
+  id: string; recipient_name: string | null; status: "pending" | "received" | "reviewed"; client_id: string | null; event_id: string | null;
   payload: IntakeDraft | null; created_at: string; received_at: string | null; reviewed_at: string | null; expires_at: string; notified_at: string | null;
 }
 /** Mensagem curta, sem CPF nem endereço, para avisar a equipe de uma nova ficha. */
