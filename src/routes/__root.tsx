@@ -39,11 +39,11 @@ function NotFoundComponent() {
 }
 
 class ErrorReporter extends Component<{ error: Error; children: ReactNode }> {
-  componentDidMount() {
+  override componentDidMount() {
     reportLovableError(this.props.error, { boundary: "tanstack_root_error_component" });
   }
 
-  render() {
+  override render() {
     return this.props.children;
   }
 }
