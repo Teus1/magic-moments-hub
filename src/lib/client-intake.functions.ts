@@ -82,7 +82,9 @@ export const submitIntake = createServerFn({ method: "POST" })
     const result = await supabaseAdmin.rpc("submit_client_preregistration", { _hash: await hashToken(data.token), _payload: { ...data.draft, cpf: onlyDigits(data.draft.cpf), whatsapp: onlyDigits(data.draft.whatsapp), zip_code: onlyDigits(data.draft.zip_code) } });
     // Automatic WhatsApp delivery to active recipients plugs in here once a provider is chosen.
     if (result.error) throw new Error("Não foi possível enviar. O link pode ter expirado; entre em contato com a Magic Moments.");
-    return { status: result.data };
+    // Only after a successful submission: expose active company recipients (name + phone) for the wa.me button.
+    const recipients = await supabaseAdmin.from("whatsapp_notification_recipients").select("name,phone").eq("active", true).order("name");
+    return { status: result.data, recipients: recipients.error ? [] : recipients.data };
   });
 export const reviewIntake = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid(), client_id: z.string().uuid().nullable(), fill_missing: z.boolean(), corrections: clientSchema.optional() }).parse(input))
