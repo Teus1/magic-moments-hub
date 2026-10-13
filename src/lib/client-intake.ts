@@ -1,3 +1,4 @@
+import { REFERRAL_VALUES, referralLabel } from "@/lib/event-extra";
 import { z } from "zod";
 import { onlyDigits } from "@/lib/clients";
 
@@ -38,9 +39,17 @@ export const intakeEventSchema = z.object({
   attraction_id: z.union([z.literal(""), z.string().uuid()]),
   has_ceremonial: z.boolean(), ceremonial_name: text(150), ceremonial_contact: text(150), contact_via_ceremonial: z.boolean(),
   has_guestbook: z.boolean(),
+  service_id: z.union([z.literal(""), z.string().uuid()]).default(""),
+  guest_count: z.number().int().min(1, "Informe ao menos 1 convidado.").max(100000, "Quantidade muito alta.").nullable().default(null),
+  social_media_consent: z.boolean().nullable().default(null),
+  instagram_handles: text(300).default(""),
+  referral_source: z.union([z.literal(""), z.enum(REFERRAL_VALUES)]).default(""),
+  referral_other: text(150).default(""),
+}).superRefine((v, ctx) => {
+  if (v.referral_source === "outro" && !v.referral_other.trim()) ctx.addIssue({ code: "custom", path: ["referral_other"], message: "Conte onde nos conheceu." });
 });
 export type IntakeEvent = z.infer<typeof intakeEventSchema>;
-export const emptyIntakeEvent: IntakeEvent = { start_time: "", duration_minutes: null, venue: "", address: "", venue_city: "", venue_state: "", latitude: null, longitude: null, place_id: null, attraction_id: "", has_ceremonial: false, ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false, has_guestbook: false };
+export const emptyIntakeEvent: IntakeEvent = { start_time: "", duration_minutes: null, venue: "", address: "", venue_city: "", venue_state: "", latitude: null, longitude: null, place_id: null, attraction_id: "", has_ceremonial: false, ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false, has_guestbook: false, service_id: "", guest_count: null, social_media_consent: null, instagram_handles: "", referral_source: "", referral_other: "" };
 export const intakeSchema = clientSchema.extend({
   cpf: text(14).refine(validCpf, "Informe um CPF válido."),
   whatsapp: text(20).refine(value => /^\d{10,11}$/.test(onlyDigits(value)), "Informe DDD e número do WhatsApp."),
@@ -76,7 +85,11 @@ export function intakeSummaryMessage(d: IntakeDraft, attractionName?: string) {
     ["Local", e?.venue], ["Endereço do local", e?.address || [e?.venue_city, e?.venue_state].filter(Boolean).join("/")],
     ["Atração", attractionName], ["Cerimonialista", e ? yn(e.has_ceremonial) : undefined],
     ...(e?.has_ceremonial ? [["Nome do cerimonialista", e.ceremonial_name], ["Contato do cerimonialista", e.ceremonial_contact], ["Falar pelo cerimonialista", yn(e.contact_via_ceremonial)]] as [string, string][] : []),
-    ["GuestBook", e ? yn(e.has_guestbook) : undefined], ["Observações", d.notes],
+    ["GuestBook", e ? yn(e.has_guestbook) : undefined],
+    ["Convidados (aprox.)", e?.guest_count ? String(e.guest_count) : undefined],
+    ["Pode compartilhar nas redes", e?.social_media_consent == null ? undefined : yn(e.social_media_consent)],
+    ["Instagram", e?.social_media_consent ? e.instagram_handles : undefined],
+    ["Como nos conheceu", referralLabel(e?.referral_source, e?.referral_other)], ["Observações", d.notes],
   ];
   return ["*Ficha de contrato — Magic Moments*", "", ...lines.filter(([, v]) => v && v.trim()).map(([k, v]) => `*${k}:* ${v}`)].join("\n");
 }
