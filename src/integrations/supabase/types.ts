@@ -496,6 +496,47 @@ export type Database = {
           },
         ]
       }
+      event_travel_estimates: {
+        Row: {
+          calculated_at: string
+          destination: string
+          distance_km: number
+          duration_seconds: number
+          event_id: string
+          manual_toll: number | null
+          origin: string
+          toll: number | null
+        }
+        Insert: {
+          calculated_at?: string
+          destination: string
+          distance_km: number
+          duration_seconds: number
+          event_id: string
+          manual_toll?: number | null
+          origin: string
+          toll?: number | null
+        }
+        Update: {
+          calculated_at?: string
+          destination?: string
+          distance_km?: number
+          duration_seconds?: number
+          event_id?: string
+          manual_toll?: number | null
+          origin?: string
+          toll?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_travel_estimates_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
@@ -998,6 +1039,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      travel_settings: {
+        Row: {
+          base_address: string
+          efficiency_km_l: number
+          fuel_price: number
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          base_address?: string
+          efficiency_km_l?: number
+          fuel_price?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          base_address?: string
+          efficiency_km_l?: number
+          fuel_price?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       whatsapp_notification_recipients: {
         Row: {
