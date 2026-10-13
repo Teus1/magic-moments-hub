@@ -75,3 +75,39 @@ export const resolveTravelPlace = createServerFn({ method: "POST" })
     const component = (type: string) => place.addressComponents?.find(item => item.types.includes(type));
     return { address: place.formattedAddress, name: place.displayName?.text ?? "", city: component("administrative_area_level_2")?.longText ?? component("locality")?.longText ?? "", state: component("administrative_area_level_1")?.shortText ?? "", latitude: place.location?.latitude ?? null, longitude: place.location?.longitude ?? null, placeId: place.id ?? data.placeId };
   });
+// Public contract-form lookups: only a valid, pending, unexpired invitation may
+// spend Places quota, and each invitation is capped per worker instance.
+const publicUsage = new Map<string, { count: number; expires: number }>();
+async function authorizePublic(token: string) {
+  const { pendingInvitation } = await import("@/lib/client-intake.functions");
+  await pendingInvitation(token);
+  const now = Date.now();
+  const usage = publicUsage.get(token);
+  const current = usage && usage.expires > now ? usage : { count: 0, expires: now + 3600000 };
+  if (current.count >= 60) throw new Error("Limite de buscas atingido. Digite o endereço manualmente.");
+  current.count += 1; publicUsage.set(token, current);
+  if (publicUsage.size > 500) { const first = publicUsage.keys().next().value; if (first) publicUsage.delete(first); }
+  const apiKey = process.env['GOOGLE_MAPS_API_KEY_1'];
+  const lovableKey = process.env['LOVABLE_API_KEY'];
+  if (!apiKey || !lovableKey) throw new Error("Busca de endereço indisponível. Digite manualmente.");
+  return { apiKey, lovableKey };
+}
+const publicToken = z.string().regex(/^[a-f0-9]{64}$/);
+export const getPublicPlaceSuggestions = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ token: publicToken, input: z.string().trim().min(3).max(300), sessionToken: z.string().uuid() }).parse(data))
+  .handler(async ({ data }): Promise<TravelPlaceSuggestion[]> => {
+    const credentials = await authorizePublic(data.token);
+    const payload = await requestPlaces(credentials, "places:autocomplete", "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text", {
+      input: data.input, sessionToken: data.sessionToken, languageCode: "pt-BR", regionCode: "BR",
+    }) as { suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[] };
+    return (payload.suggestions ?? []).flatMap(({ placePrediction: place }) => place?.placeId && place.text?.text ? [{ placeId: place.placeId, text: place.text.text }] : []).slice(0, 5);
+  });
+export const resolvePublicPlace = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ token: publicToken, placeId: z.string().min(1).max(300).regex(/^[a-zA-Z0-9_-]+$/), sessionToken: z.string().uuid() }).parse(data))
+  .handler(async ({ data }): Promise<TravelPlace> => {
+    const credentials = await authorizePublic(data.token);
+    const place = await requestPlaces(credentials, `places/${encodeURIComponent(data.placeId)}?sessionToken=${encodeURIComponent(data.sessionToken)}&languageCode=pt-BR`, "id,displayName,formattedAddress,addressComponents,location") as { id?: string; displayName?: { text?: string }; formattedAddress?: string; addressComponents?: { longText: string; shortText: string; types: string[] }[]; location?: { latitude?: number; longitude?: number } };
+    if (!place.formattedAddress) throw new Error("Este local não possui endereço disponível.");
+    const component = (type: string) => place.addressComponents?.find(item => item.types.includes(type));
+    return { address: place.formattedAddress, name: place.displayName?.text ?? "", city: component("administrative_area_level_2")?.longText ?? component("locality")?.longText ?? "", state: component("administrative_area_level_1")?.shortText ?? "", latitude: place.location?.latitude ?? null, longitude: place.location?.longitude ?? null, placeId: place.id ?? data.placeId };
+  });

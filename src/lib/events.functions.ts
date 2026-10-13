@@ -11,7 +11,7 @@ export const eventDraftSchema = z.object({
   duration_minutes: z.number().int().min(1).max(1439).nullable(),
   venue: nullableText(300), address: nullableText(1000), venue_city: nullableText(150), venue_state: z.string().regex(/^[A-Z]{2}$/).nullable(),
   latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), place_id: nullableText(300),
-  has_ceremonial: z.boolean(), ceremonial_name: nullableText(200), ceremonial_contact: nullableText(255), contact_via_ceremonial: z.boolean(), has_guestbook: z.boolean(),
+  has_ceremonial: z.boolean(), ceremonial_name: nullableText(200), ceremonial_contact: nullableText(255), contact_via_ceremonial: z.boolean(), has_guestbook: z.boolean(), attraction_id: z.string().uuid().nullable(), attraction_start_location: nullableText(300),
   status: z.enum(["planned", "cancelled"]), contracted_value: z.number().finite().min(0), notes: nullableText(40000), preregistration_id: z.string().uuid().nullable(),
 });
 export const saveEventDetails = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])

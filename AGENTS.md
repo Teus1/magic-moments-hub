@@ -11,6 +11,8 @@
 
 ## Project architecture
 - Use expiring, single-submission hashed invitation tokens for public client intake, with no public personal-data reads; review and associate within a transactional permission-checked RPC before creating clients or suggesting events to prevent overwrites and duplicate records.
+- Contract-form public helpers (attractions, Places) authorize only via a pending unexpired invitation token with per-token caps; WhatsApp alerts use wa.me links until a provider is chosen, with the auto-send hook after submission.
+- Attractions and WhatsApp recipients are managed under settings permissions; events reference attractions nullable to keep history.
 - Reuse ClientFields and Places inputs in existing screens; persist event duration as integer minutes alongside calculated end_time and structured venue metadata to keep historical records and calendar consumers compatible.
 - Use FullCalendar for monthly and 24-hour daily calendar views, storing operational appointments separately with a required event link and Events action permissions; this preserves overlap handling, commercial totals, and staff portal boundaries.
 - Store calendar appointment timestamps as America/Sao_Paulo wall times and resolve overnight event ends on the following date; this keeps operational dates stable across browser timezones.

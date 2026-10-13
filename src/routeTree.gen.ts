@@ -22,6 +22,7 @@ import { Route as AuthenticatedEventosRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
+import { Route as AuthenticatedConfiguracoesFichaContratoRouteImport } from './routes/_authenticated/configuracoes/ficha-contrato'
 import { Route as AuthenticatedConfiguracoesRolesRouteImport } from './routes/_authenticated/configuracoes/roles'
 import { Route as AuthenticatedConfiguracoesUsuariosRouteImport } from './routes/_authenticated/configuracoes/usuarios'
 
@@ -91,6 +92,12 @@ const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   path: '/tarefas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesFichaContratoRoute =
+  AuthenticatedConfiguracoesFichaContratoRouteImport.update({
+    id: '/configuracoes/ficha-contrato',
+    path: '/configuracoes/ficha-contrato',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesRolesRoute =
   AuthenticatedConfiguracoesRolesRouteImport.update({
     id: '/configuracoes/roles',
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof AuthenticatedPortalRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
 }
@@ -133,6 +141,7 @@ export interface FileRoutesByTo {
   '/portal': typeof AuthenticatedPortalRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
 }
@@ -151,6 +160,7 @@ export interface FileRoutesById {
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/_authenticated/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/_authenticated/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/_authenticated/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
 }
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/servicos'
     | '/tarefas'
+    | '/configuracoes/ficha-contrato'
     | '/configuracoes/roles'
     | '/configuracoes/usuarios'
   fileRoutesByTo: FileRoutesByTo
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/servicos'
     | '/tarefas'
+    | '/configuracoes/ficha-contrato'
     | '/configuracoes/roles'
     | '/configuracoes/usuarios'
   id:
@@ -202,6 +214,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal'
     | '/_authenticated/servicos'
     | '/_authenticated/tarefas'
+    | '/_authenticated/configuracoes/ficha-contrato'
     | '/_authenticated/configuracoes/roles'
     | '/_authenticated/configuracoes/usuarios'
   fileRoutesById: FileRoutesById
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTarefasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes/ficha-contrato': {
+      id: '/_authenticated/configuracoes/ficha-contrato'
+      path: '/configuracoes/ficha-contrato'
+      fullPath: '/configuracoes/ficha-contrato'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesFichaContratoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes/roles': {
       id: '/_authenticated/configuracoes/roles'
       path: '/configuracoes/roles'
@@ -333,6 +353,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPortalRoute: typeof AuthenticatedPortalRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedConfiguracoesFichaContratoRoute: typeof AuthenticatedConfiguracoesFichaContratoRoute
   AuthenticatedConfiguracoesRolesRoute: typeof AuthenticatedConfiguracoesRolesRoute
   AuthenticatedConfiguracoesUsuariosRoute: typeof AuthenticatedConfiguracoesUsuariosRoute
 }
@@ -347,6 +368,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPortalRoute: AuthenticatedPortalRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedConfiguracoesFichaContratoRoute:
+    AuthenticatedConfiguracoesFichaContratoRoute,
   AuthenticatedConfiguracoesRolesRoute: AuthenticatedConfiguracoesRolesRoute,
   AuthenticatedConfiguracoesUsuariosRoute:
     AuthenticatedConfiguracoesUsuariosRoute,

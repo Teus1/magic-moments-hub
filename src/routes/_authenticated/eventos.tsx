@@ -124,6 +124,8 @@ interface EventRow {
   ceremonial_contact: string | null;
   contact_via_ceremonial: boolean;
   has_guestbook: boolean;
+  attraction_id: string | null;
+  attraction_start_location: string | null;
   status: EventStatus;
   contracted_value: number;
   received_value: number;
@@ -155,7 +157,7 @@ interface PendingAttachment {
 const SELECT_COLUMNS = `
   id, client_id, service_id, name, event_type, event_date, start_time, end_time,
   venue, address, duration_minutes, venue_city, venue_state, latitude, longitude, place_id, preregistration_id, status, contracted_value, received_value, balance_value,
-  has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook,
+  has_ceremonial, ceremonial_name, ceremonial_contact, contact_via_ceremonial, has_guestbook, attraction_id, attraction_start_location,
   notes,
   clients:client_id (id, full_name, whatsapp),
   services:service_id (id, name, color)
@@ -259,6 +261,14 @@ function EventsPage() {
     },
   });
 
+  const attractions = useQuery({
+    queryKey: ["attractions"],
+    queryFn: async () => {
+      const r = await supabase.from("attractions").select("id,name,status").order("sort_order").order("name");
+      if (r.error) throw r.error;
+      return r.data;
+    },
+  });
   const services = useQuery({
     queryKey: ["events", "services-options"],
     enabled: canView,
@@ -395,6 +405,8 @@ function EventsPage() {
       ceremonial_contact: event.ceremonial_contact ?? "",
       contact_via_ceremonial: event.contact_via_ceremonial ?? false,
       has_guestbook: event.has_guestbook ?? false,
+      attraction_id: event.attraction_id ?? "",
+      attraction_start_location: event.attraction_start_location ?? "",
 
       status: event.status,
       contracted_value: String(event.contracted_value ?? 0),
@@ -444,7 +456,8 @@ function EventsPage() {
       const row = rows.find(item => item.id === intake);
       if (!row || row.status !== "reviewed" || !row.client_id || !row.payload || row.event_id) { toast.error("Pré-cadastro não disponível para criar evento."); return; }
       openCreate(); setIntakeId(row.id);
-      setForm(current => ({ ...current, client_id: row.client_id ?? "", name: row.payload?.event_title ?? "", event_type: row.payload?.event_type ?? "", event_date: row.payload?.event_date ?? "" }));
+      const ev = row.payload.event;
+      setForm(current => ({ ...current, client_id: row.client_id ?? "", name: row.payload?.event_title ?? "", event_type: row.payload?.event_type ?? "", event_date: row.payload?.event_date ?? "", ...(ev ? { start_time: ev.start_time, duration_hours: ev.duration_minutes ? String(ev.duration_minutes / 60) : "", venue: ev.venue, address: ev.address, venue_city: ev.venue_city, venue_state: ev.venue_state, latitude: ev.latitude, longitude: ev.longitude, place_id: ev.place_id, attraction_id: ev.attraction_id, attraction_start_location: ev.attraction_start_location, has_ceremonial: ev.has_ceremonial, ceremonial_name: ev.ceremonial_name, ceremonial_contact: ev.ceremonial_contact, contact_via_ceremonial: ev.contact_via_ceremonial, has_guestbook: ev.has_guestbook } : {}), notes: row.payload?.notes ?? "" }));
     }).catch(() => toast.error("Não foi possível carregar o pré-cadastro."));
   }, [routeSearch.action, routeSearch.intake, canCreate, navigate, fetchIntakes]);
 
@@ -478,6 +491,8 @@ function EventsPage() {
         ceremonial_contact: form.has_ceremonial ? form.ceremonial_contact.trim() || null : null,
         contact_via_ceremonial: form.has_ceremonial ? form.contact_via_ceremonial : false,
         has_guestbook: form.has_guestbook,
+        attraction_id: form.attraction_id || null,
+        attraction_start_location: form.attraction_start_location.trim() || null,
         status: form.status,
         contracted_value: contracted,
         notes: form.notes.trim() || null,
@@ -945,6 +960,20 @@ function EventsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Atração</Label>
+                <Select value={form.attraction_id || NONE} onValueChange={(value) => setForm({ ...form, attraction_id: value === NONE ? "" : value })}>
+                  <SelectTrigger aria-label="Atração"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Sem atração definida</SelectItem>
+                    {(attractions.data ?? []).filter((item) => item.status === "active" || item.id === form.attraction_id).map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-attraction-start">Onde a atração começa</Label>
+                <Input id="e-attraction-start" maxLength={300} value={form.attraction_start_location} onChange={(event) => setForm({ ...form, attraction_start_location: event.target.value })} placeholder="Ex.: salão principal" />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
