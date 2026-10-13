@@ -1,9 +1,10 @@
 # Roadmap
 
-- [ ] Integrar pré-cadastro por link seguro, recebimento e revisão na tela de Clientes sem duplicar ou sobrescrever registros
-- [ ] Reorganizar formulários de Clientes e Eventos, retirar Telefone e reutilizar Google Maps com localização persistida
-- [ ] Implementar duração e término calculado preservando eventos e agenda existentes
-- [ ] Validar envio público, revisão interna, criação sugerida do evento, persistência e regressões
+- [x] Integrar pré-cadastro por link seguro, recebimento e revisão na tela de Clientes sem duplicar ou sobrescrever registros
+- [x] Reorganizar formulários de Clientes e Eventos, retirar Telefone e reutilizar Google Maps com localização persistida
+- [x] Implementar duração e término calculado preservando eventos e agenda existentes
+- [x] Validar envio público real pelo celular, confirmação após recarga, CPF, data manual e regressões (19 testes)
+- [ ] Validar revisão interna, criação sugerida, edição de evento e sugestões reais do Maps — aguarda sessão autenticada do usuário
 
 - [x] Revisar vínculos e proteções existentes e conectar Google Drive para backups
 - [ ] Aprovar o plano de preservação e backup semanal completo

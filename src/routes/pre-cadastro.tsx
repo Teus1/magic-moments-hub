@@ -14,6 +14,7 @@ import { intakeSchema } from "@/lib/client-intake";
 import { intakeLinkStatus, submitIntake } from "@/lib/client-intake.functions";
 import { EVENT_TYPE_SUGGESTIONS } from "@/lib/events";
 import { PickerField } from "@/components/ui/picker-field";
+import logo from "@/assets/magic-moments-logo.png";
 
 export const Route = createFileRoute("/pre-cadastro")({
   validateSearch: (search: Record<string, unknown>) => ({ token: typeof search["token"] === "string" && /^[a-f0-9]{64}$/.test(search["token"]) ? search["token"] : "" }),
@@ -40,7 +41,7 @@ function IntakePage() {
   } });
   const received = save.isSuccess || status.data?.status === "received";
   return <main className="min-h-screen bg-background text-foreground">
-    <header className="border-b border-border px-5 py-6"><div className="mx-auto max-w-2xl"><p className="font-display text-3xl text-primary">Magic Moments</p><p className="mt-1 text-sm text-muted-foreground">Pré-cadastro para contratação</p></div></header>
+    <header className="border-b border-border px-5 py-6"><div className="mx-auto flex max-w-2xl items-center gap-4"><img src={logo} alt="" className="size-14 shrink-0 object-contain" /><div><p className="font-display text-3xl text-primary">Magic Moments</p><p className="mt-1 text-sm text-muted-foreground">Pré-cadastro para contratação</p></div></div></header>
     <div className="mx-auto max-w-2xl px-5 py-8 sm:py-10">
       {received ? <section className="space-y-4 py-10"><CheckCircle2 className="size-10 text-success" /><h1 className="font-display text-3xl">Dados recebidos!</h1><p className="text-muted-foreground">A Magic Moments recebeu suas informações e vai utilizá-las para dar continuidade ao atendimento e à preparação do contrato.</p></section>
         : !token || status.data?.status === "expired" ? <section><h1 className="font-display text-2xl">Link inválido ou expirado</h1><p className="mt-3 text-muted-foreground">Solicite um novo link à equipe Magic Moments.</p></section>
@@ -48,7 +49,7 @@ function IntakePage() {
         : status.isError ? <section><p role="alert" className="text-destructive">Não foi possível verificar o link.</p><Button variant="outline" onClick={() => void status.refetch()} className="mt-4">Tentar novamente</Button></section>
         : <form noValidate onSubmit={event => { event.preventDefault(); if (!save.isPending) save.mutate(); }} className="space-y-7">
           <div><h1 className="font-display text-3xl">Seu próximo momento</h1><p className="mt-2 text-sm text-muted-foreground">Campos com <span className="text-destructive">*</span> são obrigatórios.</p></div>
-          <ClientFields value={form} onChange={next => setForm(current => ({ ...current, ...next }))} publicForm errors={errors} prefix="intake" showNotes={false} />
+          <ClientFields value={form} onChange={next => { setForm(current => ({ ...current, ...next })); setErrors(current => Object.fromEntries(Object.entries(current).filter(([key]) => key in form && next[key as keyof typeof next] === form[key as keyof typeof form]))); }} publicForm errors={errors} prefix="intake" showNotes={false} />
           <section className="space-y-4"><h2 className="border-b border-border pb-2 font-semibold">Informações do evento</h2>
             <div className="space-y-2"><Label htmlFor="intake-event-title">Título do evento <span className="text-destructive">*</span></Label><Input id="intake-event-title" placeholder="Ex.: Casamento Mateus e Isabella" maxLength={200} value={eventTitle} onChange={event => setEventTitle(event.target.value)} />{errors["event_title"] && <p role="alert" className="text-xs text-destructive">{errors["event_title"]}</p>}</div>
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="intake-event-type">Tipo de evento</Label><Input id="intake-event-type" list="event-types" maxLength={100} value={eventType} onChange={event => setEventType(event.target.value)} /><datalist id="event-types">{EVENT_TYPE_SUGGESTIONS.map(type => <option key={type} value={type} />)}</datalist></div><div className="space-y-2"><Label htmlFor="intake-event-date">Data do evento</Label><PickerField id="intake-event-date" variant="date" value={eventDate} onChange={event => setEventDate(event.target.value)} />{errors["event_date"] && <p role="alert" className="text-xs text-destructive">{errors["event_date"]}</p>}</div></div>

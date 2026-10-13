@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PickerField } from "@/components/ui/picker-field";
 import { formatCpf, formatPhone, formatZip, lookupZipCode, onlyDigits, type ClientForm } from "@/lib/clients";
 
 type Props = { value: Omit<ClientForm, "phone">; onChange: (value: Omit<ClientForm, "phone">) => void; errors?: Record<string, string>; publicForm?: boolean; prefix?: string; showNotes?: boolean };
@@ -35,7 +36,7 @@ export function ClientFields({ value, onChange, errors = {}, publicForm = false,
     <section className="space-y-4"><h2 className="border-b border-border pb-2 font-semibold">Dados pessoais</h2>
       {field("full_name", "Nome completo", 150, { required: true, autoComplete: "name" })}
       <div className="grid gap-4 sm:grid-cols-3">
-        {field("birth_date", "Data de nascimento", 10, { type: "date", autoComplete: "bday" })}
+        <div className="space-y-2"><Label htmlFor={`${prefix}-birth_date`}>Data de nascimento</Label><PickerField id={`${prefix}-birth_date`} variant="date" value={value.birth_date} onChange={event => onChange({ ...value, birth_date: event.target.value })} />{errors["birth_date"] && <p role="alert" className="text-xs text-destructive">{errors["birth_date"]}</p>}</div>
         {field("cpf", "CPF", 14, { required: publicForm, mask: formatCpf, placeholder: "000.000.000-00" })}
         {field("rg", "RG", 20)}
       </div>
