@@ -268,14 +268,6 @@ function EventsPage() {
     },
   });
 
-  const attractions = useQuery({
-    queryKey: ["attractions"],
-    queryFn: async () => {
-      const r = await supabase.from("attractions").select("id,name,status").order("sort_order").order("name");
-      if (r.error) throw r.error;
-      return r.data;
-    },
-  });
   const services = useQuery({
     queryKey: ["events", "services-options"],
     enabled: canView,
@@ -977,20 +969,6 @@ function EventsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Atração</Label>
-                <Select value={form.attraction_id || NONE} onValueChange={(value) => setForm({ ...form, attraction_id: value === NONE ? "" : value })}>
-                  <SelectTrigger aria-label="Atração"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Sem atração definida</SelectItem>
-                    {(attractions.data ?? []).filter((item) => item.status === "active" || item.id === form.attraction_id).map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="e-attraction-start">Onde a atração começa</Label>
-                <Input id="e-attraction-start" maxLength={300} value={form.attraction_start_location} onChange={(event) => setForm({ ...form, attraction_start_location: event.target.value })} placeholder="Ex.: salão principal" />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>

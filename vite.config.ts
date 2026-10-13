@@ -11,7 +11,8 @@ export default defineConfig({
     optimizeDeps: {
       // Prebundle the consent control before routes load so discovering it later
       // cannot mix old React DOM modules with newly optimized React modules.
-      include: ["@radix-ui/react-radio-group"],
+      // TanStack runtime pieces discovered late also forced a mid-session reoptimization.
+      include: ["@radix-ui/react-radio-group", "@tanstack/history", "@tanstack/router-core", "seroval"],
     },
   },
   tanstackStart: {
