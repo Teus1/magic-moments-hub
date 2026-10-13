@@ -8,7 +8,7 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { Component, useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 
@@ -38,14 +38,24 @@ function NotFoundComponent() {
   );
 }
 
+class ErrorReporter extends Component<{ error: Error; children: ReactNode }> {
+  componentDidMount() {
+    reportLovableError(this.props.error, { boundary: "tanstack_root_error_component" });
+  }
+
+  render() {
+    return this.props.children;
+  }
+}
+
 function ErrorComponent({ error }: ErrorComponentProps) {
   const normalizedError = error instanceof Error ? error : new Error(String(error));
   console.error(error);
   // Keep this fallback hook-free: a mixed React generation can break hooks in
   // the fallback too. A document reload replaces the entire stale module graph.
-  reportLovableError(normalizedError, { boundary: "tanstack_root_error_component" });
 
   return (
+    <ErrorReporter error={normalizedError}>
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
@@ -62,6 +72,7 @@ function ErrorComponent({ error }: ErrorComponentProps) {
         </div>
       </div>
     </div>
+    </ErrorReporter>
   );
 }
 
