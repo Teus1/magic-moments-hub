@@ -114,12 +114,15 @@ export type Database = {
           client_id: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           event_id: string | null
           expires_at: string
           id: string
           notified_at: string | null
           payload: Json | null
           received_at: string | null
+          recipient_name: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -129,12 +132,15 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           event_id?: string | null
           expires_at?: string
           id?: string
           notified_at?: string | null
           payload?: Json | null
           received_at?: string | null
+          recipient_name?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -144,12 +150,15 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           event_id?: string | null
           expires_at?: string
           id?: string
           notified_at?: string | null
           payload?: Json | null
           received_at?: string | null
+          recipient_name?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -166,6 +175,13 @@ export type Database = {
           {
             foreignKeyName: "client_preregistrations_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_preregistrations_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1012,6 +1028,7 @@ export type Database = {
     }
     Functions: {
       can: { Args: { _action: string; _module: string }; Returns: boolean }
+      delete_client_intake_link: { Args: { _id: string }; Returns: undefined }
       has_permission: {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: boolean
