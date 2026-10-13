@@ -3,13 +3,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { LoaderCircle, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getTravelPlaceSuggestions, resolveTravelPlace, type TravelPlaceSuggestion, type TravelPlace } from "@/lib/travel-places.functions";
+import { getPublicPlaceSuggestions, getTravelPlaceSuggestions, resolvePublicPlace, resolveTravelPlace, type TravelPlaceSuggestion, type TravelPlace } from "@/lib/travel-places.functions";
 
-type Props = { id: string; value: string; onChange: (value: string) => void; onSelect?: (place: TravelPlace) => void; placeholder: string; disabled?: boolean; required?: boolean };
+type Props = { id: string; value: string; onChange: (value: string) => void; onSelect?: (place: TravelPlace) => void; placeholder: string; disabled?: boolean; required?: boolean; publicToken?: string };
 
-export function TravelPlaceInput({ id, value, onChange, onSelect, placeholder, disabled, required = true }: Props) {
-  const search = useServerFn(getTravelPlaceSuggestions);
-  const resolve = useServerFn(resolveTravelPlace);
+export function TravelPlaceInput({ id, value, onChange, onSelect, placeholder, disabled, required = true, publicToken }: Props) {
+  const internalSearch = useServerFn(getTravelPlaceSuggestions);
+  const internalResolve = useServerFn(resolveTravelPlace);
+  const publicSearch = useServerFn(getPublicPlaceSuggestions);
+  const publicResolve = useServerFn(resolvePublicPlace);
+  const search = publicToken ? (args: { data: { input: string; sessionToken: string } }) => publicSearch({ data: { ...args.data, token: publicToken } }) : internalSearch;
+  const resolve = publicToken ? (args: { data: { placeId: string; sessionToken: string } }) => publicResolve({ data: { ...args.data, token: publicToken } }) : internalResolve;
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<TravelPlaceSuggestion[]>([]);
   const [busy, setBusy] = useState(false);
@@ -38,7 +42,8 @@ export function TravelPlaceInput({ id, value, onChange, onSelect, placeholder, d
       } finally { if (version.current === current) setBusy(false); }
     }, 350);
     return () => { clearTimeout(timeout); version.current++; };
-  }, [value, focused, disabled, selecting, search]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, focused, disabled, selecting, publicToken]);
 
   async function choose(item: TravelPlaceSuggestion) {
     const sessionToken = token.current;
