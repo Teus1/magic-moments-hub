@@ -54,8 +54,9 @@ export const reviewIntake = createServerFn({ method: "POST" }).middleware([requi
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, "clients", "edit");
     await assertCan(context.supabase, "clients", "view");
-    const rpc = context.supabase.rpc.bind(context.supabase) as (name: "review_client_preregistration", args: { _id: string; _client_id: string | null; _fill_missing: boolean }) => ReturnType<typeof context.supabase.rpc<"review_client_preregistration">>;
-    const result = await rpc("review_client_preregistration", { _id: data.id, _client_id: data.client_id, _fill_missing: data.fill_missing });
+    // The generated RPC types omit SQL argument nullability; PostgreSQL accepts
+    // null here to request creation after the duplicate check in the transaction.
+    const result = await context.supabase.rpc("review_client_preregistration", { _id: data.id, _client_id: data.client_id as unknown as string, _fill_missing: data.fill_missing });
     if (result.error) throw new Error(result.error.message.includes("correspondente") ? "Já existe um cliente com CPF, WhatsApp ou e-mail correspondente. Selecione o cadastro existente." : "Não foi possível revisar. Confira o vínculo e suas permissões.");
     return { client_id: result.data };
   });
