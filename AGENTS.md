@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Project architecture
+- Prebundle the shared Radix radio-group control in Vite so lazy form loading does not trigger dependency reoptimization and mix React module generations in an open preview.
 - Use expiring, single-submission hashed invitation tokens for public client intake, with no public personal-data reads; review and associate within a transactional permission-checked RPC before creating clients or suggesting events to prevent overwrites and duplicate records.
 - Generate compact cryptographically random invitation tokens through the shared intake-links helper; keep legacy token support and revoke links through a permission-checked, row-locked RPC with soft deletion to preserve linked operational history.
 - Contract-form public helpers (attractions, Places) authorize only via a pending unexpired invitation token with per-token caps; WhatsApp alerts use wa.me links until a provider is chosen, with the auto-send hook after submission.
