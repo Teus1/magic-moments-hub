@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ClientFields } from "@/components/client-fields";
 import { emptyClientForm } from "@/lib/clients";
 import { emptyIntakeEvent, intakeSchema, intakeSummaryMessage, normalizeRecipientPhone, whatsappLink, type IntakeEvent } from "@/lib/client-intake";
-import { intakeLinkStatus, publicAttractions, submitIntake } from "@/lib/client-intake.functions";
+import { intakeLinkStatus, publicServices, submitIntake } from "@/lib/client-intake.functions";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TravelPlaceInput } from "@/components/travel-place-input";
@@ -19,6 +19,8 @@ import { EVENT_TYPE_SUGGESTIONS } from "@/lib/events";
 import { PickerField } from "@/components/ui/picker-field";
 import logo from "@/assets/magic-moments-logo.png";
 import { intakeTokenSchema } from "@/lib/intake-links";
+import { EventExtraFields, type EventExtraValue } from "@/components/event-extra-fields";
+import { parseGuestCount } from "@/lib/event-extra";
 
 export const Route = createFileRoute("/pre-cadastro")({
   validateSearch: (search: Record<string, unknown>) => ({ token: intakeTokenSchema.safeParse(search["token"]).success ? String(search["token"]) : "" }),
@@ -39,8 +41,9 @@ export function IntakePage({ token }: { token: string }) {
   const [eventDate, setEventDate] = useState("");
   const [details, setDetails] = useState<IntakeEvent>(emptyIntakeEvent);
   const [hours, setHours] = useState("");
-  const attractionsFn = useServerFn(publicAttractions);
-  const attractions = useQuery({ queryKey: ["intake-attractions", token], enabled: Boolean(token) && status.data?.status === "pending", retry: false, queryFn: () => attractionsFn({ data: { token } }) });
+  const [extra, setExtra] = useState<EventExtraValue>({ guest_count: "", social_media_consent: null, instagram_handles: "", referral_source: "", referral_other: "" });
+  const attractionsFn = useServerFn(publicServices);
+  const attractions = useQuery({ queryKey: ["intake-services", token], enabled: Boolean(token) && status.data?.status === "pending", retry: false, queryFn: () => attractionsFn({ data: { token } }) });
   const setDetail = (next: Partial<IntakeEvent>) => setDetails(current => ({ ...current, ...next }));
   const [consent, setConsent] = useState(false);
   const [website, setWebsite] = useState("");
@@ -48,11 +51,11 @@ export function IntakePage({ token }: { token: string }) {
   const save = useMutation({ mutationFn: async () => {
     const parsedHours = Number(hours.replace(",", "."));
     const duration = hours.trim() ? Math.round(parsedHours * 60) : null;
-    const checked = intakeSchema.safeParse({ ...form, event_title: eventTitle, event_type: eventType, event_date: eventDate, consent, event: { ...details, duration_minutes: duration === null ? null : Number.isFinite(duration) ? duration : 0, venue_state: details.venue_state.toUpperCase(), ...(details.has_ceremonial ? {} : { ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false }) } });
+    const checked = intakeSchema.safeParse({ ...form, event_title: eventTitle, event_type: eventType, event_date: eventDate, consent, event: { ...details, duration_minutes: duration === null ? null : Number.isFinite(duration) ? duration : 0, venue_state: details.venue_state.toUpperCase(), ...(details.has_ceremonial ? {} : { ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false }), attraction_id: "", guest_count: parseGuestCount(extra.guest_count), social_media_consent: extra.social_media_consent, instagram_handles: extra.social_media_consent ? extra.instagram_handles : "", referral_source: extra.referral_source, referral_other: extra.referral_source === "outro" ? extra.referral_other : "" } });
     if (!checked.success) { setErrors(Object.fromEntries(checked.error.issues.map(issue => [issue.path[0] === "event" ? `event.${String(issue.path[1])}` : issue.path[0], issue.message]))); throw new Error("Confira os campos indicados antes de enviar."); }
     setErrors({});
     const result = await submit({ data: { token, draft: checked.data, website: website as "" } });
-    const attractionName = attractions.data?.find(item => item.id === checked.data.event?.attraction_id)?.name;
+    const attractionName = attractions.data?.find(item => item.id === checked.data.event?.service_id)?.name;
     const message = intakeSummaryMessage(checked.data, attractionName);
     return { ...result, links: result.recipients.flatMap(r => { const phone = normalizeRecipientPhone(r.phone); return phone ? [{ name: r.name, href: whatsappLink(phone, message) }] : []; }) };
   } });
@@ -74,13 +77,14 @@ export function IntakePage({ token }: { token: string }) {
             <div className="space-y-2"><Label htmlFor="intake-event-title">Título do evento <span className="text-destructive">*</span></Label><Input id="intake-event-title" placeholder="Ex.: Casamento Mateus e Isabella" maxLength={200} value={eventTitle} onChange={event => setEventTitle(event.target.value)} />{errors["event_title"] && <p role="alert" className="text-xs text-destructive">{errors["event_title"]}</p>}</div>
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="intake-event-type">Tipo de evento</Label><Input id="intake-event-type" list="event-types" maxLength={100} value={eventType} onChange={event => setEventType(event.target.value)} /><datalist id="event-types">{EVENT_TYPE_SUGGESTIONS.map(type => <option key={type} value={type} />)}</datalist></div><div className="space-y-2"><Label htmlFor="intake-event-date">Data do evento</Label><PickerField id="intake-event-date" variant="date" value={eventDate} onChange={event => setEventDate(event.target.value)} />{errors["event_date"] && <p role="alert" className="text-xs text-destructive">{errors["event_date"]}</p>}</div></div>
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="intake-start">Início da atração (24h)</Label><PickerField id="intake-start" variant="time" value={details.start_time} onChange={event => setDetail({ start_time: event.target.value.slice(0, 5) })} />{errors["event.start_time"] && <p role="alert" className="text-xs text-destructive">{errors["event.start_time"]}</p>}</div><div className="space-y-2"><Label htmlFor="intake-hours">Duração (horas)</Label><Input id="intake-hours" inputMode="decimal" placeholder="Ex.: 4 ou 3,5" value={hours} onChange={event => setHours(event.target.value)} />{errors["event.duration_minutes"] && <p role="alert" className="text-xs text-destructive">{errors["event.duration_minutes"]}</p>}</div></div>
-            <div className="space-y-2"><Label>Atração escolhida</Label><Select value={details.attraction_id || "none"} onValueChange={value => setDetail({ attraction_id: value === "none" ? "" : value })}><SelectTrigger aria-label="Atração escolhida"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent><SelectItem value="none">Ainda não decidi</SelectItem>{(attractions.data ?? []).map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Atração escolhida</Label><Select value={details.service_id || "none"} onValueChange={value => setDetail({ service_id: value === "none" ? "" : value })}><SelectTrigger aria-label="Atração escolhida"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent><SelectItem value="none">Ainda não decidi</SelectItem>{(attractions.data ?? []).map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2"><Label htmlFor="intake-venue">Local do evento</Label><TravelPlaceInput id="intake-venue" publicToken={token} required={false} placeholder="Busque o nome do local ou endereço" value={details.venue} onChange={venue => setDetail({ venue, place_id: null, latitude: null, longitude: null })} onSelect={place => setDetail({ venue: place.name || place.address, address: place.address, venue_city: place.city, venue_state: place.state.slice(0, 2), latitude: place.latitude, longitude: place.longitude, place_id: place.placeId })} /></div>
             <div className="space-y-2"><Label htmlFor="intake-address">Endereço do local</Label><Input id="intake-address" maxLength={500} value={details.address} onChange={event => setDetail({ address: event.target.value })} /></div>
             <div className="grid gap-4 sm:grid-cols-[1fr_6rem]"><div className="space-y-2"><Label htmlFor="intake-venue-city">Cidade do local</Label><Input id="intake-venue-city" maxLength={150} value={details.venue_city} onChange={event => setDetail({ venue_city: event.target.value })} /></div><div className="space-y-2"><Label htmlFor="intake-venue-uf">UF</Label><Input id="intake-venue-uf" maxLength={2} value={details.venue_state} onChange={event => setDetail({ venue_state: event.target.value.toUpperCase() })} /></div></div>
             <div className="flex items-center justify-between gap-4"><Label htmlFor="intake-ceremonial">Terá cerimonialista?</Label><Switch id="intake-ceremonial" checked={details.has_ceremonial} onCheckedChange={has_ceremonial => setDetail({ has_ceremonial })} /></div>
             {details.has_ceremonial && <div className="space-y-4"><div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="intake-cer-name">Nome do cerimonial</Label><Input id="intake-cer-name" maxLength={150} value={details.ceremonial_name} onChange={event => setDetail({ ceremonial_name: event.target.value })} /></div><div className="space-y-2"><Label htmlFor="intake-cer-contact">Contato do cerimonial</Label><Input id="intake-cer-contact" maxLength={150} value={details.ceremonial_contact} onChange={event => setDetail({ ceremonial_contact: event.target.value })} /></div></div><div className="flex items-center justify-between gap-4"><Label htmlFor="intake-cer-via" className="font-normal">Os detalhes podem ser combinados direto com o cerimonial</Label><Switch id="intake-cer-via" checked={details.contact_via_ceremonial} onCheckedChange={contact_via_ceremonial => setDetail({ contact_via_ceremonial })} /></div></div>}
             <div className="flex items-center justify-between gap-4"><Label htmlFor="intake-guestbook">Terá o GuestBook?</Label><Switch id="intake-guestbook" checked={details.has_guestbook} onCheckedChange={has_guestbook => setDetail({ has_guestbook })} /></div>
+            <EventExtraFields idPrefix="intake" value={extra} onChange={next => setExtra(current => ({ ...current, ...next }))} errors={{ guest_count: errors["event.guest_count"] ?? "", referral_other: errors["event.referral_other"] ?? "" }} />
           </section>
           <div className="space-y-2"><Label htmlFor="intake-notes">Observações (opcional)</Label><Textarea id="intake-notes" maxLength={5000} rows={3} value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} /></div>
           <div className="hidden" aria-hidden="true"><Input tabIndex={-1} autoComplete="off" value={website} onChange={event => setWebsite(event.target.value)} /></div>

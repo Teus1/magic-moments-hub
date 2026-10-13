@@ -513,9 +513,11 @@ export type Database = {
           end_time: string | null
           event_date: string
           event_type: string | null
+          guest_count: number | null
           has_ceremonial: boolean
           has_guestbook: boolean
           id: string
+          instagram_handles: string | null
           latitude: number | null
           longitude: number | null
           name: string
@@ -523,7 +525,10 @@ export type Database = {
           place_id: string | null
           preregistration_id: string | null
           received_value: number
+          referral_other: string | null
+          referral_source: string | null
           service_id: string | null
+          social_media_consent: boolean | null
           start_time: string | null
           status: Database["public"]["Enums"]["event_status"]
           updated_at: string
@@ -547,9 +552,11 @@ export type Database = {
           end_time?: string | null
           event_date: string
           event_type?: string | null
+          guest_count?: number | null
           has_ceremonial?: boolean
           has_guestbook?: boolean
           id?: string
+          instagram_handles?: string | null
           latitude?: number | null
           longitude?: number | null
           name: string
@@ -557,7 +564,10 @@ export type Database = {
           place_id?: string | null
           preregistration_id?: string | null
           received_value?: number
+          referral_other?: string | null
+          referral_source?: string | null
           service_id?: string | null
+          social_media_consent?: boolean | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
@@ -581,9 +591,11 @@ export type Database = {
           end_time?: string | null
           event_date?: string
           event_type?: string | null
+          guest_count?: number | null
           has_ceremonial?: boolean
           has_guestbook?: boolean
           id?: string
+          instagram_handles?: string | null
           latitude?: number | null
           longitude?: number | null
           name?: string
@@ -591,7 +603,10 @@ export type Database = {
           place_id?: string | null
           preregistration_id?: string | null
           received_value?: number
+          referral_other?: string | null
+          referral_source?: string | null
           service_id?: string | null
+          social_media_consent?: boolean | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
