@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Colaboradores: retirar Telefone/E-mail da interface, incluir chave Pix e listar valores combinados/pagos e alertas por evento; testar persistência e pendências
+- [x] Colaboradores: retirar Telefone/E-mail da interface, incluir chave Pix e listar valores combinados/pagos e alertas por evento; 9 testes aprovados, chave persistida e pagamento parcial/quitado verificados na tela com registros temporários removidos
 
 - [x] Permitir novo colaborador com conta existente, manter criação de conta e validar vínculo único e persistência; cadastro real recarregado e registro temporário removido
 
