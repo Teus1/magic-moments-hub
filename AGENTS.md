@@ -25,6 +25,7 @@
 - Use dnd-kit and explicit complete/reopen commands only for daily board moves; art groups cannot be manually moved because their status derives from subtasks.
 
 - Keep collaborator self-service at `/portal`, reading assignments through RLS-protected `event_collaborators`; this limits each account to its own schedule and compensation.
+- Derive collaborator payment alerts from paginated RLS-protected event assignments under Events-view permission, resolving Pix keys from current collaborator records; this avoids duplicated balances, stale keys, and automatic transfers.
 - Create collaborators through protected actions with either a new login assigned the `colaborador` role or an existing profile whose credentials and permissions are preserved; enforce unique profile links in the database to prevent duplicate staff identities.
 - Delete user accounts only through a protected server function and preserve operational history by nulling profile references; this keeps privileged access off the client and avoids data loss.
 - Store event attachments in the private `event-attachments` bucket and authorize metadata and files with Events permissions; this keeps receipts and contracts unavailable to collaborator self-service.

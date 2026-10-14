@@ -44,6 +44,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { createCollaboratorWithAccount, createCollaboratorWithExistingAccount } from "@/lib/admin.functions";
 import { isAccountAvailable, validateExistingAccountId } from "@/lib/collaborator-accounts";
+import { CollaboratorPayments, PixKey } from "@/components/collaborator-payments";
 
 export const Route = createFileRoute("/_authenticated/colaboradores")({
   head: () => ({
@@ -67,9 +68,8 @@ interface CollaboratorRow {
   id: string;
   full_name: string;
   nickname: string | null;
-  phone: string | null;
   whatsapp: string | null;
-  email: string | null;
+  pix_key: string | null;
   role_title: string | null;
   notes: string | null;
   status: "active" | "inactive";
@@ -79,9 +79,8 @@ interface CollaboratorRow {
 interface CollaboratorForm {
   full_name: string;
   nickname: string;
-  phone: string;
   whatsapp: string;
-  email: string;
+  pix_key: string;
   role_title: string;
   notes: string;
   status: "active" | "inactive";
@@ -96,9 +95,8 @@ const NO_PROFILE = "__none__";
 const emptyForm: CollaboratorForm = {
   full_name: "",
   nickname: "",
-  phone: "",
   whatsapp: "",
-  email: "",
+  pix_key: "",
   role_title: "",
   notes: "",
   status: "active",
@@ -109,7 +107,7 @@ const emptyForm: CollaboratorForm = {
 };
 
 const SELECT_COLUMNS =
-  "id, full_name, nickname, phone, whatsapp, email, role_title, notes, status, profile_id";
+  "id, full_name, nickname, whatsapp, pix_key, role_title, notes, status, profile_id";
 
 function CollaboratorsPage() {
   const { can } = useCurrentUser();
@@ -163,13 +161,13 @@ function CollaboratorsPage() {
     return (collaborators.data ?? []).filter((row) => {
       if (statusFilter !== "all" && row.status !== statusFilter) return false;
       if (!term) return true;
-      const haystack = [row.full_name, row.nickname, row.email, row.role_title]
+      const haystack = [row.full_name, row.nickname, row.pix_key, row.role_title]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       if (haystack.includes(term)) return true;
       if (digits.length >= 3) {
-        return [row.phone, row.whatsapp].some((value) => onlyDigits(value ?? "").includes(digits));
+        return [row.whatsapp].some((value) => onlyDigits(value ?? "").includes(digits));
       }
       return false;
     });
@@ -186,9 +184,8 @@ function CollaboratorsPage() {
     setForm({
       full_name: row.full_name,
       nickname: row.nickname ?? "",
-      phone: row.phone ?? "",
       whatsapp: row.whatsapp ?? "",
-      email: row.email ?? "",
+      pix_key: row.pix_key ?? "",
       role_title: row.role_title ?? "",
       notes: row.notes ?? "",
       status: row.status,
@@ -214,9 +211,8 @@ function CollaboratorsPage() {
       const payload = {
         full_name: fullName,
         nickname: form.nickname.trim() || null,
-        phone: form.phone.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
-        email: form.email.trim() || null,
+        pix_key: form.pix_key.trim() || null,
         role_title: form.role_title.trim() || null,
         notes: form.notes.trim() || null,
         status: form.status,
@@ -235,9 +231,8 @@ function CollaboratorsPage() {
           fullName,
           profileId: validateExistingAccountId(form.profile_id),
           nickname: payload.nickname,
-          phone: payload.phone,
           whatsapp: payload.whatsapp,
-          email: payload.email,
+          pixKey: payload.pix_key,
           roleTitle: payload.role_title,
           notes: payload.notes,
           status: payload.status,
@@ -249,9 +244,8 @@ function CollaboratorsPage() {
         data: {
           fullName,
           nickname: payload.nickname,
-          phone: payload.phone,
           whatsapp: payload.whatsapp,
-          email: payload.email,
+          pixKey: payload.pix_key,
           roleTitle: payload.role_title,
           notes: payload.notes,
           status: payload.status,
@@ -316,7 +310,7 @@ function CollaboratorsPage() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por nome, função, e-mail ou telefone"
+              placeholder="Buscar por nome, função, WhatsApp ou chave Pix"
               className="pl-9"
               aria-label="Buscar colaboradores"
             />
@@ -347,7 +341,7 @@ function CollaboratorsPage() {
               <TableRow>
                 <TableHead>Colaborador</TableHead>
                 <TableHead>Função</TableHead>
-                <TableHead>Contato</TableHead>
+                <TableHead>Chave Pix / WhatsApp</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -380,8 +374,8 @@ function CollaboratorsPage() {
                   </TableCell>
                   <TableCell className="text-sm">{row.role_title || "—"}</TableCell>
                   <TableCell className="text-sm">
-                    <p>{row.phone ? formatPhone(row.phone) : "—"}</p>
-                    {row.email && <p className="text-xs text-muted-foreground">{row.email}</p>}
+                    <PixKey value={row.pix_key} name={row.full_name} />
+                    {row.whatsapp && <p className="text-xs text-muted-foreground">{formatPhone(row.whatsapp)}</p>}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -397,14 +391,14 @@ function CollaboratorsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      {(row.whatsapp || row.phone) && (
+                      {row.whatsapp && (
                         <Button
                           variant="ghost"
                           size="icon"
                           aria-label={`WhatsApp de ${row.full_name}`}
                           onClick={() =>
                             window.open(
-                              `https://wa.me/55${onlyDigits(row.whatsapp || row.phone || "")}`,
+                              `https://wa.me/55${onlyDigits(row.whatsapp || "")}`,
                               "_blank",
                               "noopener",
                             )
@@ -436,6 +430,8 @@ function CollaboratorsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {can("events", "view") && collaborators.data && <CollaboratorPayments collaborators={collaborators.data} />}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto border-primary/10 bg-background/95 p-0 shadow-elevated backdrop-blur-xl sm:max-w-2xl sm:rounded-xl">
@@ -536,12 +532,12 @@ function CollaboratorsPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="c-phone">Telefone</Label>
+                <Label htmlFor="c-pix">Chave Pix</Label>
                 <Input
-                  id="c-phone"
-                  value={form.phone}
-                  onChange={(event) => setForm({ ...form, phone: formatPhone(event.target.value) })}
-                  placeholder="(00) 00000-0000"
+                  id="c-pix"
+                  value={form.pix_key}
+                  onChange={(event) => setForm({ ...form, pix_key: event.target.value })}
+                  placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
                 />
               </div>
               <div className="space-y-2">
@@ -556,16 +552,6 @@ function CollaboratorsPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="c-email">E-mail</Label>
-                <Input
-                  id="c-email"
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => setForm({ ...form, email: event.target.value })}
-                  placeholder="nome@email.com"
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="c-role">Função</Label>
                 <Input

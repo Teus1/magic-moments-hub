@@ -286,6 +286,7 @@ export type Database = {
           nickname: string | null
           notes: string | null
           phone: string | null
+          pix_key: string | null
           profile_id: string | null
           role_title: string | null
           status: Database["public"]["Enums"]["record_status"]
@@ -301,6 +302,7 @@ export type Database = {
           nickname?: string | null
           notes?: string | null
           phone?: string | null
+          pix_key?: string | null
           profile_id?: string | null
           role_title?: string | null
           status?: Database["public"]["Enums"]["record_status"]
@@ -316,6 +318,7 @@ export type Database = {
           nickname?: string | null
           notes?: string | null
           phone?: string | null
+          pix_key?: string | null
           profile_id?: string | null
           role_title?: string | null
           status?: Database["public"]["Enums"]["record_status"]
