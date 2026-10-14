@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Permitir novo colaborador com conta existente, manter criação de conta e validar vínculo único e persistência; cadastro real recarregado e registro temporário removido
+
 - [x] Verificar Clientes com sessão real e recuperação de falha de React sem tela em branco
 
 - [x] Permitir nomear e excluir links de fichas sem apagar clientes ou eventos; endereço curto no domínio próprio validado com criação, recarga, abertura e revogação autenticadas
