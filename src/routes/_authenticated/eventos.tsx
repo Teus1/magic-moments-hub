@@ -262,12 +262,13 @@ function EventsPage() {
     queryKey: ["events"],
     enabled: canView,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select(SELECT_COLUMNS)
-        .order("event_date", { ascending: false });
-      if (error) throw new Error("Não foi possível carregar os eventos.");
-      return (data ?? []) as unknown as EventRow[];
+      const rows: EventRow[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase.from("events").select(SELECT_COLUMNS).order("event_date", { ascending: false }).order("id").range(offset, offset + 499);
+        if (error) throw new Error("Não foi possível carregar os eventos.");
+        rows.push(...(data ?? []) as unknown as EventRow[]);
+        if ((data ?? []).length < 500) return rows;
+      }
     },
   });
 
@@ -784,6 +785,14 @@ function EventsPage() {
             <div className="space-y-2"><Label>Situação financeira</Label><Select value={financeFilter} onValueChange={value => setFinanceFilter(value as "all" | "pending" | "paid")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem><SelectItem value="pending">Com saldo a receber</SelectItem><SelectItem value="paid">Quitado</SelectItem></SelectContent></Select></div>
             <div className="flex items-end"><Button type="button" variant="ghost" disabled={!activeFilters && !search} onClick={clearFilters}><X className="size-4" />Limpar filtros</Button></div>
           </div>}
+          {activeFilters > 0 && <div className="flex basis-full flex-wrap gap-2">{[
+            dateStart && `De ${formatEventDate(dateStart)}`, dateEnd && `Até ${formatEventDate(dateEnd)}`,
+            serviceFilter !== "all" && `Serviço: ${services.data?.find(item => item.id === serviceFilter)?.name ?? "Selecionado"}`,
+            clientFilter !== "all" && `Cliente: ${clients.data?.find(item => item.id === clientFilter)?.full_name ?? "Selecionado"}`,
+            statusFilter !== "all" && EVENT_DISPLAY_STATUS_LABELS[statusFilter],
+            financeFilter !== "all" && (financeFilter === "pending" ? "Saldo a receber" : "Quitado"),
+          ].filter(Boolean).map(label => <Badge key={String(label)} variant="secondary">{label}</Badge>)}</div>}
+          {dateStart && dateEnd && dateStart > dateEnd && <p role="alert" className="basis-full text-sm text-destructive">A data inicial deve ser anterior ou igual à final.</p>}
           <p className="basis-full text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}{activeFilters > 0 ? ` · ${activeFilters} filtros ativos` : ""}</p>
         </CardContent>
       </Card>
@@ -815,7 +824,7 @@ function EventsPage() {
                   <TableCell colSpan={7} className="py-12 text-center">
                     <PartyPopper className="mx-auto mb-3 size-8 text-muted-foreground/60" />
                     <p className="text-sm text-muted-foreground">
-                      {search || statusFilter !== "all"
+                      {search || activeFilters > 0
                         ? "Nenhum evento encontrado com esses filtros."
                         : "Nenhum evento cadastrado ainda."}
                     </p>
@@ -849,7 +858,7 @@ function EventsPage() {
                   <TableCell className="whitespace-nowrap text-sm">
                     <span className="flex items-center gap-1">
                       <CalendarDays className="size-3.5 text-muted-foreground" />
-                      {formatEventDate(event.event_date)}
+                      {showEventInfo ? formatEventDate(event.event_date) : "••/••/••••"}
                     </span>
                   </TableCell>
                   <TableCell className="text-sm">
@@ -869,6 +878,7 @@ function EventsPage() {
                   <TableCell>
                     {(() => {
                       const displayStatus = resolveEventStatus(event.status, event.event_date);
+                      if (!showEventInfo) return "••••••";
                       return (
                         <Badge variant="outline" className={cn(EVENT_DISPLAY_STATUS_CLASSES[displayStatus])}>
                           {EVENT_DISPLAY_STATUS_LABELS[displayStatus]}
@@ -893,7 +903,7 @@ function EventsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={`Excluir ${event.name}`}
+                          aria-label={showEventInfo ? `Excluir ${event.name}` : "Excluir evento oculto"}
                           onClick={() => setDeleting(event)}
                         >
                           <Trash2 className="size-4 text-destructive" />
