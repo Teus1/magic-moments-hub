@@ -177,7 +177,7 @@ function CollaboratorsPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, account_mode: can("users", "create") ? "new" : "existing" });
     setDialogOpen(true);
   }
 

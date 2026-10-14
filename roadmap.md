@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Permitir novo colaborador com conta existente, manter criação de conta e validar vínculo único e persistência
+- [x] Permitir novo colaborador com conta existente, manter criação de conta e validar vínculo único e persistência; cadastro real recarregado e registro temporário removido
 
 - [x] Verificar Clientes com sessão real e recuperação de falha de React sem tela em branco
 
