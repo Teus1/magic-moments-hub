@@ -99,6 +99,13 @@
       "when": 1791980626768,
       "tag": "0013_unique_collaborator_profile_link",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792020800783,
+      "tag": "0014_collaborators_pix_key",
+      "breakpoints": true
     }
   ]
 }
