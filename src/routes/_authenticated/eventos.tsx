@@ -1,3 +1,4 @@
+import { matchesEventFilters } from "@/lib/event-list-filters";
 import { useServerFn } from "@tanstack/react-start";
 import { EventExtraFields } from "@/components/event-extra-fields";
 import { parseGuestCount, type ReferralSource } from "@/lib/event-extra";
@@ -356,13 +357,7 @@ function EventsPage() {
     return (events.data ?? []).filter((event) => {
       const displayStatus = resolveEventStatus(event.status, event.event_date);
       if (statusFilter !== "all" && displayStatus !== statusFilter) return false;
-      if (dateStart && event.event_date < dateStart) return false;
-      if (dateEnd && event.event_date > dateEnd) return false;
-      if (serviceFilter !== "all" && event.service_id !== serviceFilter) return false;
-      if (clientFilter !== "all" && event.client_id !== clientFilter) return false;
-      const balance = Number(event.contracted_value ?? 0) - Number(event.received_value ?? 0);
-      if (financeFilter === "pending" && balance <= 0) return false;
-      if (financeFilter === "paid" && balance > 0) return false;
+      if (!matchesEventFilters(event, { dateStart, dateEnd, service: serviceFilter, client: clientFilter, finance: financeFilter })) return false;
       if (!term) return true;
       return [
         event.name,
