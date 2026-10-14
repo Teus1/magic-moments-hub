@@ -117,6 +117,7 @@ export const createCollaboratorWithAccount = createServerFn({ method: "POST" })
     (data: {
       fullName: string;
       nickname?: string | null;
+      pixKey?: string | null;
       phone?: string | null;
       whatsapp?: string | null;
       email?: string | null;
@@ -175,6 +176,7 @@ export const createCollaboratorWithAccount = createServerFn({ method: "POST" })
       .from("collaborators")
       .insert({
         full_name: fullName,
+        pix_key: data.pixKey?.trim() || null,
         nickname: data.nickname?.trim() || null,
         phone: data.phone?.trim() || null,
         whatsapp: data.whatsapp?.trim() || null,
@@ -201,6 +203,7 @@ export const createCollaboratorWithExistingAccount = createServerFn({ method: "P
   .inputValidator((data: {
     fullName: string;
     profileId: string;
+    pixKey?: string | null;
     nickname?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
@@ -221,6 +224,7 @@ export const createCollaboratorWithExistingAccount = createServerFn({ method: "P
     const { data: collaborator, error } = await context.supabase.from("collaborators")
       .insert({
         full_name: fullName,
+        pix_key: data.pixKey?.trim() || null,
         nickname: data.nickname?.trim() || null,
         phone: data.phone?.trim() || null,
         whatsapp: data.whatsapp?.trim() || null,
