@@ -55,7 +55,7 @@ export function ClientIntakePanel({ clients, canCreate, canEdit, canDelete, canC
   function open(row: IntakeRow) {
     setSelected(row); setFill(false); setEditing(false); setErrors({});
     if (row.payload) setDraft({ ...emptyClientForm, ...Object.fromEntries(Object.entries(row.payload).filter(([, v]) => typeof v === "string")) } as ClientForm);
-    const match = clients.find(client => row.payload && (onlyDigits(client.cpf ?? "") === onlyDigits(row.payload.cpf) || onlyDigits(client.whatsapp ?? "") === onlyDigits(row.payload.whatsapp) || client.email?.toLowerCase() === row.payload.email.toLowerCase()));
+    const match = clients.find(client => row.payload && (onlyDigits(client.cpf ?? "") === onlyDigits(row.payload.cpf) || onlyDigits(client.whatsapp ?? "") === onlyDigits(row.payload.whatsapp) || Boolean(row.payload.email && client.email?.toLowerCase() === row.payload.email.toLowerCase())));
     setTarget(row.client_id ?? match?.id ?? "new");
   }
   function notify(row: IntakeRow, phone: string) {

@@ -13,6 +13,8 @@ import {
   BookHeart,
   CalendarDays,
   Download,
+  Eye,
+  EyeOff,
   FileText,
   HardHat,
   MapPin,
@@ -24,6 +26,7 @@ import {
   Trash2,
   Upload,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -231,6 +234,15 @@ function EventsPage() {
   const canDelete = can("events", "delete");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | EventDisplayStatus>("all");
+  const [dateStart, setDateStart] = useState("");
+  const [dateEnd, setDateEnd] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("all");
+  const [clientFilter, setClientFilter] = useState("all");
+  const [financeFilter, setFinanceFilter] = useState<"all" | "pending" | "paid">("all");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showEventInfo, setShowEventInfo] = useState(true);
+  const [showFinancial, setShowFinancial] = useState(true);
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [form, setForm] = useState<EventForm>(emptyEventForm);
@@ -344,6 +356,13 @@ function EventsPage() {
     return (events.data ?? []).filter((event) => {
       const displayStatus = resolveEventStatus(event.status, event.event_date);
       if (statusFilter !== "all" && displayStatus !== statusFilter) return false;
+      if (dateStart && event.event_date < dateStart) return false;
+      if (dateEnd && event.event_date > dateEnd) return false;
+      if (serviceFilter !== "all" && event.service_id !== serviceFilter) return false;
+      if (clientFilter !== "all" && event.client_id !== clientFilter) return false;
+      const balance = Number(event.contracted_value ?? 0) - Number(event.received_value ?? 0);
+      if (financeFilter === "pending" && balance <= 0) return false;
+      if (financeFilter === "paid" && balance > 0) return false;
       if (!term) return true;
       return [
         event.name,
@@ -358,7 +377,14 @@ function EventsPage() {
         .toLowerCase()
         .includes(term);
     });
-  }, [events.data, search, statusFilter]);
+  }, [events.data, search, statusFilter, dateStart, dateEnd, serviceFilter, clientFilter, financeFilter]);
+
+  const pageSize = 15;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((Math.min(page, totalPages) - 1) * pageSize, Math.min(page, totalPages) * pageSize);
+  const activeFilters = [dateStart, dateEnd, serviceFilter !== "all", clientFilter !== "all", statusFilter !== "all", financeFilter !== "all"].filter(Boolean).length;
+  function clearFilters() { setSearch(""); setStatusFilter("all"); setDateStart(""); setDateEnd(""); setServiceFilter("all"); setClientFilter("all"); setFinanceFilter("all"); setPage(1); }
+  useEffect(() => { setPage(1); }, [search, statusFilter, dateStart, dateEnd, serviceFilter, clientFilter, financeFilter]);
 
   const totals = useMemo(() => {
     return filtered.reduce(
@@ -705,20 +731,20 @@ function EventsPage() {
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Eventos listados</p>
-            <p className="font-display text-2xl">{filtered.length}</p>
+            <p className="font-display text-2xl">{showEventInfo ? filtered.length : "•••"}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Valor contratado</p>
-            <p className="font-display text-2xl">{formatCurrency(totals.contracted)}</p>
+            <p className="font-display text-2xl">{showFinancial ? formatCurrency(totals.contracted) : "••••••"}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Saldo a receber</p>
             <p className="font-display text-2xl">
-              {formatCurrency(totals.contracted - totals.received)}
+              {showFinancial ? formatCurrency(totals.contracted - totals.received) : "••••••"}
             </p>
           </CardContent>
         </Card>
@@ -752,6 +778,18 @@ function EventsPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button type="button" variant="outline" onClick={() => setShowAdvanced(value => !value)}><SlidersHorizontal className="size-4" />Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}</Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={showEventInfo ? "Ocultar informações dos eventos" : "Mostrar informações dos eventos"} title={showEventInfo ? "Ocultar eventos" : "Mostrar eventos"} onClick={() => setShowEventInfo(value => !value)}>{showEventInfo ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={showFinancial ? "Ocultar valores financeiros" : "Mostrar valores financeiros"} title={showFinancial ? "Ocultar valores" : "Mostrar valores"} onClick={() => setShowFinancial(value => !value)}>{showFinancial ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button>
+          {showAdvanced && <div className="grid basis-full gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2"><Label htmlFor="filter-start">Data inicial</Label><PickerField id="filter-start" variant="date" value={dateStart} onChange={event => setDateStart(event.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="filter-end">Data final</Label><PickerField id="filter-end" variant="date" value={dateEnd} onChange={event => setDateEnd(event.target.value)} /></div>
+            <div className="space-y-2"><Label>Serviço</Label><Select value={serviceFilter} onValueChange={setServiceFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os serviços</SelectItem>{services.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Cliente</Label><Select value={clientFilter} onValueChange={setClientFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{clients.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.full_name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Situação financeira</Label><Select value={financeFilter} onValueChange={value => setFinanceFilter(value as "all" | "pending" | "paid")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem><SelectItem value="pending">Com saldo a receber</SelectItem><SelectItem value="paid">Quitado</SelectItem></SelectContent></Select></div>
+            <div className="flex items-end"><Button type="button" variant="ghost" disabled={!activeFilters && !search} onClick={clearFilters}><X className="size-4" />Limpar filtros</Button></div>
+          </div>}
+          <p className="basis-full text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}{activeFilters > 0 ? ` · ${activeFilters} filtros ativos` : ""}</p>
         </CardContent>
       </Card>
 
@@ -789,10 +827,11 @@ function EventsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {filtered.map((event) => (
+              {paginated.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell>
-                    <p className="font-medium">{event.name}</p>
+                    <p className="font-medium">{showEventInfo ? event.name : "Evento oculto"}</p>
+                    {showEventInfo && <>
                     <p className="text-xs text-muted-foreground">
                       {event.event_type ? `${event.event_type} · ` : ""}
                       {formatTimeRange(event.start_time, event.end_time)}
@@ -807,10 +846,10 @@ function EventsPage() {
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="size-3" /> {event.venue}
                       </p>
-                    )}
+                    )}</>}
                   </TableCell>
                   <TableCell className="text-sm">
-                    <p>{event.clients?.full_name ?? "—"}</p>
+                    <p>{showEventInfo ? event.clients?.full_name ?? "—" : "••••••"}</p>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
                     <span className="flex items-center gap-1">
@@ -819,7 +858,7 @@ function EventsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {event.services ? (
+                    {showEventInfo && event.services ? (
                       <span className="flex items-center gap-2">
                         <span
                           className="size-3 shrink-0 rounded-full ring-2 ring-border"
@@ -843,9 +882,9 @@ function EventsPage() {
                     })()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right text-sm">
-                    <p className="font-medium">{formatCurrency(Number(event.contracted_value ?? 0))}</p>
+                    <p className="font-medium">{showFinancial ? formatCurrency(Number(event.contracted_value ?? 0)) : "••••••"}</p>
                     <p className="text-xs text-muted-foreground">
-                      Recebido {formatCurrency(Number(event.received_value ?? 0))}
+                      {showFinancial ? `Recebido ${formatCurrency(Number(event.received_value ?? 0))}` : "Recebido ••••••"}
                     </p>
                   </TableCell>
                   <TableCell className="text-right">
@@ -873,6 +912,7 @@ function EventsPage() {
           </Table>
         </CardContent>
       </Card>
+      {filtered.length > pageSize && <div className="mt-4 flex items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Página {Math.min(page, totalPages)} de {totalPages}</p><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Anterior</Button><Button type="button" variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(value => value + 1)}>Próxima</Button></div></div>}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto bg-background p-0 sm:max-w-3xl">

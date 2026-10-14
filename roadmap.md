@@ -1,5 +1,12 @@
 # Roadmap
 
+- [ ] Documento de atualizações: origem da empresa selecionada por padrão e navegação mensal no Deslocamento
+- [ ] Documento de atualizações: ocultação visual e filtros combinados na listagem de Eventos
+- [ ] Documento de atualizações: alteração da própria senha para todos os usuários autenticados
+- [ ] Documento de atualizações: ficha pública com campos obrigatórios, origem do contato e envio pelo WhatsApp configurado
+- [ ] Documento de atualizações: excluir exclusivamente o cliente Mateus Santos após conferir vínculos e preservar fichas históricas
+- [ ] Documento de atualizações: testes de regras e verificação dos fluxos reais afetados
+
 - [x] Colaboradores: retirar Telefone/E-mail da interface, incluir chave Pix e listar valores combinados/pagos e alertas por evento; 9 testes aprovados, chave persistida e pagamento parcial/quitado verificados na tela com registros temporários removidos
 
 - [x] Permitir novo colaborador com conta existente, manter criação de conta e validar vínculo único e persistência; cadastro real recarregado e registro temporário removido

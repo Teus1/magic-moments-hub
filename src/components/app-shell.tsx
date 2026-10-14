@@ -26,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { KeyRound } from "lucide-react";
+import { PasswordChangeDialog } from "@/components/password-change-dialog";
 
 interface NavItem {
   label: string;
@@ -61,6 +63,7 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(true);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const settingsItems = SETTINGS_NAV.filter((item) => can(item.module, item.action));
 
@@ -172,6 +175,7 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
+        <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={() => { setPasswordOpen(true); setMobileOpen(false); }}><KeyRound className="size-4" />Alterar senha</Button>
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
           <Avatar className="size-9 bg-sidebar-accent">
             <AvatarFallback className="bg-sidebar-accent text-xs text-sidebar-accent-foreground">
@@ -198,6 +202,7 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
 
   return (
     <div className="min-h-screen bg-background">
+      <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
       <aside className="fixed inset-y-0 left-0 hidden w-64 lg:block">{sidebar}</aside>
 
       {mobileOpen && (
