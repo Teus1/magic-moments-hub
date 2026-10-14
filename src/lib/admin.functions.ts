@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan, usernameToEmail, validatePassword, validateUsername } from "@/lib/admin.server";
+import { validateExistingAccountId } from "@/lib/collaborator-accounts";
 
 export const getSetupState = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -193,6 +194,46 @@ export const createCollaboratorWithAccount = createServerFn({ method: "POST" })
     }
 
     return { ok: true, collaboratorId: collaborator.id, userId };
+  });
+
+export const createCollaboratorWithExistingAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: {
+    fullName: string;
+    profileId: string;
+    nickname?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    email?: string | null;
+    roleTitle?: string | null;
+    notes?: string | null;
+    status: "active" | "inactive";
+  }) => data)
+  .handler(async ({ data, context }) => {
+    await assertCan(context.supabase, "collaborators", "create");
+    await assertCan(context.supabase, "users", "view");
+    const fullName = data.fullName.trim();
+    if (fullName.length < 2) throw new Error("Informe o nome do colaborador.");
+    const profileId = validateExistingAccountId(data.profileId);
+    const { data: profile, error: profileError } = await context.supabase
+      .from("profiles").select("id").eq("id", profileId).maybeSingle();
+    if (profileError || !profile) throw new Error("A conta selecionada não está disponível.");
+    const { data: collaborator, error } = await context.supabase.from("collaborators")
+      .insert({
+        full_name: fullName,
+        nickname: data.nickname?.trim() || null,
+        phone: data.phone?.trim() || null,
+        whatsapp: data.whatsapp?.trim() || null,
+        email: data.email?.trim() || null,
+        role_title: data.roleTitle?.trim() || null,
+        notes: data.notes?.trim() || null,
+        status: data.status,
+        profile_id: profileId,
+        created_by: context.userId,
+      }).select("id").single();
+    if (error?.code === "23505") throw new Error("Esta conta já está vinculada a outro colaborador.");
+    if (error || !collaborator) throw new Error("Não foi possível cadastrar o colaborador.");
+    return { ok: true, collaboratorId: collaborator.id };
   });
 
 export const setUserPassword = createServerFn({ method: "POST" })

@@ -42,7 +42,8 @@ import { cn } from "@/lib/utils";
 import { formatPhone, onlyDigits } from "@/lib/clients";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { createCollaboratorWithAccount } from "@/lib/admin.functions";
+import { createCollaboratorWithAccount, createCollaboratorWithExistingAccount } from "@/lib/admin.functions";
+import { isAccountAvailable, validateExistingAccountId } from "@/lib/collaborator-accounts";
 
 export const Route = createFileRoute("/_authenticated/colaboradores")({
   head: () => ({
@@ -87,6 +88,7 @@ interface CollaboratorForm {
   profile_id: string;
   account_username: string;
   account_password: string;
+  account_mode: "new" | "existing";
 }
 
 const NO_PROFILE = "__none__";
@@ -103,6 +105,7 @@ const emptyForm: CollaboratorForm = {
   profile_id: "",
   account_username: "",
   account_password: "",
+  account_mode: "new",
 };
 
 const SELECT_COLUMNS =
@@ -112,6 +115,7 @@ function CollaboratorsPage() {
   const { can } = useCurrentUser();
   const queryClient = useQueryClient();
   const createCollaborator = useServerFn(createCollaboratorWithAccount);
+  const linkCollaborator = useServerFn(createCollaboratorWithExistingAccount);
 
   const canView = can("collaborators", "view");
   const canCreate = can("collaborators", "create");
@@ -191,6 +195,7 @@ function CollaboratorsPage() {
       profile_id: row.profile_id ?? "",
       account_username: "",
       account_password: "",
+      account_mode: "existing",
     });
     setDialogOpen(true);
   }
@@ -199,10 +204,10 @@ function CollaboratorsPage() {
     mutationFn: async () => {
       const fullName = form.full_name.trim();
       if (fullName.length < 2) throw new Error("Informe o nome do colaborador.");
-      if (!editing && form.account_username.trim().length < 3) {
+      if (!editing && form.account_mode === "new" && form.account_username.trim().length < 3) {
         throw new Error("Informe um login com pelo menos 3 caracteres.");
       }
-      if (!editing && form.account_password.length < 8) {
+      if (!editing && form.account_mode === "new" && form.account_password.length < 8) {
         throw new Error("A senha inicial deve ter pelo menos 8 caracteres.");
       }
 
@@ -220,7 +225,23 @@ function CollaboratorsPage() {
 
       if (editing) {
         const { error } = await supabase.from("collaborators").update(payload).eq("id", editing.id);
+        if (error?.code === "23505") throw new Error("Esta conta já está vinculada a outro colaborador.");
         if (error) throw new Error(error.message || "Não foi possível salvar o colaborador.");
+        return;
+      }
+
+      if (form.account_mode === "existing") {
+        await linkCollaborator({ data: {
+          fullName,
+          profileId: validateExistingAccountId(form.profile_id),
+          nickname: payload.nickname,
+          phone: payload.phone,
+          whatsapp: payload.whatsapp,
+          email: payload.email,
+          roleTitle: payload.role_title,
+          notes: payload.notes,
+          status: payload.status,
+        } });
         return;
       }
 
@@ -455,11 +476,35 @@ function CollaboratorsPage() {
               <div className="rounded-lg border border-primary/15 bg-primary/5 p-4">
                 <div className="mb-4">
                   <p className="text-sm font-semibold text-foreground">Acesso à Minha agenda</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    A conta será criada automaticamente com a role Colaborador.
-                  </p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="mb-4 space-y-2">
+                  <Label htmlFor="c-account-mode">Conta de acesso</Label>
+                  <Select value={form.account_mode} onValueChange={(value) => setForm({ ...form, account_mode: value as "new" | "existing", profile_id: "", account_password: "" })}>
+                    <SelectTrigger id="c-account-mode"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new" disabled={!can("users", "create")}>Criar nova conta</SelectItem>
+                      <SelectItem value="existing" disabled={!canLinkProfile}>Vincular conta existente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.account_mode === "existing" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="c-existing-account">Conta existente<span className="ml-1 text-destructive">*</span></Label>
+                    <Select value={form.profile_id} onValueChange={(value) => setForm({ ...form, profile_id: value })}>
+                      <SelectTrigger id="c-existing-account" disabled={profiles.isLoading || profiles.isError}>
+                        <SelectValue placeholder={profiles.isLoading ? "Carregando contas..." : "Selecione a conta"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(profiles.data ?? []).filter((profile) => isAccountAvailable(profile.id, collaborators.data ?? [])).map((profile) => (
+                          <SelectItem key={profile.id} value={profile.id}>{profile.name} · {profile.username}{profile.status === "inactive" ? " (Inativa)" : ""}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {profiles.isError && <p className="text-xs text-destructive">Não foi possível carregar as contas.</p>}
+                    {!profiles.isLoading && !profiles.isError && !(profiles.data ?? []).some((profile) => isAccountAvailable(profile.id, collaborators.data ?? [])) && <p className="text-xs text-muted-foreground">Nenhuma conta disponível para vínculo.</p>}
+                    <p className="text-xs text-muted-foreground">Login, senha e permissões da conta serão mantidos.</p>
+                  </div>
+                ) : <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="c-username">
                       Login<span className="ml-1 text-destructive">*</span>
@@ -485,7 +530,7 @@ function CollaboratorsPage() {
                       autoComplete="new-password"
                     />
                   </div>
-                </div>
+                </div>}
               </div>
             )}
 
@@ -565,7 +610,7 @@ function CollaboratorsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NO_PROFILE}>Sem conta vinculada</SelectItem>
-                      {(profiles.data ?? []).map((profile) => (
+                      {(profiles.data ?? []).filter((profile) => isAccountAvailable(profile.id, collaborators.data ?? [], editing.id)).map((profile) => (
                         <SelectItem key={profile.id} value={profile.id}>
                           {profile.name} · {profile.username}
                         </SelectItem>
