@@ -1,4 +1,5 @@
 import { REFERRAL_VALUES, referralLabel } from "@/lib/event-extra";
+import { EVENT_TYPE_SUGGESTIONS } from "@/lib/events";
 import { z } from "zod";
 import { onlyDigits } from "@/lib/clients";
 
@@ -62,7 +63,7 @@ export const intakeSchema = clientSchema.extend({
   city: text(150).min(1, "Informe a cidade."),
   state: text(2).regex(/^[A-Z]{2}$/, "Informe a UF com duas letras."),
   event_title: text(200).min(2, "Informe o título do evento."),
-  event_type: text(100).min(1, "Informe o tipo de evento."), event_date: isoDate,
+  event_type: text(100).refine(value => EVENT_TYPE_SUGGESTIONS.includes(value), "Escolha o tipo de evento."), event_date: isoDate,
   event: intakeEventSchema.superRefine((event, ctx) => {
     const required = ["start_time", "venue", "address", "venue_city", "venue_state", "service_id", "referral_source"] as const;
     for (const field of required) if (!event[field].trim()) ctx.addIssue({ code: "custom", path: [field], message: "Preencha este campo obrigatório." });
@@ -85,6 +86,12 @@ export function intakeNotificationMessage(payload: Pick<IntakeDraft, "full_name"
 }
 export function whatsappLink(phone: string, message: string) {
   return `https://wa.me/${onlyDigits(phone)}?text=${encodeURIComponent(message)}`;
+}
+/** Aceita apenas números e um único separador decimal (vírgula ou ponto) para a duração em horas. */
+export function sanitizeHoursInput(value: string) {
+  const cleaned = value.replace(/[^0-9,.]/g, "");
+  const separator = cleaned.search(/[,.]/);
+  return separator === -1 ? cleaned : cleaned.slice(0, separator + 1) + cleaned.slice(separator + 1).replace(/[,.]/g, "");
 }
 /** Mensagem completa que o próprio cliente envia com tudo o que preencheu na ficha. */
 export function intakeSummaryMessage(d: IntakeDraft, attractionName?: string) {
