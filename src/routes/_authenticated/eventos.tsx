@@ -1191,7 +1191,8 @@ function EventsPage() {
               {teamIds.length > 0 && (
                 <div className="space-y-3 rounded-lg border border-border/60 bg-card/70 p-3">
                   <p className="text-xs font-medium text-muted-foreground">
-                    Valores por colaborador (combinado e já pago)
+                    Combinado por colaborador. Os pagamentos são lançados em Colaboradores ›
+                    Pagamentos da equipe.
                   </p>
                   {teamIds.map((id) => {
                     const member = (collaborators.data ?? []).find((c) => c.id === id);
@@ -1220,22 +1221,10 @@ function EventsPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label htmlFor={`t-paid-${id}`} className="text-xs">
-                            Pago (R$)
-                          </Label>
-                          <Input
-                            id={`t-paid-${id}`}
-                            inputMode="decimal"
-                            className="sm:w-32"
-                            value={values.paid}
-                            onChange={(event) =>
-                              setTeamValues((current) => ({
-                                ...current,
-                                [id]: { ...values, paid: event.target.value },
-                              }))
-                            }
-                            placeholder="0,00"
-                          />
+                          <p className="text-xs text-muted-foreground">Pago (R$)</p>
+                          <p className="flex h-9 items-center justify-end rounded-md border border-border/60 bg-muted/40 px-3 text-sm tabular-nums sm:w-32 sm:justify-start">
+                            {formatCurrency(parseCurrencyInput(values.paid))}
+                          </p>
                         </div>
                         <p className="pb-3 text-xs text-muted-foreground sm:w-28 sm:text-right">
                           A pagar {formatCurrency(memberBalance)}
