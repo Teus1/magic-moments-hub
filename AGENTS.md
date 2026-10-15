@@ -14,8 +14,7 @@
 - Keep the root error fallback free of hooks and recover with a document reload so React dependency-generation failures cannot also blank the recovery screen.
 - Use expiring, single-submission hashed invitation tokens for public client intake, with no public personal-data reads; review and associate within a transactional permission-checked RPC before creating clients or suggesting events to prevent overwrites and duplicate records.
 - Generate compact cryptographically random invitation tokens through the shared intake-links helper; keep legacy token support and revoke links through a permission-checked, row-locked RPC with soft deletion to preserve linked operational history.
-- Contract-form public helpers (attractions, Places) authorize only via a pending unexpired invitation token with per-token caps; WhatsApp alerts use wa.me links until a provider is chosen, with the auto-send hook after submission.
-- WhatsApp recipients use settings permissions; services supply public attraction choices without deleting historical attraction references.
+- Contract-form public helpers authorize only via a pending unexpired invitation token with per-token caps; services supply the public attraction choices, WhatsApp recipients use settings permissions and alerts use wa.me links until a provider is chosen.
 - Reuse ClientFields and Places inputs in existing screens; persist event duration as integer minutes alongside calculated end_time and structured venue metadata to keep historical records and calendar consumers compatible.
 - Use FullCalendar for monthly and 24-hour daily calendar views, storing operational appointments separately with a required event link and Events action permissions; this preserves overlap handling, commercial totals, and staff portal boundaries.
 - Store calendar appointment timestamps as America/Sao_Paulo wall times and resolve overnight event ends on the following date; this keeps operational dates stable across browser timezones.
@@ -25,14 +24,14 @@
 - Use dnd-kit and explicit complete/reopen commands only for daily board moves; art groups cannot be manually moved because their status derives from subtasks.
 
 - Keep collaborator self-service at `/portal`, reading assignments through RLS-protected `event_collaborators`; this limits each account to its own schedule and compensation.
-- Derive collaborator payment alerts from paginated RLS-protected event assignments under Events-view permission, resolving Pix keys from current collaborator records; this avoids duplicated balances, stale keys, and automatic transfers.
+- Derive collaborator payment alerts from paginated RLS-protected event assignments under Events-view permission, resolving Pix keys from current collaborator records; keep `event_collaborators.paid_value` derived from `collaborator_payments` by trigger and write those entries only through a permission-checked server function, so the event form records agreed values only.
+- Generate Pix static BR Code payloads locally through the shared `pix` helper and render them with `qrcode.react`; no payment provider is connected, so a scanned QR is never payment confirmation.
 - Create collaborators through protected actions with either a new login assigned the `colaborador` role or an existing profile whose credentials and permissions are preserved; enforce unique profile links in the database to prevent duplicate staff identities.
 - Delete user accounts only through a protected server function and preserve operational history by nulling profile references; this keeps privileged access off the client and avoids data loss.
 - Store event attachments in the private `event-attachments` bucket and authorize metadata and files with Events permissions; this keeps receipts and contracts unavailable to collaborator self-service.
-- Keep travel route queries in an authenticated, Events-view-authorized server function with bounded inputs and short-lived bounded cache; this protects billable Google Maps calls and private credentials.
+- Keep travel route and Places queries in authenticated, Events-view-authorized server functions with bounded inputs and a short-lived bounded cache; server credentials stay in handlers and browser hosts use a tested allowlist.
 - Calculate outbound and return routes separately and preserve unknown toll prices as unavailable; this avoids fabricated zero tolls and symmetric-trip assumptions.
-- Places uses Events-view server functions, debounced inputs and session tokens to protect credentials and bound usage.
-- Reuse the linked Google Maps connection for map, Places and Routes; server credentials stay in handlers and browser hosts use a tested allowlist.
+- Reuse the linked Google Maps connection for map, Places and Routes.
 
 - Dashboard uses paginated year reads, monthly events and annual finance; reuse Events creation through URL navigation to avoid duplicate flows.
 
