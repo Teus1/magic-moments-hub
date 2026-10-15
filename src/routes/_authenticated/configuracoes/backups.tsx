@@ -26,7 +26,7 @@ function BackupsPage() {
   });
   return (
     <AppShell>
-      <PageHeader title="Backups" description="Cópia completa toda semana (domingo, 03h00 de Brasília) na pasta “Magic Moments - Backups” do Google Drive." actions={<Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>{mutation.isPending ? "Copiando…" : "Fazer backup agora"}</Button>} />
+      <PageHeader title="Backups" description="Cópia completa toda semana (domingo, 03h00 de Brasília) na pasta “Magic Moments - Backups” do Google Drive." action={<Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>{mutation.isPending ? "Copiando…" : "Fazer backup agora"}</Button>} />
       {runs.isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : !runs.data?.length ? <p className="text-sm text-muted-foreground">Nenhum backup feito ainda.</p> : (
         <ul className="divide-y divide-border rounded-md border border-border">
           {runs.data.map((r) => {
