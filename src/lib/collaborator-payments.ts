@@ -1,3 +1,15 @@
+/** Métodos que o financeiro pode escolher ao lançar um pagamento da equipe. */
+export const COLLABORATOR_PAYMENT_METHODS = [
+  { value: "pix", label: "Pix" },
+  { value: "credit", label: "Crédito" },
+  { value: "debit", label: "Débito" },
+  { value: "cash", label: "Dinheiro" },
+  { value: "boleto", label: "Boleto" },
+  { value: "transfer", label: "Transferência" },
+] as const;
+
+export type CollaboratorPaymentMethod = (typeof COLLABORATOR_PAYMENT_METHODS)[number]["value"];
+
 export function collaboratorBalance(agreed: number, paid: number): number {
   return Math.max(0, Math.round((Number(agreed) - Number(paid)) * 100) / 100);
 }
