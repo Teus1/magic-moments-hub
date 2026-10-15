@@ -69,7 +69,7 @@ export function UpcomingTravelList() {
     </div>
     {origin.length < 5 && <p className="text-sm text-warning">Cadastre o endereço da empresa em <Link to="/configuracoes/ficha-contrato" className="underline">Configurações › Ficha de contrato</Link> para calcular automaticamente.</p>}
     {events.isError ? <p role="alert" className="text-sm text-destructive">Não foi possível carregar os eventos deste mês.</p> : events.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : (events.data ?? []).length === 0 ? <p className="py-4 text-sm text-muted-foreground">Nenhum evento planejado neste mês.</p> :
-      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-sm">
+      <div className="overflow-x-auto"><table className="responsive-table w-full md:min-w-[900px] text-sm">
         <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2 pr-3 font-medium">Data</th><th className="pr-3 font-medium">Evento</th><th className="pr-3 font-medium">Local</th><th className="pr-3 font-medium">Equipe</th><th className="pr-3 text-right font-medium">Distância</th><th className="pr-3 text-right font-medium">Combustível</th><th className="pr-3 text-right font-medium">Pedágios</th><th className="pr-3 text-right font-medium">Total</th><th /></tr></thead>
         <tbody className="divide-y divide-border">{events.data?.map(ev => {
           const dest = eventDestination(ev);
@@ -81,15 +81,15 @@ export function UpcomingTravelList() {
           const fuel = fresh ? (eventTravelTotal(Number(fresh.distance_km), efficiency, price, 0, null)?.fuel ?? null) : null;
           const team = (ev.event_collaborators ?? []).map(c => c.collaborators?.full_name).filter(Boolean).join(", ");
           return <tr key={ev.id} className="align-top">
-            <td className="py-3 pr-3 whitespace-nowrap">{formatEventDate(ev.event_date)}{ev.start_time && <span className="block text-xs text-muted-foreground">{ev.start_time.slice(0, 5)}</span>}</td>
-            <td className="pr-3 py-3"><p className="font-medium">{ev.name}</p><p className="text-xs text-muted-foreground">{ev.clients?.full_name}</p></td>
-            <td className="pr-3 py-3 max-w-[220px]">{dest ? <span className="break-words">{ev.venue || dest}</span> : <span className="text-warning">Local não informado</span>}</td>
-            <td className="pr-3 py-3 max-w-[180px] text-xs">{team || <span className="text-muted-foreground">Sem equipe</span>}</td>
-            <td className="pr-3 py-3 text-right whitespace-nowrap">{fresh ? `${Number(fresh.distance_km).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km` : "—"}</td>
-            <td className="pr-3 py-3 text-right whitespace-nowrap">{fuel !== null ? formatCurrency(fuel) : "—"}</td>
-            <td className="pr-3 py-3 text-right">{fresh ? <div className="flex flex-col items-end gap-1"><span className={fresh.manual_toll === null && fresh.toll === null ? "text-warning" : ""}>{toll !== null ? formatCurrency(Number(toll)) : "Indisponível"}</span><Input aria-label={`Pedágio manual de ${ev.name}`} className="h-7 w-24 text-right text-xs" placeholder="Manual" defaultValue={fresh.manual_toll ?? ""} onBlur={e => { if (e.target.value !== String(fresh.manual_toll ?? "")) void saveManualToll(ev.id, e.target.value); }} /></div> : "—"}</td>
-            <td className="pr-3 py-3 text-right font-semibold text-primary whitespace-nowrap">{loading ? <LoaderCircle className="ml-auto size-4 animate-spin" /> : cost ? formatCurrency(cost.total) : "—"}</td>
-            <td className="py-2"><div className="flex justify-end gap-1">
+            <td data-label="Data" className="py-3 pr-3 whitespace-nowrap">{formatEventDate(ev.event_date)}{ev.start_time && <span className="block text-xs text-muted-foreground">{ev.start_time.slice(0, 5)}</span>}</td>
+            <td data-label="Evento" className="pr-3 py-3"><p className="font-medium">{ev.name}</p><p className="text-xs text-muted-foreground">{ev.clients?.full_name}</p></td>
+            <td data-label="Local" className="pr-3 py-3 max-w-[220px]">{dest ? <span className="break-words">{ev.venue || dest}</span> : <span className="text-warning">Local não informado</span>}</td>
+            <td data-label="Equipe" className="pr-3 py-3 max-w-[180px] text-xs">{team || <span className="text-muted-foreground">Sem equipe</span>}</td>
+            <td data-label="Distância" className="pr-3 py-3 text-right whitespace-nowrap">{fresh ? `${Number(fresh.distance_km).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km` : "—"}</td>
+            <td data-label="Combustível" className="pr-3 py-3 text-right whitespace-nowrap">{fuel !== null ? formatCurrency(fuel) : "—"}</td>
+            <td data-label="Pedágios" className="pr-3 py-3 text-right">{fresh ? <div className="flex flex-col items-end gap-1"><span className={fresh.manual_toll === null && fresh.toll === null ? "text-warning" : ""}>{toll !== null ? formatCurrency(Number(toll)) : "Indisponível"}</span><Input aria-label={`Pedágio manual de ${ev.name}`} className="h-7 w-24 text-right text-xs" placeholder="Manual" defaultValue={fresh.manual_toll ?? ""} onBlur={e => { if (e.target.value !== String(fresh.manual_toll ?? "")) void saveManualToll(ev.id, e.target.value); }} /></div> : "—"}</td>
+            <td data-label="Total" className="pr-3 py-3 text-right font-semibold text-primary whitespace-nowrap">{loading ? <LoaderCircle className="ml-auto size-4 animate-spin" /> : cost ? formatCurrency(cost.total) : "—"}</td>
+            <td data-label="Ações" className="py-2"><div className="flex justify-end gap-1">
               <Button size="icon" variant="ghost" aria-label={`Recalcular ${ev.name}`} disabled={!dest || loading || origin.length < 5} onClick={() => void run([ev.id], true)}><RefreshCw className="size-4" /></Button>
               <Button size="sm" variant="ghost" asChild><Link to="/deslocamento" search={{ event: ev.id }}>Simular</Link></Button>
             </div></td>

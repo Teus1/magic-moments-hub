@@ -110,11 +110,11 @@ function DashboardPage() {
       </header>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold capitalize">{monthLabel}</h2>
-        <div className="flex max-w-full flex-wrap items-center gap-2">
+        <div className="grid w-full grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Button variant="outline" size="icon" aria-label="Mês anterior" onClick={() => selectMonth(shiftMonth(month, -1))}><ChevronLeft /></Button>
-          <Input type="month" aria-label="Selecionar mês e ano" value={month} onChange={event => selectMonth(event.target.value)} className="w-[180px] bg-card" />
+          <Input type="month" aria-label="Selecionar mês e ano" value={month} onChange={event => selectMonth(event.target.value)} className="w-full bg-card sm:w-[180px]" />
           <Button variant="outline" size="icon" aria-label="Próximo mês" onClick={() => selectMonth(shiftMonth(month, 1))}><ChevronRight /></Button>
-          <Button variant="ghost" size="sm" disabled={month === currentMonth()} onClick={() => selectMonth(currentMonth())}>Mês atual</Button>
+          <Button variant="ghost" size="sm" className="col-span-3" disabled={month === currentMonth()} onClick={() => selectMonth(currentMonth())}>Mês atual</Button>
         </div>
       </div>
       {!canViewEvents && !userPending && <p className="text-sm text-muted-foreground">Você não tem permissão para visualizar os indicadores de eventos.</p>}

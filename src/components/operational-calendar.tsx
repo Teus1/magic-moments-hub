@@ -19,7 +19,7 @@ export default function OperationalCalendar({ events, onRange, onItem, onSlot, c
  const [view,setView] = useState('dayGridMonth');
  function changeView(next: string) { ref.current?.getApi().changeView(next); }
  return <div className="operational-calendar min-w-0">
-  <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <div className="calendar-toolbar mb-4 flex flex-wrap items-center justify-between gap-3">
    <div className="flex items-center gap-1">
     <Button variant="outline" size="sm" onClick={() => ref.current?.getApi().gotoDate(calendarToday())}>Hoje</Button>
     <Button variant="ghost" size="icon" aria-label={view === 'dayGridMonth' ? 'Mês anterior' : 'Dia anterior'} onClick={() => ref.current?.getApi().prev()}><ChevronLeft className="size-4"/></Button>

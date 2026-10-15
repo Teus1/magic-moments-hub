@@ -99,7 +99,7 @@ function PixPaymentDialog({ target, canEdit, onClose }: { target: PixTarget; can
         <DialogDescription>{target.eventName} · {formatEventDate(target.eventDate)}</DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-white p-4">
+      <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-3">
         {payload ? <QRCodeSVG value={payload} size={196} level="M" marginSize={2} />
           : <p className="py-12 text-sm text-muted-foreground">Informe um valor maior que zero para gerar o QR.</p>}
         <p className="text-xl font-semibold tabular-nums text-primary">{formatCurrency(value)}</p>
@@ -135,7 +135,7 @@ function PixPaymentDialog({ target, canEdit, onClose }: { target: PixTarget; can
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">O QR não confirma o Pix sozinho: registre aqui depois de conferir no banco.</p>
           <Button onClick={register} disabled={saving || !(value > 0)}>
             {saving ? "Registrando..." : "Registrar pagamento"}
@@ -187,13 +187,13 @@ export function CollaboratorPayments({ collaborators, canEdit }: { collaborators
         <Button variant="outline" asChild><Link to="/eventos" search={{}}><ExternalLink className="mr-2 size-4" />Eventos</Link></Button>
       </div>
     </div>
-    {!assignments.isLoading && !assignments.isError && <div className="mb-5 grid gap-4 border-y border-border py-4 sm:grid-cols-3">
+    {!assignments.isLoading && !assignments.isError && <div className="mb-5 grid gap-3 border-y border-border py-4 sm:grid-cols-3">
       <div><p className="text-xs text-muted-foreground">Total combinado</p><p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(totals.agreed)}</p></div>
       <div><p className="text-xs text-muted-foreground">Total pago</p><p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(totals.paid)}</p></div>
       <div><p className="flex items-center gap-1 text-xs text-muted-foreground"><AlertCircle className="size-3.5" />A pagar</p><p className="mt-1 text-xl font-semibold tabular-nums text-primary">{formatCurrency(totals.pending)}</p></div>
     </div>}
     {assignments.isLoading ? <p className="py-8 text-center text-sm text-muted-foreground">Carregando pagamentos...</p> : assignments.isError ? <p role="alert" className="py-6 text-sm text-destructive">Não foi possível carregar os pagamentos. Tente atualizar.</p> : <>
-      <Table><TableHeader><TableRow><TableHead>Evento / data</TableHead><TableHead>Colaborador</TableHead><TableHead>Chave Pix</TableHead><TableHead className="text-right">Combinado</TableHead><TableHead className="text-right">Pago</TableHead><TableHead className="text-right">A pagar</TableHead></TableRow></TableHeader>
+      <Table mobileCards><TableHeader><TableRow><TableHead>Evento / data</TableHead><TableHead>Colaborador</TableHead><TableHead>Chave Pix</TableHead><TableHead className="text-right">Combinado</TableHead><TableHead className="text-right">Pago</TableHead><TableHead className="text-right">A pagar</TableHead></TableRow></TableHeader>
         <TableBody>{visible.slice(currentPage * 10, currentPage * 10 + 10).map(row => {
           const person = people.get(row.collaborator_id);
           if (!person || !row.event) return null;
@@ -205,11 +205,11 @@ export function CollaboratorPayments({ collaborators, canEdit }: { collaborators
               <PixKey value={person.pix_key} name={person.full_name} />
               {person.pix_key && balance > 0 && <Button variant="ghost" size="icon" className="size-8 shrink-0" title="Gerar QR Code Pix" aria-label={`Gerar QR Code Pix para ${person.full_name}`} onClick={() => setPixTarget({
                 linkId: row.id,
-                eventName: row.event!.name,
-                eventDate: row.event!.event_date,
+                eventName: row.event?.name ?? "",
+                eventDate: row.event?.event_date ?? "",
                 balance,
                 personName: person.full_name,
-                pixKey: person.pix_key!,
+                pixKey: person.pix_key ?? "",
               })}><QrCode className="size-3.5" /></Button>}
             </div></TableCell>
             <TableCell className="text-right tabular-nums">{formatCurrency(Number(row.agreed_value))}</TableCell>

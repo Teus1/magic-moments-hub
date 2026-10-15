@@ -38,3 +38,5 @@
 - Version new public contracts and validate required fields on pending-to-received transitions only, preserving historical reviews.
 - Self-password changes reauthenticate the middleware account in a request-local client before updating; never accept target IDs or persist passwords.
 - Travel reuses month-bound helpers; event privacy is rendering-only and filters preserve financial values.
+
+- Opt-in responsive tables reuse the same rows, header labels, permissions and actions as desktop to prevent divergent mobile data or workflows.
