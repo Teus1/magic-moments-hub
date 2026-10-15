@@ -51,7 +51,7 @@ test("Como nos conheceu: 'Outro' exige texto e convidados entre 1 e 100000", asy
 
 const complete = {
   full_name: "João Silva", birth_date: "1990-01-01", cpf: "52998224725", rg: "12345678", whatsapp: "11999998888", email: "", zip_code: "01001000", address: "Praça da Sé", address_number: "1", address_complement: "", neighborhood: "Sé", city: "São Paulo", state: "SP", notes: "", event_title: "Casamento", event_type: "Casamento", event_date: "2026-12-05", consent: true,
-  event: { ...emptyIntakeEvent, start_time: "20:00", duration_minutes: 240, service_id: "11111111-1111-4111-8111-111111111111", venue: "Espaço", address: "Rua do local, 1", venue_city: "São Paulo", social_media_consent: false, referral_source: "google" },
+  event: { ...emptyIntakeEvent, start_time: "20:00", duration_minutes: 240, service_id: "11111111-1111-4111-8111-111111111111", venue: "Espaço", address: "Rua do local, 1", venue_city: "São Paulo", venue_state: "SP", social_media_consent: false, referral_source: "google" },
 };
 for (const field of ["full_name", "birth_date", "cpf", "rg", "whatsapp", "zip_code", "address", "address_number", "neighborhood", "city", "state", "event_type", "event_date"] as const) {
   test(`new public contract requires ${field}`, () => {
@@ -59,7 +59,7 @@ for (const field of ["full_name", "birth_date", "cpf", "rg", "whatsapp", "zip_co
     assert.equal(intakeSchema.safeParse({ ...complete, [field]: "" }).success, false);
   });
 }
-for (const field of ["start_time", "venue", "address", "venue_city", "service_id", "referral_source"] as const) {
+for (const field of ["start_time", "venue", "address", "venue_city", "venue_state", "service_id", "referral_source"] as const) {
   test(`new public contract requires event ${field}`, () => assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, [field]: "" } }).success, false));
 }
 test("contract needs duration and explicit social decision; email, complement, guests optional", () => {
@@ -70,4 +70,8 @@ test("contract needs duration and explicit social decision; email, complement, g
 });
 test("contact sources include new channels and preserve legacy answers", () => {
   for (const referral_source of ["instagram", "tiktok", "google", "indicacao", "cerimonialista", "casamentos_com_br", "instagram_facebook", "evento_conhecido"]) assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, referral_source } }).success, true);
+});
+test("event location UF must contain two uppercase letters", () => {
+  for (const venue_state of ["S", "12", "  "]) assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, venue_state } }).success, false);
+  assert.equal(intakeSchema.safeParse(complete).success, true);
 });
