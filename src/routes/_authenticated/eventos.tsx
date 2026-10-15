@@ -633,20 +633,12 @@ function EventsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const filePaths = (attachments.data ?? [])
-        .filter((attachment) => attachment.event_id === id)
-        .map((attachment) => attachment.storage_path);
-      if (filePaths.length > 0) {
-        const { error: storageError } = await supabase.storage
-          .from(ATTACHMENTS_BUCKET)
-          .remove(filePaths);
-        if (storageError) throw new Error("Não foi possível remover os anexos do evento.");
-      }
-      const { error } = await supabase.from("events").delete().eq("id", id);
-      if (error) throw new Error("Não foi possível excluir o evento.");
+      // Preserve history: events are cancelled, never physically deleted.
+      const { error } = await supabase.from("events").update({ status: "cancelled" }).eq("id", id);
+      if (error) throw new Error("Não foi possível cancelar o evento.");
     },
     onSuccess: () => {
-      toast.success("Evento excluído.");
+      toast.success("Evento cancelado. O histórico foi preservado.");
       setDeleting(null);
       queryClient.invalidateQueries({ queryKey: ["events"] });
     },
@@ -1506,10 +1498,10 @@ function EventsPage() {
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir evento</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar evento</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleting?.name}</strong>? Essa ação não pode ser
-              desfeita. Os compromissos de montagem, chegada e outros vinculados a este evento também serão excluídos.
+              O evento <strong>{deleting?.name}</strong> será marcado como cancelado. Pagamentos, equipe,
+              anexos e compromissos ficam guardados no histórico.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

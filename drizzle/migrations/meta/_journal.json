@@ -127,6 +127,13 @@
       "when": 1792023093481,
       "tag": "0017_require_contract_venue_state",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792023852245,
+      "tag": "0018_backups_and_history_protection",
+      "breakpoints": true
     }
   ]
 }

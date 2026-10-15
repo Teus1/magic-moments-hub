@@ -53,6 +53,7 @@ const SETTINGS_NAV: NavItem[] = [
   { label: "Ficha de contrato", to: "/configuracoes/ficha-contrato", icon: FileSignature, module: "settings", action: "view" },
   { label: "Usuários", to: "/configuracoes/usuarios", icon: Users, module: "users", action: "view" },
   { label: "Roles e permissões", to: "/configuracoes/roles", icon: Shield, module: "roles", action: "manage" },
+  { label: "Backups", to: "/configuracoes/backups", icon: Shield, module: "roles", action: "manage" },
 ];
 
 

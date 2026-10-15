@@ -55,6 +55,48 @@ export type Database = {
           },
         ]
       }
+      backup_runs: {
+        Row: {
+          attachments_count: number
+          error: string | null
+          finished_at: string | null
+          folder_id: string | null
+          folder_url: string | null
+          id: string
+          requested_by: string | null
+          started_at: string
+          status: string
+          table_counts: Json
+          trigger: string
+        }
+        Insert: {
+          attachments_count?: number
+          error?: string | null
+          finished_at?: string | null
+          folder_id?: string | null
+          folder_url?: string | null
+          id?: string
+          requested_by?: string | null
+          started_at?: string
+          status?: string
+          table_counts?: Json
+          trigger?: string
+        }
+        Update: {
+          attachments_count?: number
+          error?: string | null
+          finished_at?: string | null
+          folder_id?: string | null
+          folder_url?: string | null
+          id?: string
+          requested_by?: string | null
+          started_at?: string
+          status?: string
+          table_counts?: Json
+          trigger?: string
+        }
+        Relationships: []
+      }
       calendar_appointments: {
         Row: {
           created_at: string

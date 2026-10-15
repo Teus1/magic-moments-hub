@@ -23,9 +23,11 @@ import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as FTokenRouteImport } from './routes/f/$token'
+import { Route as AuthenticatedConfiguracoesBackupsRouteImport } from './routes/_authenticated/configuracoes/backups'
 import { Route as AuthenticatedConfiguracoesFichaContratoRouteImport } from './routes/_authenticated/configuracoes/ficha-contrato'
 import { Route as AuthenticatedConfiguracoesRolesRouteImport } from './routes/_authenticated/configuracoes/roles'
 import { Route as AuthenticatedConfiguracoesUsuariosRouteImport } from './routes/_authenticated/configuracoes/usuarios'
+import { Route as ApiPublicBackupRouteImport } from './routes/api/public/backup'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -98,6 +100,12 @@ const FTokenRoute = FTokenRouteImport.update({
   path: '/f/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedConfiguracoesBackupsRoute =
+  AuthenticatedConfiguracoesBackupsRouteImport.update({
+    id: '/configuracoes/backups',
+    path: '/configuracoes/backups',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesFichaContratoRoute =
   AuthenticatedConfiguracoesFichaContratoRouteImport.update({
     id: '/configuracoes/ficha-contrato',
@@ -116,6 +124,11 @@ const AuthenticatedConfiguracoesUsuariosRoute =
     path: '/configuracoes/usuarios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicBackupRoute = ApiPublicBackupRouteImport.update({
+  id: '/api/public/backup',
+  path: '/api/public/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,9 +144,11 @@ export interface FileRoutesByFullPath {
   '/servicos': typeof AuthenticatedServicosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/f/$token': typeof FTokenRoute
+  '/configuracoes/backups': typeof AuthenticatedConfiguracoesBackupsRoute
   '/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
+  '/api/public/backup': typeof ApiPublicBackupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,9 +164,11 @@ export interface FileRoutesByTo {
   '/servicos': typeof AuthenticatedServicosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/f/$token': typeof FTokenRoute
+  '/configuracoes/backups': typeof AuthenticatedConfiguracoesBackupsRoute
   '/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
+  '/api/public/backup': typeof ApiPublicBackupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,9 +186,11 @@ export interface FileRoutesById {
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
   '/f/$token': typeof FTokenRoute
+  '/_authenticated/configuracoes/backups': typeof AuthenticatedConfiguracoesBackupsRoute
   '/_authenticated/configuracoes/ficha-contrato': typeof AuthenticatedConfiguracoesFichaContratoRoute
   '/_authenticated/configuracoes/roles': typeof AuthenticatedConfiguracoesRolesRoute
   '/_authenticated/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
+  '/api/public/backup': typeof ApiPublicBackupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,9 +208,11 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/tarefas'
     | '/f/$token'
+    | '/configuracoes/backups'
     | '/configuracoes/ficha-contrato'
     | '/configuracoes/roles'
     | '/configuracoes/usuarios'
+    | '/api/public/backup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -207,9 +228,11 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/tarefas'
     | '/f/$token'
+    | '/configuracoes/backups'
     | '/configuracoes/ficha-contrato'
     | '/configuracoes/roles'
     | '/configuracoes/usuarios'
+    | '/api/public/backup'
   id:
     | '__root__'
     | '/'
@@ -226,9 +249,11 @@ export interface FileRouteTypes {
     | '/_authenticated/servicos'
     | '/_authenticated/tarefas'
     | '/f/$token'
+    | '/_authenticated/configuracoes/backups'
     | '/_authenticated/configuracoes/ficha-contrato'
     | '/_authenticated/configuracoes/roles'
     | '/_authenticated/configuracoes/usuarios'
+    | '/api/public/backup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -237,6 +262,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PreCadastroRoute: typeof PreCadastroRoute
   FTokenRoute: typeof FTokenRoute
+  ApiPublicBackupRoute: typeof ApiPublicBackupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -339,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/configuracoes/backups': {
+      id: '/_authenticated/configuracoes/backups'
+      path: '/configuracoes/backups'
+      fullPath: '/configuracoes/backups'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesBackupsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes/ficha-contrato': {
       id: '/_authenticated/configuracoes/ficha-contrato'
       path: '/configuracoes/ficha-contrato'
@@ -360,6 +393,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/backup': {
+      id: '/api/public/backup'
+      path: '/api/public/backup'
+      fullPath: '/api/public/backup'
+      preLoaderRoute: typeof ApiPublicBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -373,6 +413,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPortalRoute: typeof AuthenticatedPortalRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedConfiguracoesBackupsRoute: typeof AuthenticatedConfiguracoesBackupsRoute
   AuthenticatedConfiguracoesFichaContratoRoute: typeof AuthenticatedConfiguracoesFichaContratoRoute
   AuthenticatedConfiguracoesRolesRoute: typeof AuthenticatedConfiguracoesRolesRoute
   AuthenticatedConfiguracoesUsuariosRoute: typeof AuthenticatedConfiguracoesUsuariosRoute
@@ -388,6 +429,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPortalRoute: AuthenticatedPortalRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedConfiguracoesBackupsRoute:
+    AuthenticatedConfiguracoesBackupsRoute,
   AuthenticatedConfiguracoesFichaContratoRoute:
     AuthenticatedConfiguracoesFichaContratoRoute,
   AuthenticatedConfiguracoesRolesRoute: AuthenticatedConfiguracoesRolesRoute,
@@ -404,6 +447,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PreCadastroRoute: PreCadastroRoute,
   FTokenRoute: FTokenRoute,
+  ApiPublicBackupRoute: ApiPublicBackupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
