@@ -1498,10 +1498,10 @@ function EventsPage() {
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir evento</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar evento</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleting?.name}</strong>? Essa ação não pode ser
-              desfeita. Os compromissos de montagem, chegada e outros vinculados a este evento também serão excluídos.
+              O evento <strong>{deleting?.name}</strong> será marcado como cancelado. Pagamentos, equipe,
+              anexos e compromissos ficam guardados no histórico.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
