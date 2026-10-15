@@ -714,7 +714,7 @@ function EventsPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="events-summary mb-4 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Eventos listados</p>
@@ -738,8 +738,8 @@ function EventsPage() {
       </div>
 
       <Card className="mb-6">
-        <CardContent className="flex flex-wrap items-center gap-4 py-4">
-          <div className="relative min-w-56 flex-1">
+        <CardContent className="events-filters flex flex-wrap items-center gap-4 py-4">
+          <div className="relative min-w-0 w-full sm:w-auto sm:min-w-56 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -789,7 +789,7 @@ function EventsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table mobileCards>
             <TableHeader>
               <TableRow>
                 <TableHead>Evento</TableHead>
@@ -1162,7 +1162,8 @@ function EventsPage() {
                   {(collaborators.data ?? []).map((member) => {
                     const selected = teamIds.includes(member.id);
                     return (
-                      <button
+                      <Button
+                        variant="outline"
                         key={member.id}
                         type="button"
                         onClick={() =>
@@ -1173,7 +1174,7 @@ function EventsPage() {
                           )
                         }
                         className={cn(
-                          "rounded-full border px-3 py-1.5 text-xs transition-colors",
+                          "h-auto min-h-11 max-w-full whitespace-normal rounded-md border px-3 py-2 text-xs transition-colors",
                           selected
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-input bg-card/70 text-foreground hover:border-primary/50",
@@ -1182,7 +1183,7 @@ function EventsPage() {
                       >
                         {member.nickname || member.full_name}
                         {member.role_title ? ` · ${member.role_title}` : ""}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -1200,8 +1201,8 @@ function EventsPage() {
                     const memberBalance =
                       parseCurrencyInput(values.agreed) - parseCurrencyInput(values.paid);
                     return (
-                      <div key={id} className="grid items-end gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
-                        <p className="truncate text-sm">{member?.nickname || member?.full_name || "—"}</p>
+                      <div key={id} className="grid grid-cols-2 items-end gap-3 border-t border-border pt-3 sm:grid-cols-[1fr_auto_auto_auto]">
+                        <p className="col-span-2 break-words text-sm sm:col-span-1">{member?.nickname || member?.full_name || "—"}</p>
                         <div className="space-y-1">
                           <Label htmlFor={`t-agreed-${id}`} className="text-xs">
                             Combinado (R$)
@@ -1262,7 +1263,7 @@ function EventsPage() {
             </div>
 
             <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-4">
-              <div className="flex items-center justify-between gap-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                 <div>
                   <p className="text-sm font-medium">Recebimentos</p>
                   <p className="text-xs text-muted-foreground">Cada pagamento do cliente com data e forma.</p>

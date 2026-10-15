@@ -2,12 +2,34 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
-  ),
+type TableProps = React.HTMLAttributes<HTMLTableElement> & { mobileCards?: boolean };
+
+// Both layouts reuse the same rows, permissions and actions.
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, children, mobileCards = false, ...props }, ref) => {
+    const sections = React.Children.toArray(children);
+    const header = sections.find(child => React.isValidElement(child) && child.type === TableHeader);
+    const labels: React.ReactNode[] = [];
+    if (React.isValidElement<{ children?: React.ReactNode }>(header)) {
+      React.Children.forEach(header.props.children, row => {
+        if (!React.isValidElement<{ children?: React.ReactNode }>(row)) return;
+        React.Children.forEach(row.props.children, cell => {
+          if (React.isValidElement<{ children?: React.ReactNode }>(cell)) labels.push(cell.props.children);
+        });
+      });
+    }
+    const content = mobileCards ? sections.map(section => {
+      if (!React.isValidElement<{ children?: React.ReactNode }>(section) || section.type !== TableBody) return section;
+      return React.cloneElement(section, {}, React.Children.map(section.props.children, row => {
+        if (!React.isValidElement<{ children?: React.ReactNode }>(row) || row.type !== TableRow) return row;
+        return React.cloneElement(row, {}, React.Children.map(row.props.children, (cell, index) => {
+          if (!React.isValidElement<{ children?: React.ReactNode; colSpan?: number }>(cell) || cell.type !== TableCell || cell.props.colSpan) return cell;
+          return React.cloneElement(cell, {}, <><span className="mobile-cell-label">{labels[index]}</span><div className="mobile-cell-value">{cell.props.children}</div></>);
+        }));
+      }));
+    }) : children;
+    return <div className="relative min-w-0 w-full overflow-auto"><table ref={ref} className={cn("w-full caption-bottom text-sm", mobileCards && "responsive-table", className)} {...props}>{content}</table></div>;
+  },
 );
 Table.displayName = "Table";
 

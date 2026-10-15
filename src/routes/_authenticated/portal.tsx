@@ -355,7 +355,7 @@ function ScheduleCard({ item }: { item: ScheduleItem }) {
                 </Badge>
               )}
             </div>
-            <CardTitle className="font-display text-xl">{event.name}</CardTitle>
+            <CardTitle className="break-words font-display text-xl">{event.name}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
               {[event.event_type, event.service?.name].filter(Boolean).join(" · ") || "Evento"}
             </p>
@@ -424,7 +424,7 @@ function ScheduleCard({ item }: { item: ScheduleItem }) {
                   <p className="text-muted-foreground">{event.ceremonial_contact}</p>
                 )}
                 {event.contact_via_ceremonial && (
-                  <Badge variant="outline" className="mt-2 border-primary/30 bg-primary/5 text-primary">
+                  <Badge variant="outline" className="mt-2 max-w-full whitespace-normal border-primary/30 bg-primary/5 text-primary">
                     Contato direto com o cerimonial
                   </Badge>
                 )}
@@ -485,7 +485,7 @@ function InfoBlock({
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="size-4" />
       </span>
-      <div className="min-w-0 text-sm">
+      <div className="min-w-0 break-words text-sm">
         <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{title}</p>
         {children}
       </div>

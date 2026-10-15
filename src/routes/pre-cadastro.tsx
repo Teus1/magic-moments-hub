@@ -67,7 +67,7 @@ export function IntakePage({ token }: { token: string }) {
   const received = save.isSuccess || status.data?.status === "received";
   const links = save.data?.links ?? [];
   return <main className="min-h-screen bg-background text-foreground">
-    <header className="border-b border-border px-5 py-6"><div className="mx-auto flex max-w-2xl items-center gap-4"><img src={logo} alt="" className="size-14 shrink-0 object-contain" /><div><p className="font-display text-3xl text-primary">Magic Moments</p><p className="mt-1 text-sm text-muted-foreground">Ficha para elaboração do contrato</p></div></div></header>
+    <header className="border-b border-border px-5 py-6"><div className="mx-auto flex min-w-0 max-w-2xl items-center gap-3"><img src={logo} alt="" className="size-14 shrink-0 object-contain" /><div className="min-w-0"><p className="font-display text-2xl text-primary sm:text-3xl">Magic Moments</p><p className="mt-1 text-sm text-muted-foreground">Ficha para elaboração do contrato</p></div></div></header>
     <div className="mx-auto max-w-2xl px-5 py-8 sm:py-10">
       {received ? <section className="space-y-4 py-10"><CheckCircle2 className="size-10 text-success" /><h1 className="font-display text-3xl">Dados recebidos!</h1><p className="text-muted-foreground">A Magic Moments recebeu suas informações e vai utilizá-las para dar continuidade ao atendimento e à preparação do contrato.</p>
         {save.isSuccess && links.length === 0 && <p role="alert" className="text-sm text-warning">Seus dados foram salvos, mas o WhatsApp comercial não está configurado. Entre em contato com a Magic Moments pelo canal de atendimento habitual.</p>}

@@ -175,23 +175,24 @@ function RolesPage() {
           </CardHeader>
           <CardContent className="space-y-1">
             {roles.data?.map((role) => (
-              <button
+              <Button
+                variant="ghost"
                 key={role.id}
                 type="button"
                 onClick={() => setSelectedRole(role.id)}
-                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                className={`flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                   role.id === activeRoleId ? "bg-secondary font-semibold" : "hover:bg-secondary/60"
                 }`}
               >
                 <span>{role.name}</span>
                 {role.is_system && <Badge variant="outline">sistema</Badge>}
-              </button>
+              </Button>
             ))}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex-row items-start justify-between gap-4">
+          <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
             <div>
               <CardTitle className="font-display text-xl">{activeRole?.name ?? "—"}</CardTitle>
               <CardDescription>
