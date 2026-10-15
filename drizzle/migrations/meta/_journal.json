@@ -120,6 +120,13 @@
       "when": 1792022447223,
       "tag": "0016_optional_intake_email_matching",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792023093481,
+      "tag": "0017_require_contract_venue_state",
+      "breakpoints": true
     }
   ]
 }

@@ -64,8 +64,9 @@ export const intakeSchema = clientSchema.extend({
   event_title: text(200).min(2, "Informe o título do evento."),
   event_type: text(100).min(1, "Informe o tipo de evento."), event_date: isoDate,
   event: intakeEventSchema.superRefine((event, ctx) => {
-    const required = ["start_time", "venue", "address", "venue_city", "service_id", "referral_source"] as const;
+    const required = ["start_time", "venue", "address", "venue_city", "venue_state", "service_id", "referral_source"] as const;
     for (const field of required) if (!event[field].trim()) ctx.addIssue({ code: "custom", path: [field], message: "Preencha este campo obrigatório." });
+    if (event.venue_state.trim() && !/^[A-Z]{2}$/.test(event.venue_state)) ctx.addIssue({ code: "custom", path: ["venue_state"], message: "Informe a UF com duas letras." });
     if (event.duration_minutes === null) ctx.addIssue({ code: "custom", path: ["duration_minutes"], message: "Informe a duração." });
     if (event.social_media_consent === null) ctx.addIssue({ code: "custom", path: ["social_media_consent"], message: "Escolha Sim ou Não." });
   }),
