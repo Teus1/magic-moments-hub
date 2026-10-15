@@ -179,7 +179,7 @@ function UsersPage() {
 
       <Card>
         <CardContent className="overflow-x-auto p-0">
-          <Table>
+          <Table mobileCards>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -210,7 +210,7 @@ function UsersPage() {
                         value={user.role_id ?? ""}
                         onValueChange={(value) => updateMutation.mutate({ id: user.id, roleId: value })}
                       >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-full sm:w-44">
                           <SelectValue placeholder="Sem role" />
                         </SelectTrigger>
                         <SelectContent>
