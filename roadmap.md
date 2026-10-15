@@ -24,8 +24,9 @@
 - [ ] Validar revisão interna, criação sugerida, edição de evento e sugestões reais do Maps — aguarda sessão autenticada do usuário
 
 - [x] Revisar vínculos e proteções existentes e conectar Google Drive para backups
-- [ ] Aprovar o plano de preservação e backup semanal completo
-- [ ] Implementar proteção contra exclusões acidentais e backups com histórico de execução
+- [x] Aprovar o plano de preservação e backup semanal completo
+- [x] Implementar proteção contra exclusões acidentais e backups com histórico de execução
+- [ ] Confirmar primeiro backup automático (domingo) após publicar
 - [ ] Validar uma cópia completa e recuperação em ambiente separado antes de ativar a rotina publicada
 
 - [x] Criar agenda mensal/diária de 24 horas e compromissos obrigatoriamente vinculados a eventos
