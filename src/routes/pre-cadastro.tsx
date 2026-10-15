@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientFields } from "@/components/client-fields";
 import { emptyClientForm } from "@/lib/clients";
-import { emptyIntakeEvent, intakeSchema, intakeSummaryMessage, normalizeRecipientPhone, whatsappLink, type IntakeEvent } from "@/lib/client-intake";
+import { emptyIntakeEvent, intakeSchema, intakeSummaryMessage, normalizeRecipientPhone, sanitizeHoursInput, whatsappLink, type IntakeEvent } from "@/lib/client-intake";
 import { intakeLinkStatus, publicServices, submitIntake } from "@/lib/client-intake.functions";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
