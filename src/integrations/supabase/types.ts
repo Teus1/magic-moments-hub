@@ -318,6 +318,51 @@ export type Database = {
           },
         ]
       }
+      collaborator_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          event_collaborator_id: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          paid_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          event_collaborator_id: string
+          id?: string
+          method: Database["public"]["Enums"]["payment_method"]
+          paid_at: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          event_collaborator_id?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_payments_event_collaborator_id_fkey"
+            columns: ["event_collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "event_collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           created_at: string

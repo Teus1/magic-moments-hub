@@ -134,6 +134,13 @@
       "when": 1792023852245,
       "tag": "0018_backups_and_history_protection",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792025623317,
+      "tag": "0019_collaborator_payments",
+      "breakpoints": true
     }
   ]
 }
