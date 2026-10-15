@@ -1,21 +1,44 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { AlertCircle, ChevronLeft, ChevronRight, Copy, ExternalLink, RefreshCw } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Copy, ExternalLink, QrCode, RefreshCw } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { collaboratorBalance, collaboratorPaymentTotals } from "@/lib/collaborator-payments";
-import { formatCurrency, formatEventDate } from "@/lib/events";
+import {
+  COLLABORATOR_PAYMENT_METHODS,
+  collaboratorBalance,
+  collaboratorPaymentTotals,
+} from "@/lib/collaborator-payments";
+import { registerCollaboratorPayment } from "@/lib/collaborator-payments.functions";
+import { buildPixPayload } from "@/lib/pix";
+import { formatCurrency, formatEventDate, parseCurrencyInput } from "@/lib/events";
 
 type Collaborator = { id: string; full_name: string; pix_key: string | null };
 type Assignment = {
   id: string; collaborator_id: string; agreed_value: number; paid_value: number;
   event: { id: string; name: string; event_date: string; status: string } | null;
 };
+type PixTarget = {
+  linkId: string;
+  eventName: string;
+  eventDate: string;
+  balance: number;
+  personName: string;
+  pixKey: string;
+};
+
+function todayIso() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
 
 export function PixKey({ value, name }: { value: string | null; name: string }) {
   return value ? <div className="flex items-center gap-1">
@@ -27,9 +50,106 @@ export function PixKey({ value, name }: { value: string | null; name: string }) 
   </div> : <span className="text-xs text-muted-foreground">Não cadastrada</span>;
 }
 
-export function CollaboratorPayments({ collaborators }: { collaborators: Collaborator[] }) {
+function PixPaymentDialog({ target, canEdit, onClose }: { target: PixTarget; canEdit: boolean; onClose: () => void }) {
+  const cache = useQueryClient();
+  const [amount, setAmount] = useState(target.balance.toFixed(2).replace(".", ","));
+  const [paidAt, setPaidAt] = useState(todayIso());
+  const [method, setMethod] = useState<string>("pix");
+  const [saving, setSaving] = useState(false);
+  const value = parseCurrencyInput(amount);
+  const payload = useMemo(() => {
+    try {
+      return buildPixPayload({
+        key: target.pixKey,
+        amount: value,
+        receiverName: target.personName,
+        linkId: target.linkId,
+      });
+    } catch {
+      return null;
+    }
+  }, [target.pixKey, target.personName, target.linkId, value]);
+
+  async function copyCode() {
+    if (!payload) return;
+    try { await navigator.clipboard.writeText(payload); toast.success("Código Pix copiado."); }
+    catch { toast.error("Não foi possível copiar o código Pix."); }
+  }
+
+  async function register() {
+    if (!(value > 0)) { toast.error("Informe um valor maior que zero."); return; }
+    setSaving(true);
+    try {
+      await registerCollaboratorPayment({ data: { linkId: target.linkId, amount: value, paidAt, method } });
+      toast.success("Pagamento registrado.");
+      void cache.invalidateQueries({ queryKey: ["collaborators", "event-payments"] });
+      void cache.invalidateQueries({ queryKey: ["events", "teams"] });
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível registrar o pagamento.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle className="font-display">Pagamento de {target.personName}</DialogTitle>
+        <DialogDescription>{target.eventName} · {formatEventDate(target.eventDate)}</DialogDescription>
+      </DialogHeader>
+
+      <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-white p-4">
+        {payload ? <QRCodeSVG value={payload} size={196} level="M" marginSize={2} />
+          : <p className="py-12 text-sm text-muted-foreground">Informe um valor maior que zero para gerar o QR.</p>}
+        <p className="text-xl font-semibold tabular-nums text-primary">{formatCurrency(value)}</p>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">Chave Pix</p>
+          <p className="truncate text-sm">{target.pixKey}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={copyCode} disabled={!payload}>
+          <Copy className="mr-2 size-3.5" />Copiar código
+        </Button>
+      </div>
+
+      {canEdit && <div className="space-y-3 border-t border-border pt-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label htmlFor="pix-amount">Valor (R$)</Label>
+            <Input id="pix-amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="pix-date">Data</Label>
+            <Input id="pix-date" type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="pix-method">Método</Label>
+          <Select value={method} onValueChange={setMethod}>
+            <SelectTrigger id="pix-method"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {COLLABORATOR_PAYMENT_METHODS.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">O QR não confirma o Pix sozinho: registre aqui depois de conferir no banco.</p>
+          <Button onClick={register} disabled={saving || !(value > 0)}>
+            {saving ? "Registrando..." : "Registrar pagamento"}
+          </Button>
+        </div>
+      </div>}
+    </DialogContent>
+  </Dialog>;
+}
+
+export function CollaboratorPayments({ collaborators, canEdit }: { collaborators: Collaborator[]; canEdit: boolean }) {
   const [filter, setFilter] = useState("pending");
   const [page, setPage] = useState(0);
+  const [pixTarget, setPixTarget] = useState<PixTarget | null>(null);
   const assignments = useQuery({
     queryKey: ["collaborators", "event-payments"],
     queryFn: async () => {
@@ -81,7 +201,17 @@ export function CollaboratorPayments({ collaborators }: { collaborators: Collabo
           return <TableRow key={row.id}>
             <TableCell><p className="max-w-64 whitespace-normal font-medium">{row.event.name}</p><p className="text-xs text-muted-foreground">{formatEventDate(row.event.event_date)}</p>{row.event.status === "cancelled" && <Badge variant="outline" className="mt-1">Cancelado</Badge>}</TableCell>
             <TableCell className="max-w-48 whitespace-normal">{person.full_name}</TableCell>
-            <TableCell><PixKey value={person.pix_key} name={person.full_name} /></TableCell>
+            <TableCell><div className="flex items-center gap-1">
+              <PixKey value={person.pix_key} name={person.full_name} />
+              {person.pix_key && balance > 0 && <Button variant="ghost" size="icon" className="size-8 shrink-0" title="Gerar QR Code Pix" aria-label={`Gerar QR Code Pix para ${person.full_name}`} onClick={() => setPixTarget({
+                linkId: row.id,
+                eventName: row.event!.name,
+                eventDate: row.event!.event_date,
+                balance,
+                personName: person.full_name,
+                pixKey: person.pix_key!,
+              })}><QrCode className="size-3.5" /></Button>}
+            </div></TableCell>
             <TableCell className="text-right tabular-nums">{formatCurrency(Number(row.agreed_value))}</TableCell>
             <TableCell className="text-right tabular-nums">{formatCurrency(Number(row.paid_value))}</TableCell>
             <TableCell className="text-right"><p className="font-semibold tabular-nums text-primary">{formatCurrency(balance)}</p>{balance > 0 && <Badge variant="outline" className="mt-1 border-warning/30 bg-warning/10 text-foreground">{Number(row.paid_value) > 0 ? "Parcial" : "Pendente"}</Badge>}</TableCell>
@@ -90,5 +220,6 @@ export function CollaboratorPayments({ collaborators }: { collaborators: Collabo
       </Table>
       {visible.length > 0 && <div className="mt-4 flex items-center justify-between gap-2 text-xs text-muted-foreground"><span>{visible.length} registros · Página {currentPage + 1} de {pageCount}</span><div className="flex gap-1"><Button variant="outline" size="icon" aria-label="Pagamentos anteriores" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}><ChevronLeft className="size-4" /></Button><Button variant="outline" size="icon" aria-label="Próximos pagamentos" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}><ChevronRight className="size-4" /></Button></div></div>}
     </>}
+    {pixTarget && <PixPaymentDialog target={pixTarget} canEdit={canEdit} onClose={() => setPixTarget(null)} />}
   </section>;
 }
