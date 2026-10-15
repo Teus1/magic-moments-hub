@@ -241,7 +241,6 @@ function EventsPage() {
   const [clientFilter, setClientFilter] = useState("all");
   const [financeFilter, setFinanceFilter] = useState<"all" | "pending" | "paid">("all");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showEventInfo, setShowEventInfo] = useState(true);
   const [showFinancial, setShowFinancial] = useState(true);
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -719,7 +718,7 @@ function EventsPage() {
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Eventos listados</p>
-            <p className="font-display text-2xl">{showEventInfo ? filtered.length : "•••"}</p>
+            <p className="font-display text-2xl">{filtered.length}</p>
           </CardContent>
         </Card>
         <Card>
@@ -767,7 +766,6 @@ function EventsPage() {
             </SelectContent>
           </Select>
           <Button type="button" variant="outline" onClick={() => setShowAdvanced(value => !value)}><SlidersHorizontal className="size-4" />Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}</Button>
-          <Button type="button" variant="ghost" size="icon" aria-label={showEventInfo ? "Ocultar informações dos eventos" : "Mostrar informações dos eventos"} title={showEventInfo ? "Ocultar eventos" : "Mostrar eventos"} onClick={() => setShowEventInfo(value => !value)}>{showEventInfo ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button>
           <Button type="button" variant="ghost" size="icon" aria-label={showFinancial ? "Ocultar valores financeiros" : "Mostrar valores financeiros"} title={showFinancial ? "Ocultar valores" : "Mostrar valores"} onClick={() => setShowFinancial(value => !value)}>{showFinancial ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button>
           {showAdvanced && <div className="grid basis-full gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2"><Label htmlFor="filter-start">Data inicial</Label><PickerField id="filter-start" variant="date" value={dateStart} onChange={event => setDateStart(event.target.value)} /></div>
@@ -826,8 +824,8 @@ function EventsPage() {
               {paginated.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell>
-                    <p className="font-medium">{showEventInfo ? event.name : "Evento oculto"}</p>
-                    {showEventInfo && <>
+                    <p className="font-medium">{event.name}</p>
+                    <>
                     <p className="text-xs text-muted-foreground">
                       {event.event_type ? `${event.event_type} · ` : ""}
                       {formatTimeRange(event.start_time, event.end_time)}
@@ -842,19 +840,19 @@ function EventsPage() {
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="size-3" /> {event.venue}
                       </p>
-                    )}</>}
+                    )}</>
                   </TableCell>
                   <TableCell className="text-sm">
-                    <p>{showEventInfo ? event.clients?.full_name ?? "—" : "••••••"}</p>
+                    <p>{event.clients?.full_name ?? "—"}</p>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
                     <span className="flex items-center gap-1">
                       <CalendarDays className="size-3.5 text-muted-foreground" />
-                      {showEventInfo ? formatEventDate(event.event_date) : "••/••/••••"}
+                      {formatEventDate(event.event_date)}
                     </span>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {showEventInfo && event.services ? (
+                    {event.services ? (
                       <span className="flex items-center gap-2">
                         <span
                           className="size-3 shrink-0 rounded-full ring-2 ring-border"
@@ -870,7 +868,6 @@ function EventsPage() {
                   <TableCell>
                     {(() => {
                       const displayStatus = resolveEventStatus(event.status, event.event_date);
-                      if (!showEventInfo) return "••••••";
                       return (
                         <Badge variant="outline" className={cn(EVENT_DISPLAY_STATUS_CLASSES[displayStatus])}>
                           {EVENT_DISPLAY_STATUS_LABELS[displayStatus]}
@@ -895,7 +892,7 @@ function EventsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={showEventInfo ? `Excluir ${event.name}` : "Excluir evento oculto"}
+                          aria-label={`Excluir ${event.name}`}
                           onClick={() => setDeleting(event)}
                         >
                           <Trash2 className="size-4 text-destructive" />
