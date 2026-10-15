@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { validCpf, intakeSchema } from "./client-intake";
+import { validCpf, intakeSchema, sanitizeHoursInput } from "./client-intake";
 import { intakeRecipientSchema, intakeShareUrl, intakeTokenSchema, newIntakeToken } from "./intake-links";
 test("João can identify a new client invitation before a client exists", () => {
   assert.equal(intakeRecipientSchema.parse(" João "), "João");
@@ -74,4 +74,16 @@ test("contact sources include new channels and preserve legacy answers", () => {
 test("event location UF must contain two uppercase letters", () => {
   for (const venue_state of ["S", "12", "  "]) assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, venue_state } }).success, false);
   assert.equal(intakeSchema.safeParse(complete).success, true);
+});
+test("duration input accepts only numbers with a single decimal separator", () => {
+  assert.equal(sanitizeHoursInput("4"), "4");
+  assert.equal(sanitizeHoursInput("3,5"), "3,5");
+  assert.equal(sanitizeHoursInput("4h"), "4");
+  assert.equal(sanitizeHoursInput("1..2"), "1.2");
+  assert.equal(sanitizeHoursInput("abc"), "");
+});
+test("event type must be one of the fixed options", () => {
+  assert.equal(intakeSchema.safeParse({ ...complete, event_type: "Outro" }).success, true);
+  assert.equal(intakeSchema.safeParse({ ...complete, event_type: "Chá de bebê" }).success, true);
+  assert.equal(intakeSchema.safeParse({ ...complete, event_type: "qualquer texto" }).success, false);
 });
