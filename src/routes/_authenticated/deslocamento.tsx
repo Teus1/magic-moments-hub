@@ -92,7 +92,6 @@ function TravelPage() {
     <PageHeader title="Deslocamento" />
     <h2 className="mb-4 border-b border-border pb-2 font-display text-xl">Simulador</h2>
     <div className="grid gap-8 xl:grid-cols-[1fr_1.1fr]">
-    <div className="grid gap-8 xl:grid-cols-[1fr_1.1fr]">
       <div>
         <form onSubmit={calculate} className="space-y-5">
           <h2 className="flex items-center gap-2 font-display text-xl"><RouteIcon className="size-5 text-primary" /> Trajeto</h2>
