@@ -36,11 +36,20 @@ export function normalizePixKey(key: string): string {
   if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) return trimmed;
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed))
     return trimmed.toLowerCase();
+
   const digits = trimmed.replace(/\D/g, "");
   if (!digits) throw new Error("A chave Pix informada não é válida.");
-  if (trimmed.startsWith("+") || (digits.startsWith("55") && digits.length >= 12)) return `+${digits}`;
+
+  // Máscaras de documento usam "." ou "/": 11 dígitos é CPF, 14 é CNPJ.
+  if ((trimmed.includes(".") || trimmed.includes("/")) && (digits.length === 11 || digits.length === 14))
+    return digits;
+  // Telefone: "+" ou máscara com parênteses/espaço vira +55....
+  if ((trimmed.startsWith("+") || trimmed.includes("(") || /\s/.test(trimmed)) && digits.length >= 10)
+    return digits.startsWith("55") && digits.length >= 12 ? `+${digits}` : `+55${digits}`;
+  if (digits.length === 11 || digits.length === 14) return digits;
+  if (digits.startsWith("55") && digits.length >= 12) return `+${digits}`;
   if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
-  return digits;
+  throw new Error("A chave Pix informada não é válida.");
 }
 
 /** Nome de quem recebe: maiúsculas, sem acentos e dentro das 25 posições do padrão. */
