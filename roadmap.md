@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Documento de atualizações: Eventos com um único ícone de olho, que mascara só os valores; dados do evento sempre visíveis
 - [x] Documento de atualizações: origem da empresa selecionada por padrão e navegação mensal no Deslocamento
 - [x] Documento de atualizações: ocultação visual e filtros combinados na listagem de Eventos
 - [x] Documento de atualizações: alteração da própria senha para todos os usuários autenticados; senha atual incorreta bloqueada na tela
