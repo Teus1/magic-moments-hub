@@ -90,8 +90,8 @@ function TravelPage() {
   if (!can("events", "view")) return <AppShell><PageHeader title="Deslocamento" /><p className="text-muted-foreground">Você não tem permissão para acessar esta página.</p></AppShell>;
   return <AppShell>
     <PageHeader title="Deslocamento" />
-    <div className="mb-10"><UpcomingTravelList /></div>
     <h2 className="mb-4 border-b border-border pb-2 font-display text-xl">Simulador</h2>
+    <div className="grid gap-8 xl:grid-cols-[1fr_1.1fr]">
     <div className="grid gap-8 xl:grid-cols-[1fr_1.1fr]">
       <div>
         <form onSubmit={calculate} className="space-y-5">
