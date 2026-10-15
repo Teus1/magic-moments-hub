@@ -132,5 +132,6 @@ function TravelPage() {
         </> : <div className="border-t border-border py-6"><p className="font-display text-xl">Resumo do deslocamento</p><p className="mt-4 text-3xl font-semibold text-primary">—</p></div>}
       </section>
     </div>
+    <div className="mt-12 border-t border-border pt-8"><UpcomingTravelList /></div>
   </AppShell>;
 }
