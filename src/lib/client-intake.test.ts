@@ -48,3 +48,26 @@ test("Como nos conheceu: 'Outro' exige texto e convidados entre 1 e 100000", asy
   assert.equal(intakeEventSchema.safeParse({ ...emptyIntakeEvent, guest_count: 0 }).success, false);
   assert.equal(intakeEventSchema.safeParse({ ...emptyIntakeEvent, guest_count: 150 }).success, true);
 });
+
+const complete = {
+  full_name: "João Silva", birth_date: "1990-01-01", cpf: "52998224725", rg: "12345678", whatsapp: "11999998888", email: "", zip_code: "01001000", address: "Praça da Sé", address_number: "1", address_complement: "", neighborhood: "Sé", city: "São Paulo", state: "SP", notes: "", event_title: "Casamento", event_type: "Casamento", event_date: "2026-12-05", consent: true,
+  event: { ...emptyIntakeEvent, start_time: "20:00", duration_minutes: 240, service_id: "11111111-1111-4111-8111-111111111111", venue: "Espaço", address: "Rua do local, 1", venue_city: "São Paulo", social_media_consent: false, referral_source: "google" },
+};
+for (const field of ["full_name", "birth_date", "cpf", "rg", "whatsapp", "zip_code", "address", "address_number", "neighborhood", "city", "state", "event_type", "event_date"] as const) {
+  test(`new public contract requires ${field}`, () => {
+    assert.equal(intakeSchema.safeParse(complete).success, true);
+    assert.equal(intakeSchema.safeParse({ ...complete, [field]: "" }).success, false);
+  });
+}
+for (const field of ["start_time", "venue", "address", "venue_city", "service_id", "referral_source"] as const) {
+  test(`new public contract requires event ${field}`, () => assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, [field]: "" } }).success, false));
+}
+test("contract needs duration and explicit social decision; email, complement, guests optional", () => {
+  assert.equal(intakeSchema.safeParse(complete).success, true);
+  assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, duration_minutes: null } }).success, false);
+  assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, social_media_consent: null } }).success, false);
+  assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, social_media_consent: true } }).success, true);
+});
+test("contact sources include new channels and preserve legacy answers", () => {
+  for (const referral_source of ["instagram", "tiktok", "google", "indicacao", "cerimonialista", "casamentos_com_br", "instagram_facebook", "evento_conhecido"]) assert.equal(intakeSchema.safeParse({ ...complete, event: { ...complete.event, referral_source } }).success, true);
+});

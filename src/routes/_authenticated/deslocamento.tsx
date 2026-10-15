@@ -9,6 +9,7 @@ import { AppShell, PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { TravelMap } from "@/components/travel-map";
 import { TravelPlaceInput } from "@/components/travel-place-input";
@@ -46,6 +47,7 @@ function TravelPage() {
     return result.data;
   } });
   const [origin, setOrigin] = useState("");
+  const [useCompanyOrigin, setUseCompanyOrigin] = useState(true);
   const [destination, setDestination] = useState("");
   const [roundTrip, setRoundTrip] = useState(true);
   const [avoidTolls, setAvoidTolls] = useState(false);
@@ -57,6 +59,10 @@ function TravelPage() {
   const [submitted, setSubmitted] = useState<{ origin: string; destination: string; roundTrip: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const travelSettings = useQuery({ queryKey: ["travel-settings"], enabled: can("events", "view"), queryFn: async () => { const response = await supabase.from("travel_settings").select("base_address,efficiency_km_l,fuel_price").maybeSingle(); if (response.error) throw response.error; return response.data; } });
+  const companyAddress = travelSettings.data?.base_address?.trim() ?? "";
+  useEffect(() => { if (!useCompanyOrigin) return; setOrigin(companyAddress); setResult(null); setSubmitted(null); }, [companyAddress, useCompanyOrigin]);
+  useEffect(() => { if (!travelSettings.data) return; setEfficiency(String(travelSettings.data.efficiency_km_l ?? "").replace(".", ",")); setPrice(String(travelSettings.data.fuel_price ?? "").replace(".", ",")); }, [travelSettings.data]);
   useEffect(() => {
     if (!eventLocation.data) return;
     setDestination(eventLocation.data.address ?? [eventLocation.data.venue, eventLocation.data.venue_city, eventLocation.data.venue_state].filter(Boolean).join(", "));
@@ -90,8 +96,9 @@ function TravelPage() {
       <div>
         <form onSubmit={calculate} className="space-y-5">
           <h2 className="flex items-center gap-2 font-display text-xl"><RouteIcon className="size-5 text-primary" /> Trajeto</h2>
-          <div className="space-y-2"><Label htmlFor="travel-origin">Origem</Label><TravelPlaceInput id="travel-origin" disabled={loading} placeholder="Endereço, cidade e estado" value={origin} onChange={(value) => { setOrigin(value); clearRoute(); }} /></div>
-          <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => { setOrigin(destination); setDestination(origin); clearRoute(); }}><ArrowDownUp className="size-4" /> Inverter</Button></div>
+          <div className="flex items-start gap-3"><Checkbox id="company-origin" checked={useCompanyOrigin} onCheckedChange={value => setUseCompanyOrigin(value === true)} /><Label htmlFor="company-origin" className="font-normal leading-relaxed">Utilizar endereço da empresa como origem</Label></div>
+          <div className="space-y-2"><Label htmlFor="travel-origin">Origem</Label><TravelPlaceInput id="travel-origin" disabled={loading || useCompanyOrigin} placeholder="Endereço, cidade e estado" value={origin} onChange={(value) => { setOrigin(value); clearRoute(); }} />{useCompanyOrigin && !companyAddress && <p role="alert" className="text-sm text-warning">Cadastre o endereço da empresa em Configurações › Ficha de contrato.</p>}</div>
+          <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" disabled={loading || useCompanyOrigin} onClick={() => { setOrigin(destination); setDestination(origin); clearRoute(); }}><ArrowDownUp className="size-4" /> Inverter</Button></div>
           <div className="space-y-2"><Label htmlFor="travel-destination">Destino</Label><TravelPlaceInput id="travel-destination" disabled={loading} placeholder="Endereço do evento, cidade e estado" value={destination} onChange={(value) => { setDestination(value); clearRoute(); }} />{eventLocation.isError && <p role="alert" className="text-sm text-destructive">{eventLocation.error.message}</p>}</div>
           <div className="flex flex-wrap gap-x-8 gap-y-4">
             <div className="flex items-center gap-3"><Switch id="round-trip" disabled={loading} checked={roundTrip} onCheckedChange={(value) => { setRoundTrip(value); clearRoute(); }} /><Label htmlFor="round-trip">Ida e volta</Label></div>

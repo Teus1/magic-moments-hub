@@ -51,12 +51,25 @@ export const intakeEventSchema = z.object({
 export type IntakeEvent = z.infer<typeof intakeEventSchema>;
 export const emptyIntakeEvent: IntakeEvent = { start_time: "", duration_minutes: null, venue: "", address: "", venue_city: "", venue_state: "", latitude: null, longitude: null, place_id: null, attraction_id: "", has_ceremonial: false, ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false, has_guestbook: false, service_id: "", guest_count: null, social_media_consent: null, instagram_handles: "", referral_source: "", referral_other: "" };
 export const intakeSchema = clientSchema.extend({
+  birth_date: isoDate,
   cpf: text(14).refine(validCpf, "Informe um CPF válido."),
+  rg: text(20).min(1, "Informe o RG."),
   whatsapp: text(20).refine(value => /^\d{10,11}$/.test(onlyDigits(value)), "Informe DDD e número do WhatsApp."),
-  email: text(255).email("Informe um e-mail válido."),
+  zip_code: text(9).refine(value => /^\d{8}$/.test(onlyDigits(value)), "Informe os 8 dígitos do CEP."),
+  address: text(300).min(1, "Informe o logradouro."),
+  address_number: text(30).min(1, "Informe o número."),
+  neighborhood: text(150).min(1, "Informe o bairro."),
+  city: text(150).min(1, "Informe a cidade."),
+  state: text(2).regex(/^[A-Z]{2}$/, "Informe a UF com duas letras."),
   event_title: text(200).min(2, "Informe o título do evento."),
-  event_type: text(100), event_date: optionalDate,
-  event: intakeEventSchema.optional(),
+  event_type: text(100).min(1, "Informe o tipo de evento."), event_date: isoDate,
+  event: intakeEventSchema.superRefine((event, ctx) => {
+    const required = ["start_time", "venue", "address", "venue_city", "service_id", "referral_source"] as const;
+    for (const field of required) if (!event[field].trim()) ctx.addIssue({ code: "custom", path: [field], message: "Preencha este campo obrigatório." });
+    if (event.duration_minutes === null) ctx.addIssue({ code: "custom", path: ["duration_minutes"], message: "Informe a duração." });
+    if (event.social_media_consent === null) ctx.addIssue({ code: "custom", path: ["social_media_consent"], message: "Escolha Sim ou Não." });
+  }),
+  schema_version: z.literal(2).default(2),
   consent: z.literal(true, { errorMap: () => ({ message: "Autorize o uso dos dados para atendimento e contratação." }) }),
 });
 export type IntakeDraft = z.infer<typeof intakeSchema>;
@@ -82,7 +95,7 @@ export function intakeSummaryMessage(d: IntakeDraft, attractionName?: string) {
   const lines: [string, string | undefined][] = [
     ["Nome", d.full_name], ["Nascimento", date(d.birth_date)], ["CPF", d.cpf], ["RG", d.rg], ["WhatsApp", d.whatsapp], ["E-mail", d.email], ["Endereço", addr],
     ["Evento", d.event_title], ["Tipo", d.event_type], ["Data", date(d.event_date)], ["Início", e?.start_time], ["Duração", dur],
-    ["Local", e?.venue], ["Endereço do local", e?.address || [e?.venue_city, e?.venue_state].filter(Boolean).join("/")],
+    ["Local", e?.venue], ["Endereço do local", e?.address], ["Cidade do local", [e?.venue_city, e?.venue_state].filter(Boolean).join("/")],
     ["Atração", attractionName], ["Cerimonialista", e ? yn(e.has_ceremonial) : undefined],
     ...(e?.has_ceremonial ? [["Nome do cerimonialista", e.ceremonial_name], ["Contato do cerimonialista", e.ceremonial_contact], ["Falar pelo cerimonialista", yn(e.contact_via_ceremonial)]] as [string, string][] : []),
     ["GuestBook", e ? yn(e.has_guestbook) : undefined],

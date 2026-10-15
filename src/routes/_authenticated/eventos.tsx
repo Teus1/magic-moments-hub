@@ -1,3 +1,4 @@
+import { matchesEventFilters } from "@/lib/event-list-filters";
 import { useServerFn } from "@tanstack/react-start";
 import { EventExtraFields } from "@/components/event-extra-fields";
 import { parseGuestCount, type ReferralSource } from "@/lib/event-extra";
@@ -13,6 +14,8 @@ import {
   BookHeart,
   CalendarDays,
   Download,
+  Eye,
+  EyeOff,
   FileText,
   HardHat,
   MapPin,
@@ -24,6 +27,7 @@ import {
   Trash2,
   Upload,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -231,6 +235,15 @@ function EventsPage() {
   const canDelete = can("events", "delete");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | EventDisplayStatus>("all");
+  const [dateStart, setDateStart] = useState("");
+  const [dateEnd, setDateEnd] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("all");
+  const [clientFilter, setClientFilter] = useState("all");
+  const [financeFilter, setFinanceFilter] = useState<"all" | "pending" | "paid">("all");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showEventInfo, setShowEventInfo] = useState(true);
+  const [showFinancial, setShowFinancial] = useState(true);
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [form, setForm] = useState<EventForm>(emptyEventForm);
@@ -249,12 +262,13 @@ function EventsPage() {
     queryKey: ["events"],
     enabled: canView,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select(SELECT_COLUMNS)
-        .order("event_date", { ascending: false });
-      if (error) throw new Error("Não foi possível carregar os eventos.");
-      return (data ?? []) as unknown as EventRow[];
+      const rows: EventRow[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase.from("events").select(SELECT_COLUMNS).order("event_date", { ascending: false }).order("id").range(offset, offset + 499);
+        if (error) throw new Error("Não foi possível carregar os eventos.");
+        rows.push(...(data ?? []) as unknown as EventRow[]);
+        if ((data ?? []).length < 500) return rows;
+      }
     },
   });
 
@@ -344,6 +358,7 @@ function EventsPage() {
     return (events.data ?? []).filter((event) => {
       const displayStatus = resolveEventStatus(event.status, event.event_date);
       if (statusFilter !== "all" && displayStatus !== statusFilter) return false;
+      if (!matchesEventFilters(event, { dateStart, dateEnd, service: serviceFilter, client: clientFilter, finance: financeFilter })) return false;
       if (!term) return true;
       return [
         event.name,
@@ -358,7 +373,14 @@ function EventsPage() {
         .toLowerCase()
         .includes(term);
     });
-  }, [events.data, search, statusFilter]);
+  }, [events.data, search, statusFilter, dateStart, dateEnd, serviceFilter, clientFilter, financeFilter]);
+
+  const pageSize = 15;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((Math.min(page, totalPages) - 1) * pageSize, Math.min(page, totalPages) * pageSize);
+  const activeFilters = [dateStart, dateEnd, serviceFilter !== "all", clientFilter !== "all", statusFilter !== "all", financeFilter !== "all"].filter(Boolean).length;
+  function clearFilters() { setSearch(""); setStatusFilter("all"); setDateStart(""); setDateEnd(""); setServiceFilter("all"); setClientFilter("all"); setFinanceFilter("all"); setPage(1); }
+  useEffect(() => { setPage(1); }, [search, statusFilter, dateStart, dateEnd, serviceFilter, clientFilter, financeFilter]);
 
   const totals = useMemo(() => {
     return filtered.reduce(
@@ -705,20 +727,20 @@ function EventsPage() {
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Eventos listados</p>
-            <p className="font-display text-2xl">{filtered.length}</p>
+            <p className="font-display text-2xl">{showEventInfo ? filtered.length : "•••"}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Valor contratado</p>
-            <p className="font-display text-2xl">{formatCurrency(totals.contracted)}</p>
+            <p className="font-display text-2xl">{showFinancial ? formatCurrency(totals.contracted) : "••••••"}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Saldo a receber</p>
             <p className="font-display text-2xl">
-              {formatCurrency(totals.contracted - totals.received)}
+              {showFinancial ? formatCurrency(totals.contracted - totals.received) : "••••••"}
             </p>
           </CardContent>
         </Card>
@@ -752,6 +774,26 @@ function EventsPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button type="button" variant="outline" onClick={() => setShowAdvanced(value => !value)}><SlidersHorizontal className="size-4" />Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}</Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={showEventInfo ? "Ocultar informações dos eventos" : "Mostrar informações dos eventos"} title={showEventInfo ? "Ocultar eventos" : "Mostrar eventos"} onClick={() => setShowEventInfo(value => !value)}>{showEventInfo ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={showFinancial ? "Ocultar valores financeiros" : "Mostrar valores financeiros"} title={showFinancial ? "Ocultar valores" : "Mostrar valores"} onClick={() => setShowFinancial(value => !value)}>{showFinancial ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button>
+          {showAdvanced && <div className="grid basis-full gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2"><Label htmlFor="filter-start">Data inicial</Label><PickerField id="filter-start" variant="date" value={dateStart} onChange={event => setDateStart(event.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="filter-end">Data final</Label><PickerField id="filter-end" variant="date" value={dateEnd} onChange={event => setDateEnd(event.target.value)} /></div>
+            <div className="space-y-2"><Label>Serviço</Label><Select value={serviceFilter} onValueChange={setServiceFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os serviços</SelectItem>{services.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Cliente</Label><Select value={clientFilter} onValueChange={setClientFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{clients.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.full_name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Situação financeira</Label><Select value={financeFilter} onValueChange={value => setFinanceFilter(value as "all" | "pending" | "paid")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem><SelectItem value="pending">Com saldo a receber</SelectItem><SelectItem value="paid">Quitado</SelectItem></SelectContent></Select></div>
+            <div className="flex items-end"><Button type="button" variant="ghost" disabled={!activeFilters && !search} onClick={clearFilters}><X className="size-4" />Limpar filtros</Button></div>
+          </div>}
+          {activeFilters > 0 && <div className="flex basis-full flex-wrap gap-2">{[
+            dateStart && `De ${formatEventDate(dateStart)}`, dateEnd && `Até ${formatEventDate(dateEnd)}`,
+            serviceFilter !== "all" && `Serviço: ${services.data?.find(item => item.id === serviceFilter)?.name ?? "Selecionado"}`,
+            clientFilter !== "all" && `Cliente: ${clients.data?.find(item => item.id === clientFilter)?.full_name ?? "Selecionado"}`,
+            statusFilter !== "all" && EVENT_DISPLAY_STATUS_LABELS[statusFilter],
+            financeFilter !== "all" && (financeFilter === "pending" ? "Saldo a receber" : "Quitado"),
+          ].filter(Boolean).map(label => <Badge key={String(label)} variant="secondary">{label}</Badge>)}</div>}
+          {dateStart && dateEnd && dateStart > dateEnd && <p role="alert" className="basis-full text-sm text-destructive">A data inicial deve ser anterior ou igual à final.</p>}
+          <p className="basis-full text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}{activeFilters > 0 ? ` · ${activeFilters} filtros ativos` : ""}</p>
         </CardContent>
       </Card>
 
@@ -782,17 +824,18 @@ function EventsPage() {
                   <TableCell colSpan={7} className="py-12 text-center">
                     <PartyPopper className="mx-auto mb-3 size-8 text-muted-foreground/60" />
                     <p className="text-sm text-muted-foreground">
-                      {search || statusFilter !== "all"
+                      {search || activeFilters > 0
                         ? "Nenhum evento encontrado com esses filtros."
                         : "Nenhum evento cadastrado ainda."}
                     </p>
                   </TableCell>
                 </TableRow>
               )}
-              {filtered.map((event) => (
+              {paginated.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell>
-                    <p className="font-medium">{event.name}</p>
+                    <p className="font-medium">{showEventInfo ? event.name : "Evento oculto"}</p>
+                    {showEventInfo && <>
                     <p className="text-xs text-muted-foreground">
                       {event.event_type ? `${event.event_type} · ` : ""}
                       {formatTimeRange(event.start_time, event.end_time)}
@@ -807,19 +850,19 @@ function EventsPage() {
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="size-3" /> {event.venue}
                       </p>
-                    )}
+                    )}</>}
                   </TableCell>
                   <TableCell className="text-sm">
-                    <p>{event.clients?.full_name ?? "—"}</p>
+                    <p>{showEventInfo ? event.clients?.full_name ?? "—" : "••••••"}</p>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
                     <span className="flex items-center gap-1">
                       <CalendarDays className="size-3.5 text-muted-foreground" />
-                      {formatEventDate(event.event_date)}
+                      {showEventInfo ? formatEventDate(event.event_date) : "••/••/••••"}
                     </span>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {event.services ? (
+                    {showEventInfo && event.services ? (
                       <span className="flex items-center gap-2">
                         <span
                           className="size-3 shrink-0 rounded-full ring-2 ring-border"
@@ -835,6 +878,7 @@ function EventsPage() {
                   <TableCell>
                     {(() => {
                       const displayStatus = resolveEventStatus(event.status, event.event_date);
+                      if (!showEventInfo) return "••••••";
                       return (
                         <Badge variant="outline" className={cn(EVENT_DISPLAY_STATUS_CLASSES[displayStatus])}>
                           {EVENT_DISPLAY_STATUS_LABELS[displayStatus]}
@@ -843,9 +887,9 @@ function EventsPage() {
                     })()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right text-sm">
-                    <p className="font-medium">{formatCurrency(Number(event.contracted_value ?? 0))}</p>
+                    <p className="font-medium">{showFinancial ? formatCurrency(Number(event.contracted_value ?? 0)) : "••••••"}</p>
                     <p className="text-xs text-muted-foreground">
-                      Recebido {formatCurrency(Number(event.received_value ?? 0))}
+                      {showFinancial ? `Recebido ${formatCurrency(Number(event.received_value ?? 0))}` : "Recebido ••••••"}
                     </p>
                   </TableCell>
                   <TableCell className="text-right">
@@ -859,7 +903,7 @@ function EventsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={`Excluir ${event.name}`}
+                          aria-label={showEventInfo ? `Excluir ${event.name}` : "Excluir evento oculto"}
                           onClick={() => setDeleting(event)}
                         >
                           <Trash2 className="size-4 text-destructive" />
@@ -873,6 +917,7 @@ function EventsPage() {
           </Table>
         </CardContent>
       </Card>
+      {filtered.length > pageSize && <div className="mt-4 flex items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Página {Math.min(page, totalPages)} de {totalPages}</p><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Anterior</Button><Button type="button" variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(value => value + 1)}>Próxima</Button></div></div>}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto bg-background p-0 sm:max-w-3xl">

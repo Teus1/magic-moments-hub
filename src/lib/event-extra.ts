@@ -1,5 +1,9 @@
 export const SOCIAL_MEDIA_QUESTION = "Podemos compartilhar alguns registros do seu evento em nossas redes sociais para mostrar um pouco da experiência Magic Moments? As publicações são feitas sempre com respeito aos nossos clientes e ao momento vivido.";
 export const REFERRAL_OPTIONS = [
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "google", label: "Google" },
+  { value: "cerimonialista", label: "Cerimonialista" },
   { value: "instagram_facebook", label: "Instagram/Facebook" },
   { value: "indicacao", label: "Indicação" },
   { value: "evento_conhecido", label: "Evento de conhecido" },

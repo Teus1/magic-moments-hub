@@ -1,5 +1,14 @@
 # Roadmap
 
+- [x] Documento de atualizações: origem da empresa selecionada por padrão e navegação mensal no Deslocamento
+- [x] Documento de atualizações: ocultação visual e filtros combinados na listagem de Eventos
+- [x] Documento de atualizações: alteração da própria senha para todos os usuários autenticados; senha atual incorreta bloqueada na tela
+- [x] Documento de atualizações: ficha pública com campos obrigatórios, origem do contato e envio pelo WhatsApp configurado
+- [x] Documento de atualizações: excluir exclusivamente o cliente Mateus Santos após conferir vínculos e preservar fichas históricas
+- [x] Documento de atualizações: 42 testes aprovados; Eventos, filtros, Deslocamento, envio público e leitura de pré-aprovado verificados com sessão real
+
+- [ ] Validar troca de senha correta e login posterior — depende da senha atual do usuário; mínimo/complexidade do Cloud não verificáveis pelas ferramentas disponíveis
+
 - [x] Colaboradores: retirar Telefone/E-mail da interface, incluir chave Pix e listar valores combinados/pagos e alertas por evento; 9 testes aprovados, chave persistida e pagamento parcial/quitado verificados na tela com registros temporários removidos
 
 - [x] Permitir novo colaborador com conta existente, manter criação de conta e validar vínculo único e persistência; cadastro real recarregado e registro temporário removido

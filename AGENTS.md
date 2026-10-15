@@ -15,7 +15,7 @@
 - Use expiring, single-submission hashed invitation tokens for public client intake, with no public personal-data reads; review and associate within a transactional permission-checked RPC before creating clients or suggesting events to prevent overwrites and duplicate records.
 - Generate compact cryptographically random invitation tokens through the shared intake-links helper; keep legacy token support and revoke links through a permission-checked, row-locked RPC with soft deletion to preserve linked operational history.
 - Contract-form public helpers (attractions, Places) authorize only via a pending unexpired invitation token with per-token caps; WhatsApp alerts use wa.me links until a provider is chosen, with the auto-send hook after submission.
-- Attractions and WhatsApp recipients are managed under settings permissions; events reference attractions nullable to keep history.
+- WhatsApp recipients use settings permissions; services supply public attraction choices without deleting historical attraction references.
 - Reuse ClientFields and Places inputs in existing screens; persist event duration as integer minutes alongside calculated end_time and structured venue metadata to keep historical records and calendar consumers compatible.
 - Use FullCalendar for monthly and 24-hour daily calendar views, storing operational appointments separately with a required event link and Events action permissions; this preserves overlap handling, commercial totals, and staff portal boundaries.
 - Store calendar appointment timestamps as America/Sao_Paulo wall times and resolve overnight event ends on the following date; this keeps operational dates stable across browser timezones.
@@ -31,7 +31,11 @@
 - Store event attachments in the private `event-attachments` bucket and authorize metadata and files with Events permissions; this keeps receipts and contracts unavailable to collaborator self-service.
 - Keep travel route queries in an authenticated, Events-view-authorized server function with bounded inputs and short-lived bounded cache; this protects billable Google Maps calls and private credentials.
 - Calculate outbound and return routes separately and preserve unknown toll prices as unavailable; this avoids fabricated zero tolls and symmetric-trip assumptions.
-- Query Places suggestions and selected-place details through authenticated Events-view server functions, with debounced app-owned inputs and per-interaction session tokens; this protects credentials and avoids unsupported browser Places calls.
-- Use the linked owner-provided Google Maps connection for both browser rendering and authenticated Places/Routes calls, keeping server credentials inside handlers and the browser host allowlist in a tested helper; this supports custom domains without exposing private credentials or development hostnames.
+- Places uses Events-view server functions, debounced inputs and session tokens to protect credentials and bound usage.
+- Reuse the linked Google Maps connection for map, Places and Routes; server credentials stay in handlers and browser hosts use a tested allowlist.
 
-- Keep Dashboard finance in compact bands with paginated year reads, a selected-month event list and a comparative annual chart; reuse the Events creation dialog through URL navigation to avoid duplicate workflows and truncated totals.
+- Dashboard uses paginated year reads, monthly events and annual finance; reuse Events creation through URL navigation to avoid duplicate flows.
+
+- Version new public contracts and validate required fields on pending-to-received transitions only, preserving historical reviews.
+- Self-password changes reauthenticate the middleware account in a request-local client before updating; never accept target IDs or persist passwords.
+- Travel reuses month-bound helpers; event privacy is rendering-only and filters preserve financial values.

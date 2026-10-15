@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,22 @@ import { computeEventTravel } from "@/lib/event-travel.functions";
 import { eventDestination, eventTravelTotal, isEstimateStale } from "@/lib/event-travel";
 import { formatCurrency, formatEventDate } from "@/lib/events";
 import { parseCurrencyInput } from "@/lib/events";
-
-function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import { currentMonth, monthBounds, shiftMonth } from "@/lib/dashboard-finance";
 
 export function UpcomingTravelList() {
   const cache = useQueryClient();
   const compute = useServerFn(computeEventTravel);
   const [busy, setBusy] = useState<string[]>([]);
+  const [month, setMonth] = useState(() => currentMonth());
   const tried = useRef(new Set<string>());
   const settings = useQuery({ queryKey: ["travel-settings"], queryFn: async () => { const r = await supabase.from("travel_settings").select("base_address,efficiency_km_l,fuel_price").maybeSingle(); if (r.error) throw r.error; return r.data; } });
-  const events = useQuery({ queryKey: ["travel-upcoming"], queryFn: async () => {
-    const r = await supabase.from("events").select("id,name,event_date,start_time,venue,address,venue_city,venue_state,clients(full_name),event_collaborators(collaborators(full_name))").eq("status", "planned").gte("event_date", today()).order("event_date").order("start_time").limit(500);
-    if (r.error) throw r.error; return r.data;
+  const events = useQuery({ queryKey: ["travel-events", month], queryFn: async () => {
+    const bounds = monthBounds(month);
+    const fetchPage = (offset: number) => supabase.from("events").select("id,name,event_date,start_time,venue,address,venue_city,venue_state,clients(full_name),event_collaborators(collaborators(full_name))").eq("status", "planned").gte("event_date", bounds.start).lte("event_date", bounds.end).order("event_date").order("start_time").order("id").range(offset, offset + 499);
+    const first = await fetchPage(0); if (first.error) throw first.error;
+    const rows = [...first.data];
+    for (let offset = 500; rows.length === offset; offset += 500) { const next = await fetchPage(offset); if (next.error) throw next.error; rows.push(...next.data); if (next.data.length < 500) break; }
+    return rows;
   } });
   const estimates = useQuery({ queryKey: ["travel-estimates"], queryFn: async () => { const r = await supabase.from("event_travel_estimates").select("*").limit(1000); if (r.error) throw r.error; return r.data; } });
   const origin = settings.data?.base_address?.trim() ?? "";
@@ -61,12 +62,13 @@ export function UpcomingTravelList() {
   const price = Number(settings.data?.fuel_price ?? 0);
 
   return <section className="space-y-4">
-    <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
-      <h2 className="font-display text-xl">Próximos eventos</h2>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-2">
+      <div><h2 className="font-display text-xl">Eventos por mês</h2><p className="text-xs text-muted-foreground">Planejamento dos deslocamentos da equipe</p></div>
+      <div className="flex items-center gap-1"><Button type="button" size="icon" variant="ghost" aria-label="Mês anterior" onClick={() => setMonth(value => shiftMonth(value, -1))}><ChevronLeft className="size-4" /></Button><span className="min-w-36 text-center text-sm font-semibold capitalize">{new Date(`${month}-15T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</span><Button type="button" size="icon" variant="ghost" aria-label="Próximo mês" onClick={() => setMonth(value => shiftMonth(value, 1))}><ChevronRight className="size-4" /></Button></div>
       <p className="text-xs text-muted-foreground">Ida e volta a partir da empresa · {efficiency ? `${efficiency} km/L` : "—"} · {price ? `${formatCurrency(price)}/L` : "—"}</p>
     </div>
     {origin.length < 5 && <p className="text-sm text-warning">Cadastre o endereço da empresa em <Link to="/configuracoes/ficha-contrato" className="underline">Configurações › Ficha de contrato</Link> para calcular automaticamente.</p>}
-    {events.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : (events.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento futuro planejado.</p> :
+    {events.isError ? <p role="alert" className="text-sm text-destructive">Não foi possível carregar os eventos deste mês.</p> : events.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : (events.data ?? []).length === 0 ? <p className="py-4 text-sm text-muted-foreground">Nenhum evento planejado neste mês.</p> :
       <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-sm">
         <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2 pr-3 font-medium">Data</th><th className="pr-3 font-medium">Evento</th><th className="pr-3 font-medium">Local</th><th className="pr-3 font-medium">Equipe</th><th className="pr-3 text-right font-medium">Distância</th><th className="pr-3 text-right font-medium">Combustível</th><th className="pr-3 text-right font-medium">Pedágios</th><th className="pr-3 text-right font-medium">Total</th><th /></tr></thead>
         <tbody className="divide-y divide-border">{events.data?.map(ev => {

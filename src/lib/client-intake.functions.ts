@@ -93,7 +93,7 @@ export const reviewIntake = createServerFn({ method: "POST" }).middleware([requi
     await assertCan(context.supabase, "clients", "view");
     if (data.corrections) {
       const c = data.corrections;
-      if (!validCpf(c.cpf) || !/^\d{10,11}$/.test(onlyDigits(c.whatsapp)) || !c.email) throw new Error("Confira CPF, WhatsApp e e-mail antes de validar.");
+      if (!validCpf(c.cpf) || !/^\d{10,11}$/.test(onlyDigits(c.whatsapp))) throw new Error("Confira CPF e WhatsApp antes de validar.");
        const current = await context.supabase.from("client_preregistrations").select("payload,status").is("deleted_at", null).eq("id", data.id).single();
       if (current.error || current.data.status !== "received") throw new Error("Ficha não disponível para correção.");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
