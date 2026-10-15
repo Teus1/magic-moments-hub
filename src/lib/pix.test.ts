@@ -45,7 +45,9 @@ describe("codigo pix (br code)", () => {
     assert.equal(normalizePixKey("12.345.678/0001-90"), "12345678000190");
     assert.equal(normalizePixKey("+55 (11) 99999-9999"), "+5511999999999");
     assert.equal(normalizePixKey("11 99999-9999"), "+5511999999999");
+    assert.equal(normalizePixKey("19982639031"), "+5519982639031");
     assert.equal(normalizePixKey("12345678901"), "12345678901");
+    assert.equal(normalizePixKey("12345678000190"), "12345678000190");
     assert.equal(normalizePixKey(" Maria@Exemplo.Com "), "Maria@Exemplo.Com");
     assert.equal(
       normalizePixKey("123E45EC-7562-4B35-8A3E-DA514ACD82CE"),
