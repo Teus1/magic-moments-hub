@@ -431,7 +431,7 @@ function CollaboratorsPage() {
         </CardContent>
       </Card>
 
-      {can("events", "view") && collaborators.data && <CollaboratorPayments collaborators={collaborators.data} />}
+      {can("events", "view") && collaborators.data && <CollaboratorPayments collaborators={collaborators.data} canEdit={can("events", "edit")} />}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto border-primary/10 bg-background/95 p-0 shadow-elevated backdrop-blur-xl sm:max-w-2xl sm:rounded-xl">

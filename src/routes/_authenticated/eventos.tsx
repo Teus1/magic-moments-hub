@@ -545,6 +545,8 @@ function EventsPage() {
           .delete()
           .eq("event_id", eventId)
           .in("collaborator_id", toRemove);
+        if (error?.code === "23503")
+          throw new Error("Um colaborador removido já tem pagamentos registrados e não pode sair da equipe.");
         if (error) throw new Error("Não foi possível atualizar a equipe do evento.");
       }
 
@@ -555,7 +557,6 @@ function EventsPage() {
             collaborator_id: collaboratorId,
             created_by: currentUserId,
             agreed_value: parseCurrencyInput(teamValues[collaboratorId]?.agreed ?? ""),
-            paid_value: parseCurrencyInput(teamValues[collaboratorId]?.paid ?? ""),
           })),
         );
         if (error) throw new Error("Não foi possível vincular os colaboradores ao evento.");
@@ -568,7 +569,6 @@ function EventsPage() {
           .from("event_collaborators")
           .update({
             agreed_value: parseCurrencyInput(teamValues[collaboratorId]?.agreed ?? ""),
-            paid_value: parseCurrencyInput(teamValues[collaboratorId]?.paid ?? ""),
           })
           .eq("event_id", eventId)
           .eq("collaborator_id", collaboratorId);
