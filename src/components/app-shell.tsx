@@ -209,7 +209,7 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-foreground/40" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-72">
+          <div className="absolute inset-y-0 left-0 w-72 max-w-[calc(100vw-2rem)]">
             <Button
               variant="ghost"
               size="icon"
@@ -231,7 +231,7 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
           </Button>
           <span className="font-display text-base">Magic Moments</span>
         </header>
-        <main className={cn("mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8", contentClassName)}>{children}</main>
+        <main className={cn("app-content mx-auto min-w-0 w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8", contentClassName)}>{children}</main>
       </div>
     </div>
   );
@@ -247,9 +247,9 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="font-display text-3xl text-foreground">{title}</h1>
+    <div className="page-header mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:mb-8 sm:flex sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+      <div className="min-w-0">
+        <h1 className="break-words font-display text-2xl text-foreground sm:text-3xl">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {action}
