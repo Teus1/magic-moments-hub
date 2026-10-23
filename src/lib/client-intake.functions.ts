@@ -10,7 +10,7 @@ import {
   type IntakeRow,
 } from "@/lib/client-intake";
 import { onlyDigits } from "@/lib/clients";
-import { intakeRecipientSchema, intakeTokenSchema, newIntakeToken } from "@/lib/intake-links";
+import { intakeRecipientSchema, intakeTokenSchema, newIntakeToken, intakeShareUrl } from "@/lib/intake-links";
 
 const tokenSchema = intakeTokenSchema;
 async function hashToken(token: string) {
@@ -31,14 +31,15 @@ export const createIntakeLink = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, "clients", "create");
     const token = newIntakeToken();
+    const shareUrl = intakeShareUrl(token);
     const result = await context.supabase
       .from("client_preregistrations")
-      .insert({ ...data, token_hash: await hashToken(token), created_by: context.userId })
+      .insert({ ...data, token_hash: await hashToken(token), created_by: context.userId, share_url: shareUrl })
       .select("id")
       .single();
     if (result.error)
       throw new Error("Não foi possível gerar o link. Verifique o cliente e suas permissões.");
-    return { token, id: result.data.id };
+    return { token, id: result.data.id, shareUrl };
   });
 export const listIntakes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -49,7 +50,7 @@ export const listIntakes = createServerFn({ method: "POST" })
       const response = await context.supabase
         .from("client_preregistrations")
         .select(
-          "id,recipient_name,status,client_id,event_id,payload,created_at,received_at,reviewed_at,expires_at,notified_at",
+          "id,recipient_name,status,client_id,event_id,payload,created_at,received_at,reviewed_at,expires_at,notified_at,share_url",
         )
         .is("deleted_at", null)
         .order("created_at", { ascending: false })

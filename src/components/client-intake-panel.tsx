@@ -328,6 +328,24 @@ export function ClientIntakePanel({
                 <Button variant="ghost" size="sm" onClick={() => open(row)}>
                   {row.status === "received" ? "Validar" : "Consultar"}
                 </Button>
+                {row.share_url && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Copiar link da ficha"
+                    aria-label={`Copiar link de ${row.recipient_name ?? row.payload?.full_name ?? "ficha"}`}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(row.share_url);
+                        toast.success("Link copiado.");
+                      } catch {
+                        toast.error("Não foi possível copiar.");
+                      }
+                    }}
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                )}
                 {canDelete && (
                   <Button
                     variant="ghost"
@@ -449,6 +467,27 @@ export function ClientIntakePanel({
             <DialogDescription>
               Confira as informações antes de cadastrar o cliente.
             </DialogDescription>
+            {selected?.share_url && (
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <span className="text-xs text-muted-foreground">Link da ficha:</span>
+                <Input readOnly value={selected.share_url} className="flex-1 bg-muted" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(selected.share_url);
+                      toast.success("Link copiado.");
+                    } catch {
+                      toast.error("Não foi possível copiar.");
+                    }
+                  }}
+                >
+                  <Copy className="size-4" />
+                  Copiar
+                </Button>
+              </div>
+            )}
           </DialogHeader>
           {selected?.payload ? (
             <div className="space-y-5">

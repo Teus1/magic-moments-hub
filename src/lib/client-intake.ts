@@ -191,6 +191,7 @@ export interface IntakeRow {
   reviewed_at: string | null;
   expires_at: string;
   notified_at: string | null;
+  share_url: string | null;
 }
 /** Mensagem curta, sem CPF nem endereço, para avisar a equipe de uma nova ficha. */
 export function intakeNotificationMessage(
