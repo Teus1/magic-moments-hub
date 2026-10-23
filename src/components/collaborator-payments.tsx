@@ -54,6 +54,8 @@ type Assignment = {
   collaborator_id: string;
   agreed_value: number;
   paid_value: number;
+  is_transport_responsible: boolean;
+  transport_value: number | null;
   event: { id: string; name: string; event_date: string; status: string } | null;
 };
 type PixTarget = {
@@ -265,7 +267,7 @@ export function CollaboratorPayments({
         const { data, error } = await supabase
           .from("event_collaborators")
           .select(
-            "id, collaborator_id, agreed_value, paid_value, event:events!event_collaborators_event_id_fkey(id, name, event_date, status)",
+            "id, collaborator_id, agreed_value, paid_value, is_transport_responsible, transport_value, event:events!event_collaborators_event_id_fkey(id, name, event_date, status)",
           )
           .order("id")
           .range(offset, offset + 499);
@@ -387,6 +389,7 @@ export function CollaboratorPayments({
                 <TableHead>Colaborador</TableHead>
                 <TableHead>Chave Pix</TableHead>
                 <TableHead className="text-right">Combinado</TableHead>
+                <TableHead className="text-right">Deslocamento</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
                 <TableHead className="text-right">A pagar</TableHead>
               </TableRow>
@@ -396,6 +399,7 @@ export function CollaboratorPayments({
                 const person = people.get(row.collaborator_id);
                 if (!person || !row.event) return null;
                 const balance = collaboratorBalance(row.agreed_value, row.paid_value);
+                const transportValue = row.is_transport_responsible ? (row.transport_value ?? 0) : 0;
                 return (
                   <TableRow key={row.id}>
                     <TableCell>
@@ -409,7 +413,16 @@ export function CollaboratorPayments({
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-48 whitespace-normal">{person.full_name}</TableCell>
+                    <TableCell className="max-w-48 whitespace-normal">
+                      <div className="flex items-center gap-2">
+                        {person.full_name}
+                        {row.is_transport_responsible && (
+                          <Badge variant="secondary" className="text-xs">
+                            Transporte
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <PixKey value={person.pix_key} name={person.full_name} />
@@ -440,6 +453,16 @@ export function CollaboratorPayments({
                       {formatCurrency(Number(row.agreed_value))}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
+                      {transportValue > 0 ? (
+                        <>
+                          {formatCurrency(transportValue)}
+                          <Badge variant="secondary" className="ml-1 text-xs">Combustível</Badge>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
                       {formatCurrency(Number(row.paid_value))}
                     </TableCell>
                     <TableCell className="text-right">
@@ -460,7 +483,7 @@ export function CollaboratorPayments({
               })}
               {visible.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                     {filter === "pending"
                       ? "Nenhum pagamento pendente."
                       : "Nenhum pagamento encontrado."}

@@ -86,3 +86,28 @@ export const saveEventDetails = createServerFn({ method: "POST" })
       throw new Error("Não foi possível salvar o evento. Confira os vínculos e suas permissões.");
     return result.data;
   });
+
+const transportValueSchema = z.object({
+  event_id: z.string().uuid(),
+  collaborator_id: z.string().uuid(),
+  transport_value: z.number().finite().min(0),
+});
+
+/** Atualiza o valor de deslocamento/transporte de um colaborador no evento. */
+export const updateEventCollaboratorTransport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(transportValueSchema.parse)
+  .handler(async ({ data, context }) => {
+    await assertCan(context.supabase, "events", "edit");
+    const { event_id, collaborator_id, transport_value } = data;
+    const { error } = await context.supabase
+      .from("event_collaborators")
+      .update({
+        transport_value: Math.round(transport_value * 100) / 100,
+        is_transport_responsible: true,
+      })
+      .eq("event_id", event_id)
+      .eq("collaborator_id", collaborator_id);
+    if (error) throw new Error("Não foi possível atualizar o valor de deslocamento.");
+    return { ok: true };
+  });

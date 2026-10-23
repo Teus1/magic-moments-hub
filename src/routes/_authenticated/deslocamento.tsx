@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowDownUp, Calculator, Fuel, LoaderCircle, Route as RouteIcon } from "lucide-react";
+import { ArrowDownUp, Calculator, Fuel, LoaderCircle, Route as RouteIcon, ArrowUpRight } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import { UpcomingTravelList } from "@/components/upcoming-travel-list";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { getTravelRoute } from "@/lib/travel.functions";
 import { calculateTravelCost, type TravelRoute } from "@/lib/travel";
+import { updateEventCollaboratorTransport } from "@/lib/events.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/deslocamento")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -97,6 +99,32 @@ function TravelPage() {
     },
   });
   const companyAddress = travelSettings.data?.base_address?.trim() ?? "";
+
+  // Buscar o colaborador responsável pelo transporte no evento
+  const transportResponsible = useQuery({
+    queryKey: ["event-transport-responsible", eventId],
+    enabled: Boolean(eventId) && can("events", "view"),
+    queryFn: async () => {
+      if (!eventId) return null;
+      const { data, error } = await supabase
+        .from("event_collaborators")
+        .select("collaborator_id, transport_value, collaborators:collaborator_id (id, full_name, nickname)")
+        .eq("event_id", eventId)
+        .eq("is_transport_responsible", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data as
+        | {
+            collaborator_id: string;
+            transport_value: number | null;
+            collaborators: { id: string; full_name: string; nickname: string | null } | null;
+          }
+        | null;
+    },
+  });
+
+  const updateTransportFn = useServerFn(updateEventCollaboratorTransport);
+  const [applyingTransport, setApplyingTransport] = useState(false);
   useEffect(() => {
     if (!useCompanyOrigin) return;
     setOrigin(companyAddress);
@@ -369,6 +397,58 @@ function TravelPage() {
                   Há pedágios sem preço disponível. Informe o total manualmente para concluir o
                   cálculo.
                 </p>
+              )}
+              {eventId && cost && transportResponsible.data && (
+                <div className="mt-4 p-3 rounded-lg border border-border bg-background/50">
+                  <p className="text-sm font-medium mb-2">
+                    Responsável pelo transporte:{" "}
+                    <span className="font-normal">
+                      {transportResponsible.data.collaborators?.nickname ||
+                        transportResponsible.data.collaborators?.full_name}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Valor atual de deslocamento:{" "}
+                    {transportResponsible.data.transport_value !== null
+                      ? money(transportResponsible.data.transport_value)
+                      : "Não definido"}
+                  </p>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    disabled={applyingTransport || !Number.isFinite(cost.total) || cost.total <= 0}
+                    onClick={async () => {
+                      setApplyingTransport(true);
+                      try {
+                        await updateTransportFn({
+                          data: {
+                            event_id: eventId,
+                            collaborator_id: transportResponsible.data.collaborator_id,
+                            transport_value: cost.total,
+                          },
+                        });
+                        toast.success("Valor de deslocamento aplicado ao evento!");
+                        transportResponsible.refetch();
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Erro ao aplicar valor.");
+                      } finally {
+                        setApplyingTransport(false);
+                      }
+                    }}
+                  >
+                    {applyingTransport ? (
+                      <>
+                        <LoaderCircle className="size-4 animate-spin mr-2" /> Aplicando…
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUpRight className="size-4 mr-2" /> Aplicar valor ao evento (R${" "}
+                        {money(cost.total)})
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
               <p className="text-xs text-muted-foreground">
                 Estimativa para carro de passeio, sem tag. Tarifas podem variar; combustível

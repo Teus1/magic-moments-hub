@@ -48,6 +48,14 @@ export interface EventForm {
   contracted_value: string;
   received_value: string;
   notes: string;
+  team: EventTeamMember[];
+}
+
+export interface EventTeamMember {
+  collaborator_id: string;
+  agreed_value: string;
+  is_transport_responsible: boolean;
+  transport_value: string;
 }
 
 export const emptyEventForm: EventForm = {
@@ -82,6 +90,7 @@ export const emptyEventForm: EventForm = {
   contracted_value: "",
   received_value: "",
   notes: "",
+  team: [],
 };
 
 export const EVENT_STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
