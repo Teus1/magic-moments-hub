@@ -12,7 +12,12 @@ export default defineConfig({
       // Prebundle the consent control before routes load so discovering it later
       // cannot mix old React DOM modules with newly optimized React modules.
       // TanStack runtime pieces discovered late also forced a mid-session reoptimization.
-      include: ["@radix-ui/react-radio-group", "@tanstack/history", "@tanstack/router-core", "seroval"],
+      include: [
+        "@radix-ui/react-radio-group",
+        "@tanstack/history",
+        "@tanstack/router-core",
+        "seroval",
+      ],
     },
   },
   tanstackStart: {

@@ -3,7 +3,10 @@ export type EventStatus = "planned" | "cancelled";
 /** Status exibido: "Realizado" é derivado de um evento planejado cuja data já passou. */
 export type EventDisplayStatus = "planned" | "done" | "cancelled";
 
-export function resolveEventStatus(status: EventStatus, eventDate: string | null): EventDisplayStatus {
+export function resolveEventStatus(
+  status: EventStatus,
+  eventDate: string | null,
+): EventDisplayStatus {
   if (status === "cancelled") return "cancelled";
   if (!eventDate) return "planned";
   const today = new Date();
@@ -81,7 +84,6 @@ export const emptyEventForm: EventForm = {
   notes: "",
 };
 
-
 export const EVENT_STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
   { value: "planned", label: "Planejado" },
   { value: "cancelled", label: "Cancelado" },
@@ -118,9 +120,7 @@ export function formatCurrency(value: number) {
 export function parseCurrencyInput(value: string) {
   const cleaned = value.replace(/[^\d,.-]/g, "");
   if (!cleaned) return 0;
-  const normalized = cleaned.includes(",")
-    ? cleaned.replace(/\./g, "").replace(",", ".")
-    : cleaned;
+  const normalized = cleaned.includes(",") ? cleaned.replace(/\./g, "").replace(",", ".") : cleaned;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
 }

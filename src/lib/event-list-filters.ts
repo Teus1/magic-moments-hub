@@ -1,5 +1,20 @@
-export interface EventListFilters { dateStart: string; dateEnd: string; service: string; client: string; finance: "all" | "pending" | "paid" }
-export function matchesEventFilters(event: { event_date: string; service_id: string | null; client_id: string; contracted_value: number; received_value: number }, filters: EventListFilters) {
+export interface EventListFilters {
+  dateStart: string;
+  dateEnd: string;
+  service: string;
+  client: string;
+  finance: "all" | "pending" | "paid";
+}
+export function matchesEventFilters(
+  event: {
+    event_date: string;
+    service_id: string | null;
+    client_id: string;
+    contracted_value: number;
+    received_value: number;
+  },
+  filters: EventListFilters,
+) {
   if (filters.dateStart && event.event_date < filters.dateStart) return false;
   if (filters.dateEnd && event.event_date > filters.dateEnd) return false;
   if (filters.service !== "all" && event.service_id !== filters.service) return false;

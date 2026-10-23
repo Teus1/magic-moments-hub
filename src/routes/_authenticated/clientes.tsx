@@ -31,15 +31,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import {
-  emptyClientForm,
-  formatBirthDate,
-  onlyDigits,
-  type ClientForm,
-} from "@/lib/clients";
+import { emptyClientForm, formatBirthDate, onlyDigits, type ClientForm } from "@/lib/clients";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
@@ -100,7 +102,10 @@ function ClientsPage() {
     queryKey: ["clients"],
     enabled: canView,
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select(SELECT_COLUMNS).order("full_name");
+      const { data, error } = await supabase
+        .from("clients")
+        .select(SELECT_COLUMNS)
+        .order("full_name");
       if (error) throw new Error("Não foi possível carregar os clientes.");
       return data as ClientRow[];
     },
@@ -154,7 +159,9 @@ function ClientsPage() {
     mutationFn: async () => {
       const checked = clientSchema.safeParse(form);
       if (!checked.success) {
-        setFieldErrors(Object.fromEntries(checked.error.issues.map(issue => [issue.path[0], issue.message])));
+        setFieldErrors(
+          Object.fromEntries(checked.error.issues.map((issue) => [issue.path[0], issue.message])),
+        );
         throw new Error("Confira os campos indicados.");
       }
       setFieldErrors({});
@@ -186,7 +193,10 @@ function ClientsPage() {
   if (!canView) {
     return (
       <AppShell>
-        <PageHeader title="Clientes" description="Você não tem permissão para visualizar este módulo." />
+        <PageHeader
+          title="Clientes"
+          description="Você não tem permissão para visualizar este módulo."
+        />
       </AppShell>
     );
   }
@@ -205,7 +215,13 @@ function ClientsPage() {
         }
       />
 
-      <ClientIntakePanel clients={clients.data ?? []} canCreate={canCreate} canEdit={canEdit} canDelete={canDelete} canCreateEvent={can("events", "create")} />
+      <ClientIntakePanel
+        clients={clients.data ?? []}
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        canCreateEvent={can("events", "create")}
+      />
 
       <Card className="mb-6">
         <CardContent className="flex flex-wrap items-center gap-4 py-4">
@@ -239,7 +255,10 @@ function ClientsPage() {
             <TableBody>
               {clients.isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
                     Carregando...
                   </TableCell>
                 </TableRow>
@@ -249,7 +268,9 @@ function ClientsPage() {
                   <TableCell colSpan={4} className="py-12 text-center">
                     <UsersRound className="mx-auto mb-3 size-8 text-muted-foreground/60" />
                     <p className="text-sm text-muted-foreground">
-                      {search ? "Nenhum cliente encontrado para essa busca." : "Nenhum cliente cadastrado ainda."}
+                      {search
+                        ? "Nenhum cliente encontrado para essa busca."
+                        : "Nenhum cliente cadastrado ainda."}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -260,15 +281,18 @@ function ClientsPage() {
                     <p className="font-medium">{client.full_name}</p>
                     {(client.cpf || client.birth_date) && (
                       <p className="text-xs text-muted-foreground">
-                        {[client.cpf, formatBirthDate(client.birth_date)].filter(Boolean).join(" · ")}
+                        {[client.cpf, formatBirthDate(client.birth_date)]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                     )}
                     {client.notes && (
-                      <p className="max-w-72 truncate text-xs text-muted-foreground">{client.notes}</p>
+                      <p className="max-w-72 truncate text-xs text-muted-foreground">
+                        {client.notes}
+                      </p>
                     )}
                   </TableCell>
                   <TableCell className="text-sm">
-                    
                     {client.whatsapp && (
                       <a
                         href={`https://wa.me/55${onlyDigits(client.whatsapp)}`}
@@ -279,13 +303,17 @@ function ClientsPage() {
                         <MessageCircle className="size-3" /> {client.whatsapp}
                       </a>
                     )}
-                    {client.email && <p className="text-xs text-muted-foreground">{client.email}</p>}
+                    {client.email && (
+                      <p className="text-xs text-muted-foreground">{client.email}</p>
+                    )}
                     {!client.whatsapp && !client.email && (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {client.city ? `${client.city}${client.state ? ` - ${client.state}` : ""}` : "—"}
+                    {client.city
+                      ? `${client.city}${client.state ? ` - ${client.state}` : ""}`
+                      : "—"}
                     {client.neighborhood && <p className="text-xs">{client.neighborhood}</p>}
                   </TableCell>
                   <TableCell className="text-right">
@@ -317,18 +345,28 @@ function ClientsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display">{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle>
+            <DialogTitle className="font-display">
+              {editing ? "Editar cliente" : "Novo cliente"}
+            </DialogTitle>
             <DialogDescription>Dados de contato e endereço usados nos eventos.</DialogDescription>
           </DialogHeader>
 
-          <ClientFields value={form} onChange={next => setForm(current => ({ ...current, ...next }))} errors={fieldErrors} />
+          <ClientFields
+            value={form}
+            onChange={(next) => setForm((current) => ({ ...current, ...next }))}
+            errors={fieldErrors}
+          />
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar cliente"}
+              {saveMutation.isPending
+                ? "Salvando..."
+                : editing
+                  ? "Salvar alterações"
+                  : "Cadastrar cliente"}
             </Button>
           </DialogFooter>
         </DialogContent>

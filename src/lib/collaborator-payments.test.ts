@@ -13,12 +13,15 @@ describe("pagamentos da equipe dos eventos", () => {
     assert.equal(collaboratorBalance(350, 350), 0);
   });
   it("pagamento excedente de outro evento não apaga uma dívida", () => {
-    assert.deepEqual(collaboratorPaymentTotals([
-      { agreed_value: 300, paid_value: 400 },
-      { agreed_value: 250, paid_value: 50 },
-    ]), { agreed: 550, paid: 450, pending: 200 });
+    assert.deepEqual(
+      collaboratorPaymentTotals([
+        { agreed_value: 300, paid_value: 400 },
+        { agreed_value: 250, paid_value: 50 },
+      ]),
+      { agreed: 550, paid: 450, pending: 200 },
+    );
   });
   it("calcula centavos sem resíduo", () => {
-    assert.equal(collaboratorBalance(100.10, 100), 0.10);
+    assert.equal(collaboratorBalance(100.1, 100), 0.1);
   });
 });

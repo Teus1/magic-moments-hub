@@ -61,7 +61,8 @@ export function useCurrentUser() {
   });
 
   const permissions = query.data?.permissions ?? [];
-  const can = (module: string, action: string) => permissions.includes(permissionKey(module, action));
+  const can = (module: string, action: string) =>
+    permissions.includes(permissionKey(module, action));
   const canAny = (module: string) => permissions.some((p) => p.startsWith(`${module}.`));
 
   return {

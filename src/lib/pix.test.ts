@@ -1,6 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildPixPayload, normalizePixKey, pixCrc16, pixMerchantName, pixTransactionId } from "./pix";
+import {
+  buildPixPayload,
+  normalizePixKey,
+  pixCrc16,
+  pixMerchantName,
+  pixTransactionId,
+} from "./pix";
 
 describe("codigo pix (br code)", () => {
   it("calcula o CRC16-CCITT-FALSE igual ao valor de referência", () => {
@@ -64,10 +70,20 @@ describe("codigo pix (br code)", () => {
   it("recusa chave vazia, valor zero e valor negativo", () => {
     assert.throws(() => normalizePixKey("   "));
     assert.throws(() =>
-      buildPixPayload({ key: "joao@email.com", amount: 0, receiverName: "Joao", linkId: "11111111" }),
+      buildPixPayload({
+        key: "joao@email.com",
+        amount: 0,
+        receiverName: "Joao",
+        linkId: "11111111",
+      }),
     );
     assert.throws(() =>
-      buildPixPayload({ key: "joao@email.com", amount: -20, receiverName: "Joao", linkId: "11111111" }),
+      buildPixPayload({
+        key: "joao@email.com",
+        amount: -20,
+        receiverName: "Joao",
+        linkId: "11111111",
+      }),
     );
     assert.throws(() =>
       buildPixPayload({ key: "###", amount: 10, receiverName: "Joao", linkId: "11111111" }),

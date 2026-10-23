@@ -14,11 +14,13 @@
 7. **WhatsApp para aviso**: nova tela em Configurações > Avisos de WhatsApp, onde vocês cadastram, editam, ativam ou desativam vários números. Por enquanto **nenhuma mensagem é enviada sozinha**, porque ainda falta escolher o serviço de envio. Até lá, cada ficha nova ganha um selo "Nova" em Clientes e um botão "Avisar no WhatsApp", que abre a conversa com a mensagem pronta. Quando vocês escolherem o serviço, o envio automático é ligado para todos os números ativos.
 
 ## Fora deste passo
+
 - O envio automático de WhatsApp fica para depois, quando vocês escolherem o serviço de envio.
 - A ficha não cria o evento sozinha nem mexe nos valores financeiros.
 - Os links de pré-cadastro já enviados continuam funcionando e passam a abrir a ficha nova.
 
 ## Detalhes técnicos
+
 - Migração aditiva: tabela `attractions` (nome, descrição, status, ordem) e tabela `whatsapp_notification_recipients` (nome, número, ativo), com GRANTs, RLS e permissões no catálogo (módulos `attractions` e `notifications`, todas as ações para Administrador). Em `events`, as colunas anuláveis `attraction_id`, `attraction_start_location` e `has_ceremonial` (já existe), além de `client_preregistrations.notified_at`.
 - O payload da ficha ganha um bloco `event` validado em zod e em `submit_client_preregistration` (limites de tamanho, booleanos, data, duração entre 1 e 1439, atração ativa existente). A leitura pública das atrações ativas passa por uma função de servidor sem dados pessoais, só com o token válido.
 - O fluxo pré-aprovado reutiliza `review_client_preregistration`, com a edição dos campos antes da confirmação. O evento pré-preenchido usa o `preregistration_id` e a navegação já existentes para a tela de Eventos.

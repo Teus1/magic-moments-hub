@@ -36,7 +36,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -47,7 +54,10 @@ export const Route = createFileRoute("/_authenticated/servicos")({
       { title: "Serviços — Magic Moments" },
       { name: "description", content: "Catálogo de serviços oferecidos pela Magic Moments." },
       { property: "og:title", content: "Serviços — Magic Moments" },
-      { property: "og:description", content: "Catálogo de serviços oferecidos pela Magic Moments." },
+      {
+        property: "og:description",
+        content: "Catálogo de serviços oferecidos pela Magic Moments.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -193,7 +203,10 @@ function ServicesPage() {
   if (!canView) {
     return (
       <AppShell>
-        <PageHeader title="Serviços" description="Você não tem permissão para visualizar este módulo." />
+        <PageHeader
+          title="Serviços"
+          description="Você não tem permissão para visualizar este módulo."
+        />
       </AppShell>
     );
   }
@@ -244,7 +257,10 @@ function ServicesPage() {
             <TableBody>
               {services.isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
                     Carregando...
                   </TableCell>
                 </TableRow>
@@ -254,7 +270,9 @@ function ServicesPage() {
                   <TableCell colSpan={4} className="py-12 text-center">
                     <Sparkles className="mx-auto mb-3 size-8 text-muted-foreground/60" />
                     <p className="text-sm text-muted-foreground">
-                      {search ? "Nenhum serviço encontrado para essa busca." : "Nenhum serviço cadastrado ainda."}
+                      {search
+                        ? "Nenhum serviço encontrado para essa busca."
+                        : "Nenhum serviço cadastrado ainda."}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -272,11 +290,7 @@ function ServicesPage() {
                     </div>
                   </TableCell>
                   <TableCell className="max-w-md text-sm text-muted-foreground">
-                    {service.description ? (
-                      <p className="truncate">{service.description}</p>
-                    ) : (
-                      "—"
-                    )}
+                    {service.description ? <p className="truncate">{service.description}</p> : "—"}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -319,8 +333,12 @@ function ServicesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display">{editing ? "Editar serviço" : "Novo serviço"}</DialogTitle>
-            <DialogDescription>Serviços aparecem como opção no cadastro de eventos.</DialogDescription>
+            <DialogTitle className="font-display">
+              {editing ? "Editar serviço" : "Novo serviço"}
+            </DialogTitle>
+            <DialogDescription>
+              Serviços aparecem como opção no cadastro de eventos.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -357,7 +375,8 @@ function ServicesPage() {
                       aria-label={`Cor ${color}`}
                       className={cn(
                         "size-8 rounded-full transition-transform hover:scale-110",
-                        form.color === color && "ring-2 ring-foreground ring-offset-2 ring-offset-card",
+                        form.color === color &&
+                          "ring-2 ring-foreground ring-offset-2 ring-offset-card",
                       )}
                       style={{ backgroundColor: color }}
                     />
@@ -379,7 +398,9 @@ function ServicesPage() {
                 <Label>Status</Label>
                 <Select
                   value={form.status}
-                  onValueChange={(value) => setForm({ ...form, status: value as "active" | "inactive" })}
+                  onValueChange={(value) =>
+                    setForm({ ...form, status: value as "active" | "inactive" })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -412,8 +433,8 @@ function ServicesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir serviço</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleting?.name}</strong>? Essa ação não pode ser
-              desfeita.
+              Tem certeza que deseja excluir <strong>{deleting?.name}</strong>? Essa ação não pode
+              ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

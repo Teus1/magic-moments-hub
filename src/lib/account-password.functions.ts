@@ -12,17 +12,25 @@ export const changeOwnPassword = createServerFn({ method: "POST" })
     }
     // Reauthenticate only this request-local, non-persistent client, never the browser session.
     const verified = await context.supabase.auth.signInWithPassword({
-      email: current.data.user.email, password: data.currentPassword,
+      email: current.data.user.email,
+      password: data.currentPassword,
     });
     if (verified.error || verified.data.user?.id !== context.userId) {
-      throw new Error("Senha atual incorreta ou verificação indisponível. Confira e tente novamente.");
+      throw new Error(
+        "Senha atual incorreta ou verificação indisponível. Confira e tente novamente.",
+      );
     }
     const updated = await context.supabase.auth.updateUser({
-      password: data.password, current_password: data.currentPassword,
+      password: data.password,
+      current_password: data.currentPassword,
     });
     if (updated.error) {
-      if (updated.error.code === "same_password") throw new Error("Escolha uma senha diferente da atual.");
-      if (updated.error.code === "weak_password") throw new Error("A autenticação não aceitou essa senha. Confira as regras de senha da conta.");
+      if (updated.error.code === "same_password")
+        throw new Error("Escolha uma senha diferente da atual.");
+      if (updated.error.code === "weak_password")
+        throw new Error(
+          "A autenticação não aceitou essa senha. Confira as regras de senha da conta.",
+        );
       throw new Error("Não foi possível alterar a senha. Tente novamente.");
     }
     return { ok: true };

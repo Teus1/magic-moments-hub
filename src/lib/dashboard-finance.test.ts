@@ -14,12 +14,20 @@ test("monthly boundaries include leap day", () => {
   assert.deepEqual(monthBounds("2028-02"), { start: "2028-02-01", end: "2028-02-29" });
 });
 test("received totals follow event month, exclude cancellations and retain future months", () => {
-  const result = annualFinance([
-    { event_date: "2026-10-20", status: "planned", contracted_value: 3000, received_value: 1200 },
-    { event_date: "2026-10-21", status: "cancelled", contracted_value: 9000, received_value: 5000 },
-    { event_date: "2026-12-15", status: "planned", contracted_value: 2000, received_value: 500 },
-    { event_date: "2027-10-01", status: "planned", contracted_value: 8000, received_value: 1000 },
-  ], 2026);
+  const result = annualFinance(
+    [
+      { event_date: "2026-10-20", status: "planned", contracted_value: 3000, received_value: 1200 },
+      {
+        event_date: "2026-10-21",
+        status: "cancelled",
+        contracted_value: 9000,
+        received_value: 5000,
+      },
+      { event_date: "2026-12-15", status: "planned", contracted_value: 2000, received_value: 500 },
+      { event_date: "2027-10-01", status: "planned", contracted_value: 8000, received_value: 1000 },
+    ],
+    2026,
+  );
   assert.equal(result.length, 12);
   assert.equal(result[9]?.contracted, 3000);
   assert.equal(result[9]?.received, 1200);

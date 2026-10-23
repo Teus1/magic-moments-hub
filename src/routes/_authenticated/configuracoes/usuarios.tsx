@@ -34,7 +34,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -208,7 +215,9 @@ function UsersPage() {
                     {canEdit ? (
                       <Select
                         value={user.role_id ?? ""}
-                        onValueChange={(value) => updateMutation.mutate({ id: user.id, roleId: value })}
+                        onValueChange={(value) =>
+                          updateMutation.mutate({ id: user.id, roleId: value })
+                        }
                       >
                         <SelectTrigger className="w-full sm:w-44">
                           <SelectValue placeholder="Sem role" />
@@ -257,7 +266,11 @@ function UsersPage() {
                             variant="ghost"
                             size="icon"
                             aria-label={`Excluir ${user.name}`}
-                            title={user.id === currentUser?.id ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
+                            title={
+                              user.id === currentUser?.id
+                                ? "Você não pode excluir sua própria conta"
+                                : "Excluir usuário"
+                            }
                             disabled={user.id === currentUser?.id}
                             onClick={() => setDeleteFor({ id: user.id, name: user.name })}
                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -284,7 +297,11 @@ function UsersPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="u-name">Nome</Label>
-              <Input id="u-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input
+                id="u-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -317,7 +334,10 @@ function UsersPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={form.roleId} onValueChange={(value) => setForm({ ...form, roleId: value })}>
+                <Select
+                  value={form.roleId}
+                  onValueChange={(value) => setForm({ ...form, roleId: value })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -334,7 +354,9 @@ function UsersPage() {
                 <Label>Status</Label>
                 <Select
                   value={form.status}
-                  onValueChange={(value) => setForm({ ...form, status: value as "active" | "inactive" })}
+                  onValueChange={(value) =>
+                    setForm({ ...form, status: value as "active" | "inactive" })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -384,13 +406,19 @@ function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteFor !== null} onOpenChange={(open) => !open && !deleteMutation.isPending && setDeleteFor(null)}>
+      <AlertDialog
+        open={deleteFor !== null}
+        onOpenChange={(open) => !open && !deleteMutation.isPending && setDeleteFor(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-display">Excluir usuário definitivamente?</AlertDialogTitle>
+            <AlertDialogTitle className="font-display">
+              Excluir usuário definitivamente?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              A conta de <strong className="text-foreground">{deleteFor?.name}</strong> perderá o acesso imediatamente.
-              Os registros operacionais e o histórico serão preservados. Esta ação não pode ser desfeita.
+              A conta de <strong className="text-foreground">{deleteFor?.name}</strong> perderá o
+              acesso imediatamente. Os registros operacionais e o histórico serão preservados. Esta
+              ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

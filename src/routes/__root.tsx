@@ -56,22 +56,22 @@ function ErrorComponent({ error }: ErrorComponentProps) {
 
   return (
     <ErrorReporter error={normalizedError}>
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Não foi possível carregar esta página
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Recarregue a página para tentar novamente. Seus dados salvos estão preservados.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Button onClick={() => window.location.reload()}>Recarregar página</Button>
-          <Button variant="outline" asChild>
-            <a href="/">Voltar ao início</a>
-          </Button>
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Não foi possível carregar esta página
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Recarregue a página para tentar novamente. Seus dados salvos estão preservados.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button onClick={() => window.location.reload()}>Recarregar página</Button>
+            <Button variant="outline" asChild>
+              <a href="/">Voltar ao início</a>
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
     </ErrorReporter>
   );
 }

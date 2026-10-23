@@ -95,78 +95,89 @@ function AuthPage() {
 
   return (
     <ClientOnly fallback={null}>
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-secondary/40 px-4 py-12">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 right-[-10%] h-[480px] w-[480px] rounded-full bg-brand-gradient opacity-15 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 left-[-10%] h-[420px] w-[420px] rounded-full bg-accent opacity-20 blur-3xl"
-      />
-      <div className="relative w-full max-w-md">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <img src={logo} alt="Magic Moments" width={360} height={366} className="w-40 object-contain drop-shadow-sm" />
-          <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
-            Painel interno da equipe
-          </p>
-        </div>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-secondary/40 px-4 py-12">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-40 right-[-10%] h-[480px] w-[480px] rounded-full bg-brand-gradient opacity-15 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-40 left-[-10%] h-[420px] w-[420px] rounded-full bg-accent opacity-20 blur-3xl"
+        />
+        <div className="relative w-full max-w-md">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <img
+              src={logo}
+              alt="Magic Moments"
+              width={360}
+              height={366}
+              className="w-40 object-contain drop-shadow-sm"
+            />
+            <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
+              Painel interno da equipe
+            </p>
+          </div>
 
-        <Card className="shadow-elevated">
-          <CardHeader>
-            <CardTitle className="font-display text-xl">
-              {needsSetup ? "Criar administrador" : "Entrar"}
-            </CardTitle>
-            <CardDescription>
-              {needsSetup
-                ? "Nenhum usuário cadastrado ainda. Crie o primeiro acesso de administrador."
-                : "Use seu login e senha fornecidos pela administração."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (needsSetup) setupAdmin.mutate();
-                else signIn.mutate();
-              }}
-            >
-              {needsSetup && (
+          <Card className="shadow-elevated">
+            <CardHeader>
+              <CardTitle className="font-display text-xl">
+                {needsSetup ? "Criar administrador" : "Entrar"}
+              </CardTitle>
+              <CardDescription>
+                {needsSetup
+                  ? "Nenhum usuário cadastrado ainda. Crie o primeiro acesso de administrador."
+                  : "Use seu login e senha fornecidos pela administração."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (needsSetup) setupAdmin.mutate();
+                  else signIn.mutate();
+                }}
+              >
+                {needsSetup && (
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome completo</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome completo</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                  <Label htmlFor="username">Login</Label>
+                  <Input
+                    id="username"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="username">Login</Label>
-                <Input
-                  id="username"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={pending || setup.isLoading}>
-                {pending ? "Aguarde..." : needsSetup ? "Criar e entrar" : "Entrar"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={pending || setup.isLoading}>
+                  {pending ? "Aguarde..." : needsSetup ? "Criar e entrar" : "Entrar"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     </ClientOnly>
   );
 }

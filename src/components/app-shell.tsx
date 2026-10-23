@@ -17,7 +17,9 @@ import {
   Sparkles,
   Users,
   UsersRound,
-  X, FileSignature } from "lucide-react";
+  X,
+  FileSignature,
+} from "lucide-react";
 
 import logo from "@/assets/magic-moments-logo.png";
 import { Button } from "@/components/ui/button";
@@ -39,25 +41,78 @@ interface NavItem {
 }
 
 const MAIN_NAV: NavItem[] = [
-  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, module: "dashboard", action: "view" },
+  {
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: LayoutDashboard,
+    module: "dashboard",
+    action: "view",
+  },
   { label: "Eventos", to: "/eventos", icon: PartyPopper, module: "events", action: "view" },
-  { label: "Calendário", to: "/calendario", icon: CalendarDays, module: "calendar", action: "view" },
+  {
+    label: "Calendário",
+    to: "/calendario",
+    icon: CalendarDays,
+    module: "calendar",
+    action: "view",
+  },
   { label: "Deslocamento", to: "/deslocamento", icon: RouteIcon, module: "events", action: "view" },
-  { label: "Minha agenda", to: "/portal", icon: BriefcaseBusiness, module: "portal", action: "view" },
+  {
+    label: "Minha agenda",
+    to: "/portal",
+    icon: BriefcaseBusiness,
+    module: "portal",
+    action: "view",
+  },
 ];
 
 const SETTINGS_NAV: NavItem[] = [
   { label: "Clientes", to: "/clientes", icon: UsersRound, module: "clients", action: "view" },
   { label: "Serviços", to: "/servicos", icon: Sparkles, module: "services", action: "view" },
-  { label: "Colaboradores", to: "/colaboradores", icon: HardHat, module: "collaborators", action: "view" },
-  { label: "Ficha de contrato", to: "/configuracoes/ficha-contrato", icon: FileSignature, module: "settings", action: "view" },
-  { label: "Usuários", to: "/configuracoes/usuarios", icon: Users, module: "users", action: "view" },
-  { label: "Roles e permissões", to: "/configuracoes/roles", icon: Shield, module: "roles", action: "manage" },
-  { label: "Backups", to: "/configuracoes/backups", icon: Shield, module: "roles", action: "manage" },
+  {
+    label: "Colaboradores",
+    to: "/colaboradores",
+    icon: HardHat,
+    module: "collaborators",
+    action: "view",
+  },
+  {
+    label: "Ficha de contrato",
+    to: "/configuracoes/ficha-contrato",
+    icon: FileSignature,
+    module: "settings",
+    action: "view",
+  },
+  {
+    label: "Usuários",
+    to: "/configuracoes/usuarios",
+    icon: Users,
+    module: "users",
+    action: "view",
+  },
+  {
+    label: "Roles e permissões",
+    to: "/configuracoes/roles",
+    icon: Shield,
+    module: "roles",
+    action: "manage",
+  },
+  {
+    label: "Backups",
+    to: "/configuracoes/backups",
+    icon: Shield,
+    module: "roles",
+    action: "manage",
+  },
 ];
 
-
-export function AppShell({ children, contentClassName }: { children: ReactNode; contentClassName?: string }) {
+export function AppShell({
+  children,
+  contentClassName,
+}: {
+  children: ReactNode;
+  contentClassName?: string;
+}) {
   const { user, can } = useCurrentUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -67,7 +122,6 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
   const [passwordOpen, setPasswordOpen] = useState(false);
 
   const settingsItems = SETTINGS_NAV.filter((item) => can(item.module, item.action));
-
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -86,7 +140,13 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-3 px-5 py-5">
         <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-card">
-          <img src={logo} alt="Magic Moments" width={48} height={48} className="size-10 object-contain" />
+          <img
+            src={logo}
+            alt="Magic Moments"
+            width={48}
+            height={48}
+            className="size-10 object-contain"
+          />
         </span>
         <div className="leading-tight">
           <p className="font-display text-base font-semibold">Magic Moments</p>
@@ -109,7 +169,10 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
                 <Icon className="size-4" />
                 <span className="flex-1">{item.label}</span>
                 {item.soon && (
-                  <Badge variant="outline" className="border-sidebar-border text-[10px] text-sidebar-foreground/60">
+                  <Badge
+                    variant="outline"
+                    className="border-sidebar-border text-[10px] text-sidebar-foreground/60"
+                  >
                     em breve
                   </Badge>
                 )}
@@ -144,7 +207,9 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
             >
               <Settings className="size-4" />
               <span className="flex-1 text-left">Configurações</span>
-              <ChevronDown className={cn("size-4 transition-transform", settingsOpen && "rotate-180")} />
+              <ChevronDown
+                className={cn("size-4 transition-transform", settingsOpen && "rotate-180")}
+              />
             </Button>
             {settingsOpen && (
               <div className="mt-1 space-y-1 pl-4">
@@ -172,11 +237,37 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
             )}
           </div>
         )}
-        {can("tasks", "view") && <div className="pt-4"><Link to="/tarefas" onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors", pathname === "/tarefas" ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border" : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60")}><ClipboardList className="size-4" />Tarefas</Link></div>}
+        {can("tasks", "view") && (
+          <div className="pt-4">
+            <Link
+              to="/tarefas"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
+                pathname === "/tarefas"
+                  ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border"
+                  : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60",
+              )}
+            >
+              <ClipboardList className="size-4" />
+              Tarefas
+            </Link>
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
-        <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={() => { setPasswordOpen(true); setMobileOpen(false); }}><KeyRound className="size-4" />Alterar senha</Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => {
+            setPasswordOpen(true);
+            setMobileOpen(false);
+          }}
+        >
+          <KeyRound className="size-4" />
+          Alterar senha
+        </Button>
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
           <Avatar className="size-9 bg-sidebar-accent">
             <AvatarFallback className="bg-sidebar-accent text-xs text-sidebar-accent-foreground">
@@ -185,7 +276,9 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
           </Avatar>
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-medium">{user?.name}</p>
-            <p className="truncate text-xs text-sidebar-foreground/70">{user?.roleName ?? "Sem role"}</p>
+            <p className="truncate text-xs text-sidebar-foreground/70">
+              {user?.roleName ?? "Sem role"}
+            </p>
           </div>
           <Button
             variant="ghost"
@@ -226,12 +319,24 @@ export function AppShell({ children, contentClassName }: { children: ReactNode; 
 
       <div className="lg:pl-64">
         <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menu"
+          >
             <Menu className="size-5" />
           </Button>
           <span className="font-display text-base">Magic Moments</span>
         </header>
-        <main className={cn("app-content mx-auto min-w-0 w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8", contentClassName)}>{children}</main>
+        <main
+          className={cn(
+            "app-content mx-auto min-w-0 w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8",
+            contentClassName,
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -8,13 +8,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Registra um pagamento da equipe (valor, data e método) com permissão verificada no servidor. */
 export const registerCollaboratorPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { linkId: string; amount: number; paidAt: string; method: string }) => data)
+  .inputValidator(
+    (data: { linkId: string; amount: number; paidAt: string; method: string }) => data,
+  )
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, "events", "edit");
 
     if (!UUID.test(data.linkId)) throw new Error("Pagamento não encontrado.");
     const amount = Math.round(Number(data.amount) * 100) / 100;
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Informe um valor maior que zero.");
+    if (!Number.isFinite(amount) || amount <= 0)
+      throw new Error("Informe um valor maior que zero.");
     if (amount > 999999.99) throw new Error("Valor acima do permitido.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data.paidAt)) throw new Error("Informe uma data válida.");
     const method = COLLABORATOR_PAYMENT_METHODS.find((item) => item.value === data.method);

@@ -37,12 +37,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatPhone, onlyDigits } from "@/lib/clients";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { createCollaboratorWithAccount, createCollaboratorWithExistingAccount } from "@/lib/admin.functions";
+import {
+  createCollaboratorWithAccount,
+  createCollaboratorWithExistingAccount,
+} from "@/lib/admin.functions";
 import { isAccountAvailable, validateExistingAccountId } from "@/lib/collaborator-accounts";
 import { CollaboratorPayments, PixKey } from "@/components/collaborator-payments";
 
@@ -221,22 +231,25 @@ function CollaboratorsPage() {
 
       if (editing) {
         const { error } = await supabase.from("collaborators").update(payload).eq("id", editing.id);
-        if (error?.code === "23505") throw new Error("Esta conta já está vinculada a outro colaborador.");
+        if (error?.code === "23505")
+          throw new Error("Esta conta já está vinculada a outro colaborador.");
         if (error) throw new Error(error.message || "Não foi possível salvar o colaborador.");
         return;
       }
 
       if (form.account_mode === "existing") {
-        await linkCollaborator({ data: {
-          fullName,
-          profileId: validateExistingAccountId(form.profile_id),
-          nickname: payload.nickname,
-          whatsapp: payload.whatsapp,
-          pixKey: payload.pix_key,
-          roleTitle: payload.role_title,
-          notes: payload.notes,
-          status: payload.status,
-        } });
+        await linkCollaborator({
+          data: {
+            fullName,
+            profileId: validateExistingAccountId(form.profile_id),
+            nickname: payload.nickname,
+            whatsapp: payload.whatsapp,
+            pixKey: payload.pix_key,
+            roleTitle: payload.role_title,
+            notes: payload.notes,
+            status: payload.status,
+          },
+        });
         return;
       }
 
@@ -268,7 +281,9 @@ function CollaboratorsPage() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("collaborators").delete().eq("id", id);
       if (error)
-        throw new Error("Não foi possível excluir. Verifique se há eventos vinculados a este colaborador.");
+        throw new Error(
+          "Não foi possível excluir. Verifique se há eventos vinculados a este colaborador.",
+        );
     },
     onSuccess: () => {
       toast.success("Colaborador excluído.");
@@ -349,7 +364,10 @@ function CollaboratorsPage() {
             <TableBody>
               {collaborators.isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
                     Carregando...
                   </TableCell>
                 </TableRow>
@@ -370,12 +388,16 @@ function CollaboratorsPage() {
                 <TableRow key={row.id}>
                   <TableCell>
                     <p className="font-medium">{row.full_name}</p>
-                    {row.nickname && <p className="text-xs text-muted-foreground">{row.nickname}</p>}
+                    {row.nickname && (
+                      <p className="text-xs text-muted-foreground">{row.nickname}</p>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">{row.role_title || "—"}</TableCell>
                   <TableCell className="text-sm">
                     <PixKey value={row.pix_key} name={row.full_name} />
-                    {row.whatsapp && <p className="text-xs text-muted-foreground">{formatPhone(row.whatsapp)}</p>}
+                    {row.whatsapp && (
+                      <p className="text-xs text-muted-foreground">{formatPhone(row.whatsapp)}</p>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -431,7 +453,9 @@ function CollaboratorsPage() {
         </CardContent>
       </Card>
 
-      {can("events", "view") && collaborators.data && <CollaboratorPayments collaborators={collaborators.data} canEdit={can("events", "edit")} />}
+      {can("events", "view") && collaborators.data && (
+        <CollaboratorPayments collaborators={collaborators.data} canEdit={can("events", "edit")} />
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto border-primary/10 bg-background/95 p-0 shadow-elevated backdrop-blur-xl sm:max-w-2xl sm:rounded-xl">
@@ -475,58 +499,113 @@ function CollaboratorsPage() {
                 </div>
                 <div className="mb-4 space-y-2">
                   <Label htmlFor="c-account-mode">Conta de acesso</Label>
-                  <Select value={form.account_mode} onValueChange={(value) => setForm({ ...form, account_mode: value as "new" | "existing", profile_id: "", account_password: "" })}>
-                    <SelectTrigger id="c-account-mode"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={form.account_mode}
+                    onValueChange={(value) =>
+                      setForm({
+                        ...form,
+                        account_mode: value as "new" | "existing",
+                        profile_id: "",
+                        account_password: "",
+                      })
+                    }
+                  >
+                    <SelectTrigger id="c-account-mode">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="new" disabled={!can("users", "create")}>Criar nova conta</SelectItem>
-                      <SelectItem value="existing" disabled={!canLinkProfile}>Vincular conta existente</SelectItem>
+                      <SelectItem value="new" disabled={!can("users", "create")}>
+                        Criar nova conta
+                      </SelectItem>
+                      <SelectItem value="existing" disabled={!canLinkProfile}>
+                        Vincular conta existente
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 {form.account_mode === "existing" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="c-existing-account">Conta existente<span className="ml-1 text-destructive">*</span></Label>
-                    <Select value={form.profile_id} onValueChange={(value) => setForm({ ...form, profile_id: value })}>
-                      <SelectTrigger id="c-existing-account" disabled={profiles.isLoading || profiles.isError}>
-                        <SelectValue placeholder={profiles.isLoading ? "Carregando contas..." : "Selecione a conta"} />
+                    <Label htmlFor="c-existing-account">
+                      Conta existente<span className="ml-1 text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={form.profile_id}
+                      onValueChange={(value) => setForm({ ...form, profile_id: value })}
+                    >
+                      <SelectTrigger
+                        id="c-existing-account"
+                        disabled={profiles.isLoading || profiles.isError}
+                      >
+                        <SelectValue
+                          placeholder={
+                            profiles.isLoading ? "Carregando contas..." : "Selecione a conta"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {(profiles.data ?? []).filter((profile) => isAccountAvailable(profile.id, collaborators.data ?? [])).map((profile) => (
-                          <SelectItem key={profile.id} value={profile.id}>{profile.name} · {profile.username}{profile.status === "inactive" ? " (Inativa)" : ""}</SelectItem>
-                        ))}
+                        {(profiles.data ?? [])
+                          .filter((profile) =>
+                            isAccountAvailable(profile.id, collaborators.data ?? []),
+                          )
+                          .map((profile) => (
+                            <SelectItem key={profile.id} value={profile.id}>
+                              {profile.name} · {profile.username}
+                              {profile.status === "inactive" ? " (Inativa)" : ""}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
-                    {profiles.isError && <p className="text-xs text-destructive">Não foi possível carregar as contas.</p>}
-                    {!profiles.isLoading && !profiles.isError && !(profiles.data ?? []).some((profile) => isAccountAvailable(profile.id, collaborators.data ?? [])) && <p className="text-xs text-muted-foreground">Nenhuma conta disponível para vínculo.</p>}
-                    <p className="text-xs text-muted-foreground">Login, senha e permissões da conta serão mantidos.</p>
+                    {profiles.isError && (
+                      <p className="text-xs text-destructive">
+                        Não foi possível carregar as contas.
+                      </p>
+                    )}
+                    {!profiles.isLoading &&
+                      !profiles.isError &&
+                      !(profiles.data ?? []).some((profile) =>
+                        isAccountAvailable(profile.id, collaborators.data ?? []),
+                      ) && (
+                        <p className="text-xs text-muted-foreground">
+                          Nenhuma conta disponível para vínculo.
+                        </p>
+                      )}
+                    <p className="text-xs text-muted-foreground">
+                      Login, senha e permissões da conta serão mantidos.
+                    </p>
                   </div>
-                ) : <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="c-username">
-                      Login<span className="ml-1 text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="c-username"
-                      value={form.account_username}
-                      onChange={(event) => setForm({ ...form, account_username: event.target.value })}
-                      placeholder="Ex.: joao.silva"
-                      autoComplete="off"
-                    />
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="c-username">
+                        Login<span className="ml-1 text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="c-username"
+                        value={form.account_username}
+                        onChange={(event) =>
+                          setForm({ ...form, account_username: event.target.value })
+                        }
+                        placeholder="Ex.: joao.silva"
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="c-password">
+                        Senha inicial<span className="ml-1 text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="c-password"
+                        type="password"
+                        value={form.account_password}
+                        onChange={(event) =>
+                          setForm({ ...form, account_password: event.target.value })
+                        }
+                        placeholder="Mínimo de 8 caracteres"
+                        autoComplete="new-password"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="c-password">
-                      Senha inicial<span className="ml-1 text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="c-password"
-                      type="password"
-                      value={form.account_password}
-                      onChange={(event) => setForm({ ...form, account_password: event.target.value })}
-                      placeholder="Mínimo de 8 caracteres"
-                      autoComplete="new-password"
-                    />
-                  </div>
-                </div>}
+                )}
               </div>
             )}
 
@@ -545,7 +624,9 @@ function CollaboratorsPage() {
                 <Input
                   id="c-whatsapp"
                   value={form.whatsapp}
-                  onChange={(event) => setForm({ ...form, whatsapp: formatPhone(event.target.value) })}
+                  onChange={(event) =>
+                    setForm({ ...form, whatsapp: formatPhone(event.target.value) })
+                  }
                   placeholder="(00) 00000-0000"
                 />
               </div>
@@ -568,7 +649,9 @@ function CollaboratorsPage() {
                 <Label>Status</Label>
                 <Select
                   value={form.status}
-                  onValueChange={(value) => setForm({ ...form, status: value as "active" | "inactive" })}
+                  onValueChange={(value) =>
+                    setForm({ ...form, status: value as "active" | "inactive" })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -596,11 +679,15 @@ function CollaboratorsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NO_PROFILE}>Sem conta vinculada</SelectItem>
-                      {(profiles.data ?? []).filter((profile) => isAccountAvailable(profile.id, collaborators.data ?? [], editing.id)).map((profile) => (
-                        <SelectItem key={profile.id} value={profile.id}>
-                          {profile.name} · {profile.username}
-                        </SelectItem>
-                      ))}
+                      {(profiles.data ?? [])
+                        .filter((profile) =>
+                          isAccountAvailable(profile.id, collaborators.data ?? [], editing.id),
+                        )
+                        .map((profile) => (
+                          <SelectItem key={profile.id} value={profile.id}>
+                            {profile.name} · {profile.username}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
@@ -638,8 +725,8 @@ function CollaboratorsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir colaborador</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleting?.full_name}</strong>? Essa ação não pode
-              ser desfeita.
+              Tem certeza que deseja excluir <strong>{deleting?.full_name}</strong>? Essa ação não
+              pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

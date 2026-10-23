@@ -153,7 +153,9 @@ export const createCollaboratorWithAccount = createServerFn({ method: "POST" })
     });
     if (created.error || !created.data.user) {
       if (created.error?.code === "weak_password") {
-        throw new Error("Escolha uma senha mais segura, que não seja conhecida em vazamentos de dados.");
+        throw new Error(
+          "Escolha uma senha mais segura, que não seja conhecida em vazamentos de dados.",
+        );
       }
       throw new Error(created.error?.message ?? "Não foi possível criar a conta de acesso.");
     }
@@ -200,18 +202,20 @@ export const createCollaboratorWithAccount = createServerFn({ method: "POST" })
 
 export const createCollaboratorWithExistingAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: {
-    fullName: string;
-    profileId: string;
-    pixKey?: string | null;
-    nickname?: string | null;
-    phone?: string | null;
-    whatsapp?: string | null;
-    email?: string | null;
-    roleTitle?: string | null;
-    notes?: string | null;
-    status: "active" | "inactive";
-  }) => data)
+  .inputValidator(
+    (data: {
+      fullName: string;
+      profileId: string;
+      pixKey?: string | null;
+      nickname?: string | null;
+      phone?: string | null;
+      whatsapp?: string | null;
+      email?: string | null;
+      roleTitle?: string | null;
+      notes?: string | null;
+      status: "active" | "inactive";
+    }) => data,
+  )
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, "collaborators", "create");
     await assertCan(context.supabase, "users", "view");
@@ -219,9 +223,13 @@ export const createCollaboratorWithExistingAccount = createServerFn({ method: "P
     if (fullName.length < 2) throw new Error("Informe o nome do colaborador.");
     const profileId = validateExistingAccountId(data.profileId);
     const { data: profile, error: profileError } = await context.supabase
-      .from("profiles").select("id").eq("id", profileId).maybeSingle();
+      .from("profiles")
+      .select("id")
+      .eq("id", profileId)
+      .maybeSingle();
     if (profileError || !profile) throw new Error("A conta selecionada não está disponível.");
-    const { data: collaborator, error } = await context.supabase.from("collaborators")
+    const { data: collaborator, error } = await context.supabase
+      .from("collaborators")
       .insert({
         full_name: fullName,
         pix_key: data.pixKey?.trim() || null,
@@ -234,8 +242,11 @@ export const createCollaboratorWithExistingAccount = createServerFn({ method: "P
         status: data.status,
         profile_id: profileId,
         created_by: context.userId,
-      }).select("id").single();
-    if (error?.code === "23505") throw new Error("Esta conta já está vinculada a outro colaborador.");
+      })
+      .select("id")
+      .single();
+    if (error?.code === "23505")
+      throw new Error("Esta conta já está vinculada a outro colaborador.");
     if (error || !collaborator) throw new Error("Não foi possível cadastrar o colaborador.");
     return { ok: true, collaboratorId: collaborator.id };
   });

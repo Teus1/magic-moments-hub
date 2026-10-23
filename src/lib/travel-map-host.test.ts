@@ -16,7 +16,12 @@ test("blocks credential-bearing development hosts", () => {
   assert.equal(isTravelMapHostAllowed("project-devserver-private.lovableproject.com"), false);
 });
 test("blocks local and unauthorized or lookalike domains", () => {
-  for (const host of ["localhost", "example.com", "gerenciadormagicmoments.app.example.com", "evilgerenciadormagicmoments.app"]) {
+  for (const host of [
+    "localhost",
+    "example.com",
+    "gerenciadormagicmoments.app.example.com",
+    "evilgerenciadormagicmoments.app",
+  ]) {
     assert.equal(isTravelMapHostAllowed(host), false);
   }
 });

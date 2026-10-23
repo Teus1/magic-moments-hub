@@ -7,13 +7,16 @@ export function validCpf(value: string) {
   const digits = onlyDigits(value);
   if (!/^\d{11}$/.test(digits) || /^(\d)\1{10}$/.test(digits)) return false;
   const check = (length: number) => {
-    const sum = digits.slice(0, length).split("").reduce((total, digit, index) => total + Number(digit) * (length + 1 - index), 0);
+    const sum = digits
+      .slice(0, length)
+      .split("")
+      .reduce((total, digit, index) => total + Number(digit) * (length + 1 - index), 0);
     const result = (sum * 10) % 11;
     return Number(digits[length]) === (result === 10 ? 0 : result);
   };
   return check(9) && check(10);
 }
-export const isoDate = z.string().refine(value => {
+export const isoDate = z.string().refine((value) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T12:00:00Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
@@ -23,65 +26,180 @@ const text = (max: number) => z.string().trim().max(max, `Use até ${max} caract
 export const clientSchema = z.object({
   full_name: text(150).min(2, "Informe o nome completo."),
   birth_date: optionalDate,
-  cpf: text(14).refine(value => !value || validCpf(value), "Informe um CPF válido."),
+  cpf: text(14).refine((value) => !value || validCpf(value), "Informe um CPF válido."),
   rg: text(20),
-  whatsapp: text(20).refine(value => !value || /^\d{10,11}$/.test(onlyDigits(value)), "Informe DDD e número do WhatsApp."),
+  whatsapp: text(20).refine(
+    (value) => !value || /^\d{10,11}$/.test(onlyDigits(value)),
+    "Informe DDD e número do WhatsApp.",
+  ),
   email: z.union([z.literal(""), text(255).email("Informe um e-mail válido.")]),
-  zip_code: text(9).refine(value => !value || /^\d{8}$/.test(onlyDigits(value)), "Informe os 8 dígitos do CEP."),
-  address: text(300), address_number: text(30), address_complement: text(150),
-  neighborhood: text(150), city: text(150), state: text(2).refine(value => !value || /^[A-Z]{2}$/.test(value), "Informe a UF com duas letras."),
+  zip_code: text(9).refine(
+    (value) => !value || /^\d{8}$/.test(onlyDigits(value)),
+    "Informe os 8 dígitos do CEP.",
+  ),
+  address: text(300),
+  address_number: text(30),
+  address_complement: text(150),
+  neighborhood: text(150),
+  city: text(150),
+  state: text(2).refine(
+    (value) => !value || /^[A-Z]{2}$/.test(value),
+    "Informe a UF com duas letras.",
+  ),
   notes: text(5000),
 });
-export const intakeEventSchema = z.object({
-  start_time: z.union([z.literal(""), z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Informe o horário no formato 24h.")]),
-  duration_minutes: z.number().int().min(1, "Informe a duração.").max(1439, "Duração máxima de 23h59.").nullable(),
-  venue: text(300), address: text(500), venue_city: text(150), venue_state: text(2),
-  latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), place_id: text(300).nullable(),
-  attraction_id: z.union([z.literal(""), z.string().uuid()]),
-  has_ceremonial: z.boolean(), ceremonial_name: text(150), ceremonial_contact: text(150), contact_via_ceremonial: z.boolean(),
-  has_guestbook: z.boolean(),
-  service_id: z.union([z.literal(""), z.string().uuid()]).default(""),
-  guest_count: z.number().int().min(1, "Informe ao menos 1 convidado.").max(100000, "Quantidade muito alta.").nullable().default(null),
-  social_media_consent: z.boolean().nullable().default(null),
-  instagram_handles: text(300).default(""),
-  referral_source: z.union([z.literal(""), z.enum(REFERRAL_VALUES)]).default(""),
-  referral_other: text(150).default(""),
-}).superRefine((v, ctx) => {
-  if (v.referral_source === "outro" && !v.referral_other.trim()) ctx.addIssue({ code: "custom", path: ["referral_other"], message: "Conte onde nos conheceu." });
-});
+export const intakeEventSchema = z
+  .object({
+    start_time: z.union([
+      z.literal(""),
+      z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Informe o horário no formato 24h."),
+    ]),
+    duration_minutes: z
+      .number()
+      .int()
+      .min(1, "Informe a duração.")
+      .max(1439, "Duração máxima de 23h59.")
+      .nullable(),
+    venue: text(300),
+    address: text(500),
+    venue_city: text(150),
+    venue_state: text(2),
+    latitude: z.number().min(-90).max(90).nullable(),
+    longitude: z.number().min(-180).max(180).nullable(),
+    place_id: text(300).nullable(),
+    attraction_id: z.union([z.literal(""), z.string().uuid()]),
+    has_ceremonial: z.boolean(),
+    ceremonial_name: text(150),
+    ceremonial_contact: text(150),
+    contact_via_ceremonial: z.boolean(),
+    has_guestbook: z.boolean(),
+    service_id: z.union([z.literal(""), z.string().uuid()]).default(""),
+    guest_count: z
+      .number()
+      .int()
+      .min(1, "Informe ao menos 1 convidado.")
+      .max(100000, "Quantidade muito alta.")
+      .nullable()
+      .default(null),
+    social_media_consent: z.boolean().nullable().default(null),
+    instagram_handles: text(300).default(""),
+    referral_source: z.union([z.literal(""), z.enum(REFERRAL_VALUES)]).default(""),
+    referral_other: text(150).default(""),
+  })
+  .superRefine((v, ctx) => {
+    if (v.referral_source === "outro" && !v.referral_other.trim())
+      ctx.addIssue({
+        code: "custom",
+        path: ["referral_other"],
+        message: "Conte onde nos conheceu.",
+      });
+  });
 export type IntakeEvent = z.infer<typeof intakeEventSchema>;
-export const emptyIntakeEvent: IntakeEvent = { start_time: "", duration_minutes: null, venue: "", address: "", venue_city: "", venue_state: "", latitude: null, longitude: null, place_id: null, attraction_id: "", has_ceremonial: false, ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false, has_guestbook: false, service_id: "", guest_count: null, social_media_consent: null, instagram_handles: "", referral_source: "", referral_other: "" };
+export const emptyIntakeEvent: IntakeEvent = {
+  start_time: "",
+  duration_minutes: null,
+  venue: "",
+  address: "",
+  venue_city: "",
+  venue_state: "",
+  latitude: null,
+  longitude: null,
+  place_id: null,
+  attraction_id: "",
+  has_ceremonial: false,
+  ceremonial_name: "",
+  ceremonial_contact: "",
+  contact_via_ceremonial: false,
+  has_guestbook: false,
+  service_id: "",
+  guest_count: null,
+  social_media_consent: null,
+  instagram_handles: "",
+  referral_source: "",
+  referral_other: "",
+};
 export const intakeSchema = clientSchema.extend({
   birth_date: isoDate,
   cpf: text(14).refine(validCpf, "Informe um CPF válido."),
   rg: text(20).min(1, "Informe o RG."),
-  whatsapp: text(20).refine(value => /^\d{10,11}$/.test(onlyDigits(value)), "Informe DDD e número do WhatsApp."),
-  zip_code: text(9).refine(value => /^\d{8}$/.test(onlyDigits(value)), "Informe os 8 dígitos do CEP."),
+  whatsapp: text(20).refine(
+    (value) => /^\d{10,11}$/.test(onlyDigits(value)),
+    "Informe DDD e número do WhatsApp.",
+  ),
+  zip_code: text(9).refine(
+    (value) => /^\d{8}$/.test(onlyDigits(value)),
+    "Informe os 8 dígitos do CEP.",
+  ),
   address: text(300).min(1, "Informe o logradouro."),
   address_number: text(30).min(1, "Informe o número."),
   neighborhood: text(150).min(1, "Informe o bairro."),
   city: text(150).min(1, "Informe a cidade."),
   state: text(2).regex(/^[A-Z]{2}$/, "Informe a UF com duas letras."),
   event_title: text(200).min(2, "Informe o título do evento."),
-  event_type: text(100).refine(value => EVENT_TYPE_SUGGESTIONS.includes(value), "Escolha o tipo de evento."), event_date: isoDate,
+  event_type: text(100).refine(
+    (value) => EVENT_TYPE_SUGGESTIONS.includes(value),
+    "Escolha o tipo de evento.",
+  ),
+  event_date: isoDate,
   event: intakeEventSchema.superRefine((event, ctx) => {
-    const required = ["start_time", "venue", "address", "venue_city", "venue_state", "service_id", "referral_source"] as const;
-    for (const field of required) if (!event[field].trim()) ctx.addIssue({ code: "custom", path: [field], message: "Preencha este campo obrigatório." });
-    if (event.venue_state.trim() && !/^[A-Z]{2}$/.test(event.venue_state)) ctx.addIssue({ code: "custom", path: ["venue_state"], message: "Informe a UF com duas letras." });
-    if (event.duration_minutes === null) ctx.addIssue({ code: "custom", path: ["duration_minutes"], message: "Informe a duração." });
-    if (event.social_media_consent === null) ctx.addIssue({ code: "custom", path: ["social_media_consent"], message: "Escolha Sim ou Não." });
+    const required = [
+      "start_time",
+      "venue",
+      "address",
+      "venue_city",
+      "venue_state",
+      "service_id",
+      "referral_source",
+    ] as const;
+    for (const field of required)
+      if (!event[field].trim())
+        ctx.addIssue({
+          code: "custom",
+          path: [field],
+          message: "Preencha este campo obrigatório.",
+        });
+    if (event.venue_state.trim() && !/^[A-Z]{2}$/.test(event.venue_state))
+      ctx.addIssue({
+        code: "custom",
+        path: ["venue_state"],
+        message: "Informe a UF com duas letras.",
+      });
+    if (event.duration_minutes === null)
+      ctx.addIssue({ code: "custom", path: ["duration_minutes"], message: "Informe a duração." });
+    if (event.social_media_consent === null)
+      ctx.addIssue({
+        code: "custom",
+        path: ["social_media_consent"],
+        message: "Escolha Sim ou Não.",
+      });
   }),
   schema_version: z.literal(2).default(2),
-  consent: z.literal(true, { errorMap: () => ({ message: "Autorize o uso dos dados para atendimento e contratação." }) }),
+  consent: z.literal(true, {
+    errorMap: () => ({ message: "Autorize o uso dos dados para atendimento e contratação." }),
+  }),
 });
 export type IntakeDraft = z.infer<typeof intakeSchema>;
 export interface IntakeRow {
-  id: string; recipient_name: string | null; status: "pending" | "received" | "reviewed"; client_id: string | null; event_id: string | null;
-  payload: IntakeDraft | null; created_at: string; received_at: string | null; reviewed_at: string | null; expires_at: string; notified_at: string | null;
+  id: string;
+  recipient_name: string | null;
+  status: "pending" | "received" | "reviewed";
+  client_id: string | null;
+  event_id: string | null;
+  payload: IntakeDraft | null;
+  created_at: string;
+  received_at: string | null;
+  reviewed_at: string | null;
+  expires_at: string;
+  notified_at: string | null;
 }
 /** Mensagem curta, sem CPF nem endereço, para avisar a equipe de uma nova ficha. */
-export function intakeNotificationMessage(payload: Pick<IntakeDraft, "full_name" | "event_title" | "event_date">, url: string) {
-  const date = payload.event_date ? payload.event_date.split("-").reverse().join("/") : "data a definir";
+export function intakeNotificationMessage(
+  payload: Pick<IntakeDraft, "full_name" | "event_title" | "event_date">,
+  url: string,
+) {
+  const date = payload.event_date
+    ? payload.event_date.split("-").reverse().join("/")
+    : "data a definir";
   return `Nova ficha de contrato recebida: ${payload.full_name} — ${payload.event_title} (${date}). Revise em ${url}`;
 }
 export function whatsappLink(phone: string, message: string) {
@@ -91,28 +209,68 @@ export function whatsappLink(phone: string, message: string) {
 export function sanitizeHoursInput(value: string) {
   const cleaned = value.replace(/[^0-9,.]/g, "");
   const separator = cleaned.search(/[,.]/);
-  return separator === -1 ? cleaned : cleaned.slice(0, separator + 1) + cleaned.slice(separator + 1).replace(/[,.]/g, "");
+  return separator === -1
+    ? cleaned
+    : cleaned.slice(0, separator + 1) + cleaned.slice(separator + 1).replace(/[,.]/g, "");
 }
 /** Mensagem completa que o próprio cliente envia com tudo o que preencheu na ficha. */
 export function intakeSummaryMessage(d: IntakeDraft, attractionName?: string) {
   const yn = (v: boolean) => (v ? "Sim" : "Não");
   const date = (v: string) => (v ? v.split("-").reverse().join("/") : "");
   const e = d.event;
-  const dur = e?.duration_minutes ? `${Math.floor(e.duration_minutes / 60)}h${String(e.duration_minutes % 60).padStart(2, "0")}` : "";
-  const addr = [d.address, d.address_number, d.address_complement, d.neighborhood, d.city && `${d.city}${d.state ? `/${d.state}` : ""}`, d.zip_code && `CEP ${d.zip_code}`].filter(Boolean).join(", ");
+  const dur = e?.duration_minutes
+    ? `${Math.floor(e.duration_minutes / 60)}h${String(e.duration_minutes % 60).padStart(2, "0")}`
+    : "";
+  const addr = [
+    d.address,
+    d.address_number,
+    d.address_complement,
+    d.neighborhood,
+    d.city && `${d.city}${d.state ? `/${d.state}` : ""}`,
+    d.zip_code && `CEP ${d.zip_code}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
   const lines: [string, string | undefined][] = [
-    ["Nome", d.full_name], ["Nascimento", date(d.birth_date)], ["CPF", d.cpf], ["RG", d.rg], ["WhatsApp", d.whatsapp], ["E-mail", d.email], ["Endereço", addr],
-    ["Evento", d.event_title], ["Tipo", d.event_type], ["Data", date(d.event_date)], ["Início", e?.start_time], ["Duração", dur],
-    ["Local", e?.venue], ["Endereço do local", e?.address], ["Cidade do local", [e?.venue_city, e?.venue_state].filter(Boolean).join("/")],
-    ["Atração", attractionName], ["Cerimonialista", e ? yn(e.has_ceremonial) : undefined],
-    ...(e?.has_ceremonial ? [["Nome do cerimonialista", e.ceremonial_name], ["Contato do cerimonialista", e.ceremonial_contact], ["Falar pelo cerimonialista", yn(e.contact_via_ceremonial)]] as [string, string][] : []),
+    ["Nome", d.full_name],
+    ["Nascimento", date(d.birth_date)],
+    ["CPF", d.cpf],
+    ["RG", d.rg],
+    ["WhatsApp", d.whatsapp],
+    ["E-mail", d.email],
+    ["Endereço", addr],
+    ["Evento", d.event_title],
+    ["Tipo", d.event_type],
+    ["Data", date(d.event_date)],
+    ["Início", e?.start_time],
+    ["Duração", dur],
+    ["Local", e?.venue],
+    ["Endereço do local", e?.address],
+    ["Cidade do local", [e?.venue_city, e?.venue_state].filter(Boolean).join("/")],
+    ["Atração", attractionName],
+    ["Cerimonialista", e ? yn(e.has_ceremonial) : undefined],
+    ...(e?.has_ceremonial
+      ? ([
+          ["Nome do cerimonialista", e.ceremonial_name],
+          ["Contato do cerimonialista", e.ceremonial_contact],
+          ["Falar pelo cerimonialista", yn(e.contact_via_ceremonial)],
+        ] as [string, string][])
+      : []),
     ["GuestBook", e ? yn(e.has_guestbook) : undefined],
     ["Convidados (aprox.)", e?.guest_count ? String(e.guest_count) : undefined],
-    ["Pode compartilhar nas redes", e?.social_media_consent == null ? undefined : yn(e.social_media_consent)],
+    [
+      "Pode compartilhar nas redes",
+      e?.social_media_consent == null ? undefined : yn(e.social_media_consent),
+    ],
     ["Instagram", e?.social_media_consent ? e.instagram_handles : undefined],
-    ["Como nos conheceu", referralLabel(e?.referral_source, e?.referral_other)], ["Observações", d.notes],
+    ["Como nos conheceu", referralLabel(e?.referral_source, e?.referral_other)],
+    ["Observações", d.notes],
   ];
-  return ["*Ficha de contrato — Magic Moments*", "", ...lines.filter(([, v]) => v && v.trim()).map(([k, v]) => `*${k}:* ${v}`)].join("\n");
+  return [
+    "*Ficha de contrato — Magic Moments*",
+    "",
+    ...lines.filter(([, v]) => v && v.trim()).map(([k, v]) => `*${k}:* ${v}`),
+  ].join("\n");
 }
 /** Normaliza para DDI 55 + DDD + número; retorna null se inválido. */
 export function normalizeRecipientPhone(value: string) {
@@ -122,8 +280,19 @@ export function normalizeRecipientPhone(value: string) {
 }
 export function clientPayload(input: z.infer<typeof clientSchema>) {
   return Object.fromEntries(Object.entries(input).map(([key, value]) => [key, value || null])) as {
-    full_name: string; birth_date: string | null; cpf: string | null; rg: string | null; whatsapp: string | null;
-    email: string | null; zip_code: string | null; address: string | null; address_number: string | null;
-    address_complement: string | null; neighborhood: string | null; city: string | null; state: string | null; notes: string | null;
+    full_name: string;
+    birth_date: string | null;
+    cpf: string | null;
+    rg: string | null;
+    whatsapp: string | null;
+    email: string | null;
+    zip_code: string | null;
+    address: string | null;
+    address_number: string | null;
+    address_complement: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    state: string | null;
+    notes: string | null;
   };
 }

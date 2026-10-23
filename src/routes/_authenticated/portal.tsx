@@ -134,7 +134,8 @@ function CollaboratorPortalPage() {
       if (!collaboratorId) return [];
       const { data, error } = await supabase
         .from("event_collaborators")
-        .select(`
+        .select(
+          `
           id, agreed_value, paid_value, role_title, notes,
           event:events!event_collaborators_event_id_fkey (
             id, name, event_type, event_date, start_time, end_time, venue, address, status, notes,
@@ -142,7 +143,8 @@ function CollaboratorPortalPage() {
             client:clients!events_client_id_fkey (full_name, phone, whatsapp, email),
             service:services!events_service_id_fkey (name, color)
           )
-        `)
+        `,
+        )
         .eq("collaborator_id", collaboratorId);
       if (error) throw new Error("Não foi possível carregar sua agenda.");
       return (data ?? []) as unknown as ScheduleItem[];
@@ -188,7 +190,10 @@ function CollaboratorPortalPage() {
   if (!canView) {
     return (
       <AppShell>
-        <PageHeader title="Minha agenda" description="Você não tem permissão para acessar esta área." />
+        <PageHeader
+          title="Minha agenda"
+          description="Você não tem permissão para acessar esta área."
+        />
       </AppShell>
     );
   }
@@ -231,9 +236,22 @@ function CollaboratorPortalPage() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <SummaryCard icon={CalendarDays} label="Próximos eventos" value={String(totals.upcoming)} />
-            <SummaryCard icon={Wallet} label="Valor combinado" value={formatCurrency(totals.agreed)} />
-            <SummaryCard icon={CheckCircle2} label="Valor recebido" value={formatCurrency(totals.paid)} accent />
+            <SummaryCard
+              icon={CalendarDays}
+              label="Próximos eventos"
+              value={String(totals.upcoming)}
+            />
+            <SummaryCard
+              icon={Wallet}
+              label="Valor combinado"
+              value={formatCurrency(totals.agreed)}
+            />
+            <SummaryCard
+              icon={CheckCircle2}
+              label="Valor recebido"
+              value={formatCurrency(totals.paid)}
+              accent
+            />
             <SummaryCard
               icon={Wallet}
               label="Valor a receber"
@@ -242,11 +260,13 @@ function CollaboratorPortalPage() {
           </div>
 
           <div className="my-6 flex w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-card/70 p-1 sm:w-fit">
-            {([
-              ["upcoming", "Próximos"],
-              ["done", "Realizados"],
-              ["all", "Todos"],
-            ] as const).map(([value, label]) => (
+            {(
+              [
+                ["upcoming", "Próximos"],
+                ["done", "Realizados"],
+                ["all", "Todos"],
+              ] as const
+            ).map(([value, label]) => (
               <Button
                 key={value}
                 type="button"
@@ -345,12 +365,17 @@ function ScheduleCard({ item }: { item: ScheduleItem }) {
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div className="min-w-0">
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-primary">{formatEventDate(event.event_date)}</p>
+              <p className="text-sm font-semibold text-primary">
+                {formatEventDate(event.event_date)}
+              </p>
               <Badge variant="outline" className={EVENT_DISPLAY_STATUS_CLASSES[displayStatus]}>
                 {EVENT_DISPLAY_STATUS_LABELS[displayStatus]}
               </Badge>
               {event.has_guestbook && (
-                <Badge variant="outline" className="border-accent/60 bg-accent/10 text-accent-foreground">
+                <Badge
+                  variant="outline"
+                  className="border-accent/60 bg-accent/10 text-accent-foreground"
+                >
                   <BookHeart className="mr-1 size-3" /> Guestbook
                 </Badge>
               )}
@@ -424,7 +449,10 @@ function ScheduleCard({ item }: { item: ScheduleItem }) {
                   <p className="text-muted-foreground">{event.ceremonial_contact}</p>
                 )}
                 {event.contact_via_ceremonial && (
-                  <Badge variant="outline" className="mt-2 max-w-full whitespace-normal border-primary/30 bg-primary/5 text-primary">
+                  <Badge
+                    variant="outline"
+                    className="mt-2 max-w-full whitespace-normal border-primary/30 bg-primary/5 text-primary"
+                  >
                     Contato direto com o cerimonial
                   </Badge>
                 )}
@@ -443,7 +471,9 @@ function ScheduleCard({ item }: { item: ScheduleItem }) {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">Recebido</dt>
-                <dd className="font-medium text-success">{formatCurrency(Number(item.paid_value ?? 0))}</dd>
+                <dd className="font-medium text-success">
+                  {formatCurrency(Number(item.paid_value ?? 0))}
+                </dd>
               </div>
               <Separator />
               <div className="flex items-center justify-between gap-3">
@@ -462,7 +492,9 @@ function ScheduleCard({ item }: { item: ScheduleItem }) {
 
         {event.notes && (
           <div className="border-t border-border/70 pt-4">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">Observações do evento</p>
+            <p className="text-xs font-semibold uppercase text-muted-foreground">
+              Observações do evento
+            </p>
             <p className="mt-1 whitespace-pre-wrap text-sm">{event.notes}</p>
           </div>
         )}

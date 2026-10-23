@@ -131,7 +131,8 @@ function RolesPage() {
   const deleteRole = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("roles").delete().eq("id", id);
-      if (error) throw new Error("Não foi possível excluir a role (verifique usuários vinculados).");
+      if (error)
+        throw new Error("Não foi possível excluir a role (verifique usuários vinculados).");
     },
     onSuccess: () => {
       toast.success("Role excluída.");

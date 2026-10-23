@@ -13,6 +13,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookHeart,
   CalendarDays,
+  ChevronDown,
+  ChevronUp,
   Download,
   Eye,
   EyeOff,
@@ -65,7 +67,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -86,7 +95,12 @@ import {
 } from "@/lib/events";
 
 export const Route = createFileRoute("/_authenticated/eventos")({
-  validateSearch: (search: Record<string, unknown>): { action?: "new"; intake?: string } => ({ ...(search["action"] === "new" ? { action: "new" as const } : {}), ...(z.string().uuid().safeParse(search["intake"]).success ? { intake: String(search["intake"]) } : {}) }),
+  validateSearch: (search: Record<string, unknown>): { action?: "new"; intake?: string } => ({
+    ...(search["action"] === "new" ? { action: "new" as const } : {}),
+    ...(z.string().uuid().safeParse(search["intake"]).success
+      ? { intake: String(search["intake"]) }
+      : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Eventos — Magic Moments" },
@@ -174,11 +188,11 @@ const SELECT_COLUMNS = `
   services:service_id (id, name, color)
 `;
 
-
 const NONE = "__none__";
 const ATTACHMENTS_BUCKET = "event-attachments";
 
-type PaymentMethod = "pix" | "credit" | "debit" | "cash" | "boleto" | "transfer" | "previous_balance";
+type PaymentMethod =
+  "pix" | "credit" | "debit" | "cash" | "boleto" | "transfer" | "previous_balance";
 interface PaymentDraft {
   amount: string;
   paid_at: string;
@@ -242,6 +256,9 @@ function EventsPage() {
   const [financeFilter, setFinanceFilter] = useState<"all" | "pending" | "paid">("all");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showFinancial, setShowFinancial] = useState(true);
+  const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear().toString());
+  const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventRow | null>(null);
@@ -251,7 +268,9 @@ function EventsPage() {
   const [deleting, setDeleting] = useState<EventRow | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [teamIds, setTeamIds] = useState<string[]>([]);
-  const [teamValues, setTeamValues] = useState<Record<string, { agreed: string; paid: string }>>({});
+  const [teamValues, setTeamValues] = useState<Record<string, { agreed: string; paid: string }>>(
+    {},
+  );
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [payments, setPayments] = useState<PaymentDraft[]>([]);
   const receiptInputRef = useRef<HTMLInputElement>(null);
@@ -263,9 +282,14 @@ function EventsPage() {
     queryFn: async () => {
       const rows: EventRow[] = [];
       for (let offset = 0; ; offset += 500) {
-        const { data, error } = await supabase.from("events").select(SELECT_COLUMNS).order("event_date", { ascending: false }).order("id").range(offset, offset + 499);
+        const { data, error } = await supabase
+          .from("events")
+          .select(SELECT_COLUMNS)
+          .order("event_date", { ascending: false })
+          .order("id")
+          .range(offset, offset + 499);
         if (error) throw new Error("Não foi possível carregar os eventos.");
-        rows.push(...(data ?? []) as unknown as EventRow[]);
+        rows.push(...((data ?? []) as unknown as EventRow[]));
         if ((data ?? []).length < 500) return rows;
       }
     },
@@ -275,7 +299,10 @@ function EventsPage() {
     queryKey: ["events", "clients-options"],
     enabled: canView,
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, full_name").order("full_name");
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, full_name")
+        .order("full_name");
       if (error) throw new Error("Não foi possível carregar os clientes.");
       return data;
     },
@@ -345,7 +372,9 @@ function EventsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_attachments")
-        .select("id, event_id, category, original_name, storage_path, mime_type, size_bytes, created_at")
+        .select(
+          "id, event_id, category, original_name, storage_path, mime_type, size_bytes, created_at",
+        )
         .order("created_at", { ascending: true });
       if (error) throw new Error("Não foi possível carregar os anexos dos eventos.");
       return (data ?? []) as EventAttachment[];
@@ -354,10 +383,19 @@ function EventsPage() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (events.data ?? []).filter((event) => {
+    const result = (events.data ?? []).filter((event) => {
       const displayStatus = resolveEventStatus(event.status, event.event_date);
       if (statusFilter !== "all" && displayStatus !== statusFilter) return false;
-      if (!matchesEventFilters(event, { dateStart, dateEnd, service: serviceFilter, client: clientFilter, finance: financeFilter })) return false;
+      if (
+        !matchesEventFilters(event, {
+          dateStart,
+          dateEnd,
+          service: serviceFilter,
+          client: clientFilter,
+          finance: financeFilter,
+        })
+      )
+        return false;
       if (!term) return true;
       return [
         event.name,
@@ -372,14 +410,106 @@ function EventsPage() {
         .toLowerCase()
         .includes(term);
     });
-  }, [events.data, search, statusFilter, dateStart, dateEnd, serviceFilter, clientFilter, financeFilter]);
 
-  const pageSize = 15;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginated = filtered.slice((Math.min(page, totalPages) - 1) * pageSize, Math.min(page, totalPages) * pageSize);
-  const activeFilters = [dateStart, dateEnd, serviceFilter !== "all", clientFilter !== "all", statusFilter !== "all", financeFilter !== "all"].filter(Boolean).length;
-  function clearFilters() { setSearch(""); setStatusFilter("all"); setDateStart(""); setDateEnd(""); setServiceFilter("all"); setClientFilter("all"); setFinanceFilter("all"); setPage(1); }
-  useEffect(() => { setPage(1); }, [search, statusFilter, dateStart, dateEnd, serviceFilter, clientFilter, financeFilter]);
+    // Ordenação por data do evento (event_date) + horário de início (start_time) como tie-breaker
+    result.sort((a, b) => {
+      const dateA = a.event_date + (a.start_time ?? "00:00");
+      const dateB = b.event_date + (b.start_time ?? "00:00");
+      return dateSort === "asc" ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+    });
+
+    return result;
+  }, [
+    events.data,
+    search,
+    statusFilter,
+    dateStart,
+    dateEnd,
+    serviceFilter,
+    clientFilter,
+    financeFilter,
+    dateSort,
+  ]);
+
+  // Anos disponíveis (baseado em todos os eventos carregados, não só filtrados)
+  const availableYears = useMemo(() => {
+    const years = new Set((events.data ?? []).map((e) => e.event_date.slice(0, 4)));
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [events.data]);
+
+  // Eventos filtrados pelo ano selecionado
+  const yearFiltered = useMemo(
+    () => filtered.filter((e) => e.event_date.startsWith(selectedYear)),
+    [filtered, selectedYear],
+  );
+
+  // Agrupamento por mês (YYYY-MM) para exibição visual
+  const eventsByMonth = useMemo(() => {
+    const map: Record<string, typeof yearFiltered> = {};
+    for (const ev of yearFiltered) {
+      const key = ev.event_date.slice(0, 7);
+      (map[key] ??= []).push(ev);
+    }
+    const sortedKeys = Object.keys(map).sort((a, b) =>
+      dateSort === "asc" ? a.localeCompare(b) : b.localeCompare(a),
+    );
+    return sortedKeys.map((k) => ({ month: k, events: map[k] }));
+  }, [yearFiltered, dateSort]);
+
+  // Paginação global (sobre yearFiltered)
+  const totalPages = Math.max(1, Math.ceil(yearFiltered.length / pageSize));
+  const paginated = yearFiltered.slice(
+    (Math.min(page, totalPages) - 1) * pageSize,
+    Math.min(page, totalPages) * pageSize,
+  );
+
+  // Para renderização: agrupar apenas os eventos da página atual por mês
+  const paginatedByMonth = useMemo(() => {
+    const map: Record<string, typeof paginated> = {};
+    for (const ev of paginated) {
+      const key = ev.event_date.slice(0, 7);
+      (map[key] ??= []).push(ev);
+    }
+    const sortedKeys = Object.keys(map).sort((a, b) =>
+      dateSort === "asc" ? a.localeCompare(b) : b.localeCompare(a),
+    );
+    return sortedKeys.map((k) => ({ month: k, events: map[k] }));
+  }, [paginated, dateSort]);
+
+  const activeFilters = [
+    dateStart,
+    dateEnd,
+    serviceFilter !== "all",
+    clientFilter !== "all",
+    statusFilter !== "all",
+    financeFilter !== "all",
+  ].filter(Boolean).length;
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setDateStart("");
+    setDateEnd("");
+    setServiceFilter("all");
+    setClientFilter("all");
+    setFinanceFilter("all");
+    setSelectedYear(new Date().getFullYear().toString());
+    setPageSize(10);
+    setPage(1);
+  }
+  useEffect(() => {
+    setPage(1);
+  }, [
+    search,
+    statusFilter,
+    dateStart,
+    dateEnd,
+    serviceFilter,
+    clientFilter,
+    financeFilter,
+    dateSort,
+    selectedYear,
+    pageSize,
+  ]);
 
   const totals = useMemo(() => {
     return filtered.reduce(
@@ -416,8 +546,18 @@ function EventsPage() {
       event_date: event.event_date,
       start_time: event.start_time ? event.start_time.slice(0, 5) : "",
       end_time: event.end_time ?? "",
-      duration_hours: (event.duration_minutes ?? durationFromTimes(event.start_time, event.end_time)) ? String((event.duration_minutes ?? durationFromTimes(event.start_time, event.end_time) ?? 0) / 60) : "",
-      venue_city: event.venue_city ?? "", venue_state: event.venue_state ?? "", latitude: event.latitude, longitude: event.longitude, place_id: event.place_id,
+      duration_hours:
+        (event.duration_minutes ?? durationFromTimes(event.start_time, event.end_time))
+          ? String(
+              (event.duration_minutes ?? durationFromTimes(event.start_time, event.end_time) ?? 0) /
+                60,
+            )
+          : "",
+      venue_city: event.venue_city ?? "",
+      venue_state: event.venue_state ?? "",
+      latitude: event.latitude,
+      longitude: event.longitude,
+      place_id: event.place_id,
       venue: event.venue ?? "",
       address: event.address ?? "",
       has_ceremonial: event.has_ceremonial ?? false,
@@ -476,14 +616,55 @@ function EventsPage() {
     if (routeSearch.action !== "new" || !canCreate) return;
     const intake = routeSearch.intake;
     void navigate({ to: "/eventos", search: {}, replace: true });
-    if (!intake) { openCreate(); return; }
-    void fetchIntakes().then(rows => {
-      const row = rows.find(item => item.id === intake);
-      if (!row || row.status !== "reviewed" || !row.client_id || !row.payload || row.event_id) { toast.error("Pré-cadastro não disponível para criar evento."); return; }
-      openCreate(); setIntakeId(row.id);
-      const ev = row.payload.event;
-      setForm(current => ({ ...current, client_id: row.client_id ?? "", name: row.payload?.event_title ?? "", event_type: row.payload?.event_type ?? "", event_date: row.payload?.event_date ?? "", ...(ev ? { start_time: ev.start_time, duration_hours: ev.duration_minutes ? String(ev.duration_minutes / 60) : "", venue: ev.venue, address: ev.address, venue_city: ev.venue_city, venue_state: ev.venue_state, latitude: ev.latitude, longitude: ev.longitude, place_id: ev.place_id, attraction_id: ev.attraction_id, ...(ev.service_id ? { service_id: ev.service_id } : {}), guest_count: ev.guest_count ? String(ev.guest_count) : "", social_media_consent: ev.social_media_consent ?? null, instagram_handles: ev.instagram_handles ?? "", referral_source: ev.referral_source ?? "", referral_other: ev.referral_other ?? "", has_ceremonial: ev.has_ceremonial, ceremonial_name: ev.ceremonial_name, ceremonial_contact: ev.ceremonial_contact, contact_via_ceremonial: ev.contact_via_ceremonial, has_guestbook: ev.has_guestbook } : {}), notes: row.payload?.notes ?? "" }));
-    }).catch(() => toast.error("Não foi possível carregar o pré-cadastro."));
+    if (!intake) {
+      openCreate();
+      return;
+    }
+    void fetchIntakes()
+      .then((rows) => {
+        const row = rows.find((item) => item.id === intake);
+        if (!row || row.status !== "reviewed" || !row.client_id || !row.payload || row.event_id) {
+          toast.error("Pré-cadastro não disponível para criar evento.");
+          return;
+        }
+        openCreate();
+        setIntakeId(row.id);
+        const ev = row.payload.event;
+        setForm((current) => ({
+          ...current,
+          client_id: row.client_id ?? "",
+          name: row.payload?.event_title ?? "",
+          event_type: row.payload?.event_type ?? "",
+          event_date: row.payload?.event_date ?? "",
+          ...(ev
+            ? {
+                start_time: ev.start_time,
+                duration_hours: ev.duration_minutes ? String(ev.duration_minutes / 60) : "",
+                venue: ev.venue,
+                address: ev.address,
+                venue_city: ev.venue_city,
+                venue_state: ev.venue_state,
+                latitude: ev.latitude,
+                longitude: ev.longitude,
+                place_id: ev.place_id,
+                attraction_id: ev.attraction_id,
+                ...(ev.service_id ? { service_id: ev.service_id } : {}),
+                guest_count: ev.guest_count ? String(ev.guest_count) : "",
+                social_media_consent: ev.social_media_consent ?? null,
+                instagram_handles: ev.instagram_handles ?? "",
+                referral_source: ev.referral_source ?? "",
+                referral_other: ev.referral_other ?? "",
+                has_ceremonial: ev.has_ceremonial,
+                ceremonial_name: ev.ceremonial_name,
+                ceremonial_contact: ev.ceremonial_contact,
+                contact_via_ceremonial: ev.contact_via_ceremonial,
+                has_guestbook: ev.has_guestbook,
+              }
+            : {}),
+          notes: row.payload?.notes ?? "",
+        }));
+      })
+      .catch(() => toast.error("Não foi possível carregar o pré-cadastro."));
   }, [routeSearch.action, routeSearch.intake, canCreate, navigate, fetchIntakes]);
 
   const saveMutation = useMutation({
@@ -493,8 +674,10 @@ function EventsPage() {
       if (!form.client_id) throw new Error("Selecione o cliente do evento.");
       if (!form.event_date) throw new Error("Informe a data do evento.");
 
-      if (form.duration_hours && (!durationMinutes || !form.start_time)) throw new Error("Informe início e duração válida (até 23h59).");
-      if (form.start_time && !durationMinutes && !editing) throw new Error("Informe a duração do evento.");
+      if (form.duration_hours && (!durationMinutes || !form.start_time))
+        throw new Error("Informe início e duração válida (até 23h59).");
+      if (form.start_time && !durationMinutes && !editing)
+        throw new Error("Informe a duração do evento.");
       const contracted = parseCurrencyInput(form.contracted_value);
 
       const payload = {
@@ -506,8 +689,11 @@ function EventsPage() {
         start_time: form.start_time || null,
         end_time: computedEnd?.time ?? (form.end_time || null),
         duration_minutes: durationMinutes,
-        venue_city: form.venue_city.trim() || null, venue_state: form.venue_state.trim().toUpperCase() || null,
-        latitude: form.latitude, longitude: form.longitude, place_id: form.place_id,
+        venue_city: form.venue_city.trim() || null,
+        venue_state: form.venue_state.trim().toUpperCase() || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        place_id: form.place_id,
         preregistration_id: intakeId,
         venue: form.venue.trim() || null,
         address: form.address.trim() || null,
@@ -522,7 +708,8 @@ function EventsPage() {
         social_media_consent: form.social_media_consent,
         instagram_handles: form.social_media_consent ? form.instagram_handles.trim() || null : null,
         referral_source: (form.referral_source || null) as ReferralSource | null,
-        referral_other: form.referral_source === "outro" ? form.referral_other.trim() || null : null,
+        referral_other:
+          form.referral_source === "outro" ? form.referral_other.trim() || null : null,
         status: form.status,
         contracted_value: contracted,
         notes: form.notes.trim() || null,
@@ -546,7 +733,9 @@ function EventsPage() {
           .eq("event_id", eventId)
           .in("collaborator_id", toRemove);
         if (error?.code === "23503")
-          throw new Error("Um colaborador removido já tem pagamentos registrados e não pode sair da equipe.");
+          throw new Error(
+            "Um colaborador removido já tem pagamentos registrados e não pode sair da equipe.",
+          );
         if (error) throw new Error("Não foi possível atualizar a equipe do evento.");
       }
 
@@ -576,10 +765,18 @@ function EventsPage() {
       }
 
       const paymentRows = payments
-        .map((p) => ({ amount: parseCurrencyInput(p.amount), paid_at: p.paid_at, method: p.method }))
+        .map((p) => ({
+          amount: parseCurrencyInput(p.amount),
+          paid_at: p.paid_at,
+          method: p.method,
+        }))
         .filter((p) => p.amount > 0);
-      if (paymentRows.some((p) => !p.paid_at)) throw new Error("Informe a data de cada recebimento.");
-      const { error: delPayError } = await supabase.from("event_payments").delete().eq("event_id", eventId);
+      if (paymentRows.some((p) => !p.paid_at))
+        throw new Error("Informe a data de cada recebimento.");
+      const { error: delPayError } = await supabase
+        .from("event_payments")
+        .delete()
+        .eq("event_id", eventId);
       if (delPayError) throw new Error("Não foi possível atualizar os recebimentos.");
       if (paymentRows.length) {
         const { error: payError } = await supabase
@@ -651,7 +848,8 @@ function EventsPage() {
         .remove([attachment.storage_path]);
       if (storageError) throw new Error("Não foi possível remover o arquivo.");
       const { error } = await supabase.from("event_attachments").delete().eq("id", attachment.id);
-      if (error) throw new Error("O arquivo foi removido, mas não foi possível atualizar sua lista.");
+      if (error)
+        throw new Error("O arquivo foi removido, mas não foi possível atualizar sua lista.");
     },
     onSuccess: () => {
       toast.success("Anexo excluído.");
@@ -665,7 +863,9 @@ function EventsPage() {
     const selected = Array.from(files);
     const tooLarge = selected.filter((file) => file.size > MAX_ATTACHMENT_SIZE);
     if (tooLarge.length > 0) {
-      toast.error(`${tooLarge.length === 1 ? "O arquivo excede" : "Alguns arquivos excedem"} o limite de 20 MB.`);
+      toast.error(
+        `${tooLarge.length === 1 ? "O arquivo excede" : "Alguns arquivos excedem"} o limite de 20 MB.`,
+      );
     }
     setPendingAttachments((current) => [
       ...current,
@@ -689,7 +889,10 @@ function EventsPage() {
   if (!canView) {
     return (
       <AppShell>
-        <PageHeader title="Eventos" description="Você não tem permissão para visualizar este módulo." />
+        <PageHeader
+          title="Eventos"
+          description="Você não tem permissão para visualizar este módulo."
+        />
       </AppShell>
     );
   }
@@ -717,14 +920,20 @@ function EventsPage() {
       <div className="events-summary mb-4 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="py-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Eventos listados</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Eventos listados
+            </p>
             <p className="font-display text-2xl">{filtered.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Valor contratado</p>
-            <p className="font-display text-2xl">{showFinancial ? formatCurrency(totals.contracted) : "••••••"}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Valor contratado
+            </p>
+            <p className="font-display text-2xl">
+              {showFinancial ? formatCurrency(totals.contracted) : "••••••"}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -765,27 +974,167 @@ function EventsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button type="button" variant="outline" onClick={() => setShowAdvanced(value => !value)}><SlidersHorizontal className="size-4" />Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}</Button>
-          <Button type="button" variant="ghost" size="icon" aria-label={showFinancial ? "Ocultar valores financeiros" : "Mostrar valores financeiros"} title={showFinancial ? "Ocultar valores" : "Mostrar valores"} onClick={() => setShowFinancial(value => !value)}>{showFinancial ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button>
-          {showAdvanced && <div className="grid basis-full gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2"><Label htmlFor="filter-start">Data inicial</Label><PickerField id="filter-start" variant="date" value={dateStart} onChange={event => setDateStart(event.target.value)} /></div>
-            <div className="space-y-2"><Label htmlFor="filter-end">Data final</Label><PickerField id="filter-end" variant="date" value={dateEnd} onChange={event => setDateEnd(event.target.value)} /></div>
-            <div className="space-y-2"><Label>Serviço</Label><Select value={serviceFilter} onValueChange={setServiceFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os serviços</SelectItem>{services.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Cliente</Label><Select value={clientFilter} onValueChange={setClientFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{clients.data?.map(item => <SelectItem key={item.id} value={item.id}>{item.full_name}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Situação financeira</Label><Select value={financeFilter} onValueChange={value => setFinanceFilter(value as "all" | "pending" | "paid")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem><SelectItem value="pending">Com saldo a receber</SelectItem><SelectItem value="paid">Quitado</SelectItem></SelectContent></Select></div>
-            <div className="flex items-end"><Button type="button" variant="ghost" disabled={!activeFilters && !search} onClick={clearFilters}><X className="size-4" />Limpar filtros</Button></div>
-          </div>}
-          {activeFilters > 0 && <div className="flex basis-full flex-wrap gap-2">{[
-            dateStart && `De ${formatEventDate(dateStart)}`, dateEnd && `Até ${formatEventDate(dateEnd)}`,
-            serviceFilter !== "all" && `Serviço: ${services.data?.find(item => item.id === serviceFilter)?.name ?? "Selecionado"}`,
-            clientFilter !== "all" && `Cliente: ${clients.data?.find(item => item.id === clientFilter)?.full_name ?? "Selecionado"}`,
-            statusFilter !== "all" && EVENT_DISPLAY_STATUS_LABELS[statusFilter],
-            financeFilter !== "all" && (financeFilter === "pending" ? "Saldo a receber" : "Quitado"),
-          ].filter(Boolean).map(label => <Badge key={String(label)} variant="secondary">{label}</Badge>)}</div>}
-          {dateStart && dateEnd && dateStart > dateEnd && <p role="alert" className="basis-full text-sm text-destructive">A data inicial deve ser anterior ou igual à final.</p>}
-          <p className="basis-full text-xs text-muted-foreground">{filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}{activeFilters > 0 ? ` · ${activeFilters} filtros ativos` : ""}</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowAdvanced((value) => !value)}
+          >
+            <SlidersHorizontal className="size-4" />
+            Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={
+              showFinancial ? "Ocultar valores financeiros" : "Mostrar valores financeiros"
+            }
+            title={showFinancial ? "Ocultar valores" : "Mostrar valores"}
+            onClick={() => setShowFinancial((value) => !value)}
+          >
+            {showFinancial ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+          </Button>
+          {showAdvanced && (
+            <div className="grid basis-full gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="filter-start">Data inicial</Label>
+                <PickerField
+                  id="filter-start"
+                  variant="date"
+                  value={dateStart}
+                  onChange={(event) => setDateStart(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-end">Data final</Label>
+                <PickerField
+                  id="filter-end"
+                  variant="date"
+                  value={dateEnd}
+                  onChange={(event) => setDateEnd(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Serviço</Label>
+                <Select value={serviceFilter} onValueChange={setServiceFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os serviços</SelectItem>
+                    {services.data?.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Select value={clientFilter} onValueChange={setClientFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os clientes</SelectItem>
+                    {clients.data?.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Situação financeira</Label>
+                <Select
+                  value={financeFilter}
+                  onValueChange={(value) => setFinanceFilter(value as "all" | "pending" | "paid")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="pending">Com saldo a receber</SelectItem>
+                    <SelectItem value="paid">Quitado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={!activeFilters && !search}
+                  onClick={clearFilters}
+                >
+                  <X className="size-4" />
+                  Limpar filtros
+                </Button>
+              </div>
+            </div>
+          )}
+          {activeFilters > 0 && (
+            <div className="flex basis-full flex-wrap gap-2">
+              {[
+                dateStart && `De ${formatEventDate(dateStart)}`,
+                dateEnd && `Até ${formatEventDate(dateEnd)}`,
+                serviceFilter !== "all" &&
+                  `Serviço: ${services.data?.find((item) => item.id === serviceFilter)?.name ?? "Selecionado"}`,
+                clientFilter !== "all" &&
+                  `Cliente: ${clients.data?.find((item) => item.id === clientFilter)?.full_name ?? "Selecionado"}`,
+                statusFilter !== "all" && EVENT_DISPLAY_STATUS_LABELS[statusFilter],
+                financeFilter !== "all" &&
+                  (financeFilter === "pending" ? "Saldo a receber" : "Quitado"),
+              ]
+                .filter(Boolean)
+                .map((label) => (
+                  <Badge key={String(label)} variant="secondary">
+                    {label}
+                  </Badge>
+                ))}
+            </div>
+          )}
+          {dateStart && dateEnd && dateStart > dateEnd && (
+            <p role="alert" className="basis-full text-sm text-destructive">
+              A data inicial deve ser anterior ou igual à final.
+            </p>
+          )}
+          <p className="basis-full text-xs text-muted-foreground">
+            {yearFiltered.length} {yearFiltered.length === 1 ? "resultado" : "resultados"}
+            {activeFilters > 0 ? ` · ${activeFilters} filtros ativos` : ""}
+          </p>
         </CardContent>
       </Card>
+
+      {availableYears.length > 1 && (
+        <div className="mb-4 overflow-x-auto" role="tablist" aria-label="Anos">
+          <div className="flex gap-1 min-w-max px-1">
+            {availableYears.map((y) => (
+              <button
+                key={y}
+                role="tab"
+                aria-selected={selectedYear === y}
+                aria-controls={`events-panel-${y}`}
+                id={`tab-${y}`}
+                onClick={() => {
+                  setSelectedYear(y);
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-t-md whitespace-nowrap transition-colors",
+                  selectedYear === y
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -794,7 +1143,18 @@ function EventsPage() {
               <TableRow>
                 <TableHead>Evento</TableHead>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead
+                  className="cursor-pointer select-none flex items-center gap-1"
+                  onClick={() => setDateSort((d) => (d === "asc" ? "desc" : "asc"))}
+                  title="Clique para ordenar"
+                >
+                  Data
+                  {dateSort === "asc" ? (
+                    <ChevronUp className="size-3.5" />
+                  ) : (
+                    <ChevronDown className="size-3.5" />
+                  )}
+                </TableHead>
                 <TableHead>Serviço</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valores</TableHead>
@@ -804,12 +1164,15 @@ function EventsPage() {
             <TableBody>
               {events.isLoading && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
                     Carregando...
                   </TableCell>
                 </TableRow>
               )}
-              {!events.isLoading && filtered.length === 0 && (
+              {!events.isLoading && yearFiltered.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="py-12 text-center">
                     <PartyPopper className="mx-auto mb-3 size-8 text-muted-foreground/60" />
@@ -821,97 +1184,182 @@ function EventsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {paginated.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell>
-                    <p className="font-medium">{event.name}</p>
-                    <>
-                    <p className="text-xs text-muted-foreground">
-                      {event.event_type ? `${event.event_type} · ` : ""}
-                      {formatTimeRange(event.start_time, event.end_time)}
-                    </p>
-                    {(eventTeams.data?.[event.id] ?? []).length > 0 && (
-                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                        <HardHat className="size-3" />
-                        {(eventTeams.data?.[event.id] ?? []).map((m) => m.name).join(", ")}
-                      </p>
-                    )}
-                    {event.venue && (
-                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="size-3" /> {event.venue}
-                      </p>
-                    )}</>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <p>{event.clients?.full_name ?? "—"}</p>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-sm">
-                    <span className="flex items-center gap-1">
-                      <CalendarDays className="size-3.5 text-muted-foreground" />
-                      {formatEventDate(event.event_date)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {event.services ? (
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="size-3 shrink-0 rounded-full ring-2 ring-border"
-                          style={{ backgroundColor: event.services.color }}
-                          aria-hidden
-                        />
-                        {event.services.name}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const displayStatus = resolveEventStatus(event.status, event.event_date);
-                      return (
-                        <Badge variant="outline" className={cn(EVENT_DISPLAY_STATUS_CLASSES[displayStatus])}>
-                          {EVENT_DISPLAY_STATUS_LABELS[displayStatus]}
-                        </Badge>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-right text-sm">
-                    <p className="font-medium">{showFinancial ? formatCurrency(Number(event.contracted_value ?? 0)) : "••••••"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {showFinancial ? `Recebido ${formatCurrency(Number(event.received_value ?? 0))}` : "Recebido ••••••"}
-                    </p>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {canEdit && (
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(event)}>
-                          <Pencil className="mr-1 size-4" /> Editar
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Excluir ${event.name}`}
-                          onClick={() => setDeleting(event)}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
+              {paginatedByMonth.map(({ month, events: monthEvents }) => (
+                <>
+                  <TableRow key={`month-header-${month}`} className="bg-muted/50">
+                    <TableCell
+                      colSpan={7}
+                      className="px-4 py-2 text-sm font-semibold text-muted-foreground"
+                    >
+                      {(() => {
+                        const [y, m] = month.split("-");
+                        return new Date(Number(y), Number(m) - 1).toLocaleDateString("pt-BR", {
+                          month: "long",
+                          year: "numeric",
+                        });
+                      })()}
+                      <Badge variant="secondary" className="ml-2">
+                        {monthEvents.length}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                  {monthEvents.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell>
+                        <p className="font-medium">{event.name}</p>
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            {event.event_type ? `${event.event_type} · ` : ""}
+                            {formatTimeRange(event.start_time, event.end_time)}
+                          </p>
+                          {(eventTeams.data?.[event.id] ?? []).length > 0 && (
+                            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                              <HardHat className="size-3" />
+                              {(eventTeams.data?.[event.id] ?? []).map((m) => m.name).join(", ")}
+                            </p>
+                          )}
+                          {event.venue && (
+                            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                              <MapPin className="size-3" /> {event.venue}
+                            </p>
+                          )}
+                        </>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <p>{event.clients?.full_name ?? "—"}</p>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        <span className="flex items-center gap-1">
+                          <CalendarDays className="size-3.5 text-muted-foreground" />
+                          {formatEventDate(event.event_date)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {event.services ? (
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="size-3 shrink-0 rounded-full ring-2 ring-border"
+                              style={{ backgroundColor: event.services.color }}
+                              aria-hidden
+                            />
+                            {event.services.name}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const displayStatus = resolveEventStatus(event.status, event.event_date);
+                          return (
+                            <Badge
+                              variant="outline"
+                              className={cn(EVENT_DISPLAY_STATUS_CLASSES[displayStatus])}
+                            >
+                              {EVENT_DISPLAY_STATUS_LABELS[displayStatus]}
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm">
+                        <p className="font-medium">
+                          {showFinancial
+                            ? formatCurrency(Number(event.contracted_value ?? 0))
+                            : "••••••"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {showFinancial
+                            ? `Recebido ${formatCurrency(Number(event.received_value ?? 0))}`
+                            : "Recebido ••••••"}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {canEdit && (
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(event)}>
+                              <Pencil className="mr-1 size-4" /> Editar
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Excluir ${event.name}`}
+                              onClick={() => setDeleting(event)}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-      {filtered.length > pageSize && <div className="mt-4 flex items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Página {Math.min(page, totalPages)} de {totalPages}</p><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Anterior</Button><Button type="button" variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(value => value + 1)}>Próxima</Button></div></div>}
+      {yearFiltered.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-sm" htmlFor="page-size">
+              Por página:
+            </Label>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => {
+                setPageSize(Number(v));
+                setPage(1);
+              }}
+              id="page-size"
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+                <SelectItem value="9999">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+            <p className="text-sm text-muted-foreground">
+              Página {Math.min(page, totalPages)} de {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((v) => v - 1)}
+              >
+                Anterior
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((v) => v + 1)}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto bg-background p-0 sm:max-w-3xl">
           <DialogHeader className="border-b border-border px-6 pb-5 pt-6">
-            <DialogTitle className="font-display">{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
+            <DialogTitle className="font-display">
+              {editing ? "Editar evento" : "Novo evento"}
+            </DialogTitle>
             <DialogDescription>
               Informações do evento, serviço contratado e valores.
             </DialogDescription>
@@ -934,9 +1382,15 @@ function EventsPage() {
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                   placeholder="Ex.: Casamento Mateus e Isabella"
                   maxLength={200}
-                  className={cn(form.name.trim().length < 2 && showErrors && "border-destructive/60")}
+                  className={cn(
+                    form.name.trim().length < 2 && showErrors && "border-destructive/60",
+                  )}
                 />
-                {showErrors && form.name.trim().length < 2 && <p role="alert" className="text-xs text-destructive">Informe o título do evento.</p>}
+                {showErrors && form.name.trim().length < 2 && (
+                  <p role="alert" className="text-xs text-destructive">
+                    Informe o título do evento.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>
@@ -947,7 +1401,9 @@ function EventsPage() {
                   value={form.client_id}
                   onValueChange={(value) => setForm({ ...form, client_id: value })}
                 >
-                  <SelectTrigger className={cn(!form.client_id && showErrors && "border-destructive/60")}>
+                  <SelectTrigger
+                    className={cn(!form.client_id && showErrors && "border-destructive/60")}
+                  >
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1026,17 +1482,140 @@ function EventsPage() {
 
             <h2 className="border-b border-border pb-2 pt-3 font-semibold">Data e horário</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2"><Label htmlFor="e-date">Data do evento<RequiredMark /></Label><PickerField id="e-date" variant="date" value={form.event_date} onChange={event => setForm({ ...form, event_date: event.target.value })} />{showErrors && !form.event_date && <p role="alert" className="text-xs text-destructive">Informe a data do evento.</p>}</div>
-              <div className="space-y-2"><Label htmlFor="e-start">Horário de início</Label><PickerField id="e-start" variant="time" value={form.start_time} onChange={event => setForm({ ...form, start_time: event.target.value })} /></div>
-              <div className="space-y-2"><Label htmlFor="e-duration">Duração (horas)</Label><Input id="e-duration" inputMode="decimal" list="event-durations" value={form.duration_hours} onChange={event => setForm({ ...form, duration_hours: event.target.value })} placeholder="Ex.: 4 ou 2,5" /><datalist id="event-durations">{[2,3,4,5,6].map(hours => <option key={hours} value={hours}>{hours} horas</option>)}</datalist>{form.duration_hours && !durationMinutes && <p role="alert" className="text-xs text-destructive">Informe duração de 1 minuto a 23h59.</p>}</div>
+              <div className="space-y-2">
+                <Label htmlFor="e-date">
+                  Data do evento
+                  <RequiredMark />
+                </Label>
+                <PickerField
+                  id="e-date"
+                  variant="date"
+                  value={form.event_date}
+                  onChange={(event) => setForm({ ...form, event_date: event.target.value })}
+                />
+                {showErrors && !form.event_date && (
+                  <p role="alert" className="text-xs text-destructive">
+                    Informe a data do evento.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-start">Horário de início</Label>
+                <PickerField
+                  id="e-start"
+                  variant="time"
+                  value={form.start_time}
+                  onChange={(event) => setForm({ ...form, start_time: event.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-duration">Duração (horas)</Label>
+                <Input
+                  id="e-duration"
+                  inputMode="decimal"
+                  list="event-durations"
+                  value={form.duration_hours}
+                  onChange={(event) => setForm({ ...form, duration_hours: event.target.value })}
+                  placeholder="Ex.: 4 ou 2,5"
+                />
+                <datalist id="event-durations">
+                  {[2, 3, 4, 5, 6].map((hours) => (
+                    <option key={hours} value={hours}>
+                      {hours} horas
+                    </option>
+                  ))}
+                </datalist>
+                {form.duration_hours && !durationMinutes && (
+                  <p role="alert" className="text-xs text-destructive">
+                    Informe duração de 1 minuto a 23h59.
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="border-l-2 border-primary bg-muted px-4 py-3"><p className="text-xs text-muted-foreground">Término calculado</p><output id="e-end" className="mt-1 block font-semibold">{computedEnd ? `${computedEnd.time}${computedEnd.nextDay ? " · dia seguinte" : ""}` : editing?.end_time ? `${editing.end_time.slice(0,5)} · horário histórico; revise a duração` : "A definir"}</output></div>
+            <div className="border-l-2 border-primary bg-muted px-4 py-3">
+              <p className="text-xs text-muted-foreground">Término calculado</p>
+              <output id="e-end" className="mt-1 block font-semibold">
+                {computedEnd
+                  ? `${computedEnd.time}${computedEnd.nextDay ? " · dia seguinte" : ""}`
+                  : editing?.end_time
+                    ? `${editing.end_time.slice(0, 5)} · horário histórico; revise a duração`
+                    : "A definir"}
+              </output>
+            </div>
             <h2 className="border-b border-border pb-2 pt-3 font-semibold">Localização</h2>
-            <div className="space-y-2"><Label htmlFor="e-venue">Local do evento</Label><TravelPlaceInput id="e-venue" required={false} value={form.venue} placeholder="Busque um salão, chácara, hotel ou endereço" onChange={value => setForm({ ...form, venue: value, place_id: null, latitude: null, longitude: null })} onSelect={place => setForm(current => ({ ...current, venue: place.name || place.address, address: place.address, venue_city: place.city, venue_state: place.state, latitude: place.latitude, longitude: place.longitude, place_id: place.placeId }))} /></div>
-            <div className="space-y-2"><Label htmlFor="e-address">Endereço completo</Label><Input id="e-address" maxLength={1000} value={form.address} onChange={event => setForm({ ...form, address: event.target.value })} placeholder="Rua, número, bairro e complemento" /></div>
-            <div className="grid gap-4 sm:grid-cols-[2fr_1fr]"><div className="space-y-2"><Label htmlFor="e-city">Cidade</Label><Input id="e-city" maxLength={150} value={form.venue_city} onChange={event => setForm({ ...form, venue_city: event.target.value })} /></div><div className="space-y-2"><Label htmlFor="e-state">UF</Label><Input id="e-state" maxLength={2} value={form.venue_state} onChange={event => setForm({ ...form, venue_state: event.target.value.toUpperCase() })} /></div></div>
-            {editing && form.address && <Button variant="outline" size="sm" asChild><Link to="/deslocamento" search={{ event: editing.id }}><MapPin className="size-4" />Calcular deslocamento</Link></Button>}
-            <h2 className="border-b border-border pb-2 pt-3 font-semibold">Informações operacionais</h2>
+            <div className="space-y-2">
+              <Label htmlFor="e-venue">Local do evento</Label>
+              <TravelPlaceInput
+                id="e-venue"
+                required={false}
+                value={form.venue}
+                placeholder="Busque um salão, chácara, hotel ou endereço"
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    venue: value,
+                    place_id: null,
+                    latitude: null,
+                    longitude: null,
+                  })
+                }
+                onSelect={(place) =>
+                  setForm((current) => ({
+                    ...current,
+                    venue: place.name || place.address,
+                    address: place.address,
+                    venue_city: place.city,
+                    venue_state: place.state,
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    place_id: place.placeId,
+                  }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="e-address">Endereço completo</Label>
+              <Input
+                id="e-address"
+                maxLength={1000}
+                value={form.address}
+                onChange={(event) => setForm({ ...form, address: event.target.value })}
+                placeholder="Rua, número, bairro e complemento"
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+              <div className="space-y-2">
+                <Label htmlFor="e-city">Cidade</Label>
+                <Input
+                  id="e-city"
+                  maxLength={150}
+                  value={form.venue_city}
+                  onChange={(event) => setForm({ ...form, venue_city: event.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-state">UF</Label>
+                <Input
+                  id="e-state"
+                  maxLength={2}
+                  value={form.venue_state}
+                  onChange={(event) =>
+                    setForm({ ...form, venue_state: event.target.value.toUpperCase() })
+                  }
+                />
+              </div>
+            </div>
+            {editing && form.address && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/deslocamento" search={{ event: editing.id }}>
+                  <MapPin className="size-4" />
+                  Calcular deslocamento
+                </Link>
+              </Button>
+            )}
+            <h2 className="border-b border-border pb-2 pt-3 font-semibold">
+              Informações operacionais
+            </h2>
 
             <div className="space-y-4 rounded-lg border border-primary/10 bg-primary-soft/50 p-4">
               <div className="flex items-center justify-between gap-4">
@@ -1057,7 +1636,11 @@ function EventsPage() {
                       has_ceremonial: checked,
                       ...(checked
                         ? {}
-                        : { ceremonial_name: "", ceremonial_contact: "", contact_via_ceremonial: false }),
+                        : {
+                            ceremonial_name: "",
+                            ceremonial_contact: "",
+                            contact_via_ceremonial: false,
+                          }),
                     })
                   }
                 />
@@ -1137,7 +1720,11 @@ function EventsPage() {
             </div>
 
             <div className="rounded-lg border border-border p-4">
-              <EventExtraFields idPrefix="e" value={form} onChange={(next) => setForm({ ...form, ...next })} />
+              <EventExtraFields
+                idPrefix="e"
+                value={form}
+                onChange={(next) => setForm({ ...form, ...next })}
+              />
             </div>
 
             <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
@@ -1201,8 +1788,13 @@ function EventsPage() {
                     const memberBalance =
                       parseCurrencyInput(values.agreed) - parseCurrencyInput(values.paid);
                     return (
-                      <div key={id} className="grid grid-cols-2 items-end gap-3 border-t border-border pt-3 sm:grid-cols-[1fr_auto_auto_auto]">
-                        <p className="col-span-2 break-words text-sm sm:col-span-1">{member?.nickname || member?.full_name || "—"}</p>
+                      <div
+                        key={id}
+                        className="grid grid-cols-2 items-end gap-3 border-t border-border pt-3 sm:grid-cols-[1fr_auto_auto_auto]"
+                      >
+                        <p className="col-span-2 break-words text-sm sm:col-span-1">
+                          {member?.nickname || member?.full_name || "—"}
+                        </p>
                         <div className="space-y-1">
                           <Label htmlFor={`t-agreed-${id}`} className="text-xs">
                             Combinado (R$)
@@ -1266,14 +1858,19 @@ function EventsPage() {
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                 <div>
                   <p className="text-sm font-medium">Recebimentos</p>
-                  <p className="text-xs text-muted-foreground">Cada pagamento do cliente com data e forma.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cada pagamento do cliente com data e forma.
+                  </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    setPayments((list) => [...list, { amount: "", paid_at: todayIso(), method: "pix" }])
+                    setPayments((list) => [
+                      ...list,
+                      { amount: "", paid_at: todayIso(), method: "pix" },
+                    ])
                   }
                 >
                   <Plus className="mr-1 size-4" /> Adicionar
@@ -1283,7 +1880,10 @@ function EventsPage() {
                 <p className="text-xs text-muted-foreground">Nenhum recebimento registrado.</p>
               )}
               {payments.map((payment, index) => (
-                <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                <div
+                  key={index}
+                  className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+                >
                   <div className="space-y-1">
                     <Label className="text-xs">Valor (R$)</Label>
                     <Input
@@ -1305,14 +1905,17 @@ function EventsPage() {
                     <Label className="text-xs">Forma</Label>
                     <Select
                       value={payment.method}
-                      onValueChange={(value) => updatePayment(index, { method: value as PaymentMethod })}
+                      onValueChange={(value) =>
+                        updatePayment(index, { method: value as PaymentMethod })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {PAYMENT_METHODS.filter(
-                          (m) => m.value !== "previous_balance" || payment.method === "previous_balance",
+                          (m) =>
+                            m.value !== "previous_balance" || payment.method === "previous_balance",
                         ).map((m) => (
                           <SelectItem key={m.value} value={m.value}>
                             {m.label}
@@ -1334,38 +1937,39 @@ function EventsPage() {
               ))}
             </div>
 
-
             <div className="grid gap-4 sm:grid-cols-2">
-              {(
-                [
-                  {
-                    category: "receipt" as const,
-                    title: "Comprovantes",
-                    description: "Comprovantes de pagamentos e transferências.",
-                    icon: ReceiptText,
-                    inputRef: receiptInputRef,
-                  },
-                  {
-                    category: "document" as const,
-                    title: "Contratos e documentos",
-                    description: "Contratos e outros documentos do evento.",
-                    icon: FileText,
-                    inputRef: documentInputRef,
-                  },
-                ]
-              ).map((group) => {
+              {[
+                {
+                  category: "receipt" as const,
+                  title: "Comprovantes",
+                  description: "Comprovantes de pagamentos e transferências.",
+                  icon: ReceiptText,
+                  inputRef: receiptInputRef,
+                },
+                {
+                  category: "document" as const,
+                  title: "Contratos e documentos",
+                  description: "Contratos e outros documentos do evento.",
+                  icon: FileText,
+                  inputRef: documentInputRef,
+                },
+              ].map((group) => {
                 const Icon = group.icon;
                 const saved = editing
                   ? (attachments.data ?? []).filter(
                       (attachment) =>
-                        attachment.event_id === editing.id && attachment.category === group.category,
+                        attachment.event_id === editing.id &&
+                        attachment.category === group.category,
                     )
                   : [];
                 const pending = pendingAttachments.filter(
                   (attachment) => attachment.category === group.category,
                 );
                 return (
-                  <section key={group.category} className="space-y-3 rounded-lg border border-border bg-card/70 p-4">
+                  <section
+                    key={group.category}
+                    className="space-y-3 rounded-lg border border-border bg-card/70 p-4"
+                  >
                     <div className="flex items-start gap-3">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Icon className="size-4" aria-hidden="true" />
@@ -1395,18 +1999,36 @@ function EventsPage() {
                     >
                       <Upload className="size-4" /> Adicionar arquivos
                     </Button>
-                    <p className="text-xs text-muted-foreground">Vários arquivos, até 20 MB cada.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Vários arquivos, até 20 MB cada.
+                    </p>
 
                     {(saved.length > 0 || pending.length > 0) && (
-                      <ul className="space-y-2" aria-label={`Arquivos de ${group.title.toLowerCase()}`}>
+                      <ul
+                        className="space-y-2"
+                        aria-label={`Arquivos de ${group.title.toLowerCase()}`}
+                      >
                         {saved.map((attachment) => (
-                          <li key={attachment.id} className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-3 py-2">
+                          <li
+                            key={attachment.id}
+                            className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-3 py-2"
+                          >
                             <FileText className="size-4 shrink-0 text-muted-foreground" />
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-medium">{attachment.original_name}</p>
-                              <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size_bytes)}</p>
+                              <p className="truncate text-xs font-medium">
+                                {attachment.original_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatFileSize(attachment.size_bytes)}
+                              </p>
                             </div>
-                            <Button type="button" variant="ghost" size="icon" aria-label={`Baixar ${attachment.original_name}`} onClick={() => downloadAttachment(attachment)}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Baixar ${attachment.original_name}`}
+                              onClick={() => downloadAttachment(attachment)}
+                            >
                               <Download className="size-4" />
                             </Button>
                             {canEdit && (
@@ -1424,11 +2046,16 @@ function EventsPage() {
                           </li>
                         ))}
                         {pending.map((attachment) => (
-                          <li key={attachment.id} className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
+                          <li
+                            key={attachment.id}
+                            className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2"
+                          >
                             <FileText className="size-4 shrink-0 text-primary" />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-xs font-medium">{attachment.file.name}</p>
-                              <p className="text-xs text-muted-foreground">Novo · {formatFileSize(attachment.file.size)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Novo · {formatFileSize(attachment.file.size)}
+                              </p>
                             </div>
                             <Button
                               type="button"
@@ -1451,7 +2078,6 @@ function EventsPage() {
                 );
               })}
             </div>
-
 
             <div className="space-y-2">
               <Label htmlFor="e-notes">Observações</Label>
@@ -1487,8 +2113,8 @@ function EventsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar evento</AlertDialogTitle>
             <AlertDialogDescription>
-              O evento <strong>{deleting?.name}</strong> será marcado como cancelado. Pagamentos, equipe,
-              anexos e compromissos ficam guardados no histórico.
+              O evento <strong>{deleting?.name}</strong> será marcado como cancelado. Pagamentos,
+              equipe, anexos e compromissos ficam guardados no histórico.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

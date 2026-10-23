@@ -22,9 +22,22 @@ export function monthBounds(month: string) {
 export function annualFinance(events: FinancialEvent[], year: number) {
   return Array.from({ length: 12 }, (_, index) => {
     const month = `${year}-${String(index + 1).padStart(2, "0")}`;
-    const relevant = events.filter(event => event.status !== "cancelled" && event.event_date.startsWith(month));
-    const contracted = relevant.reduce((sum, event) => sum + Number(event.contracted_value || 0), 0);
+    const relevant = events.filter(
+      (event) => event.status !== "cancelled" && event.event_date.startsWith(month),
+    );
+    const contracted = relevant.reduce(
+      (sum, event) => sum + Number(event.contracted_value || 0),
+      0,
+    );
     const received = relevant.reduce((sum, event) => sum + Number(event.received_value || 0), 0);
-    return { month, label: new Date(year, index, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""), contracted, received, balance: contracted - received };
+    return {
+      month,
+      label: new Date(year, index, 1)
+        .toLocaleDateString("pt-BR", { month: "short" })
+        .replace(".", ""),
+      contracted,
+      received,
+      balance: contracted - received,
+    };
   });
 }
