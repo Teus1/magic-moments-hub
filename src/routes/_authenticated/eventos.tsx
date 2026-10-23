@@ -75,6 +75,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -475,7 +476,7 @@ function EventsPage() {
 
   // Para renderização: agrupar apenas os eventos da página atual por mês
   const paginatedByMonth = useMemo(() => {
-    const map: Record<string, typeof paginated> = {};
+    const map: Record<string, EventRow[]> = {};
     for (const ev of paginated) {
       const key = ev.event_date.slice(0, 7);
       (map[key] ??= []).push(ev);
@@ -483,7 +484,7 @@ function EventsPage() {
     const sortedKeys = Object.keys(map).sort((a, b) =>
       dateSort === "asc" ? a.localeCompare(b) : b.localeCompare(a),
     );
-    return sortedKeys.map((k) => ({ month: k, events: map[k] }));
+    return sortedKeys.map((k) => ({ month: k, events: map[k] ?? [] }));
   }, [paginated, dateSort]);
 
   const activeFilters = [
@@ -1324,7 +1325,6 @@ function EventsPage() {
                 setPageSize(Number(v));
                 setPage(1);
               }}
-              id="page-size"
             >
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -1845,7 +1845,7 @@ function EventsPage() {
                               <Checkbox
                                 id={`transport-check-${tm.collaborator_id}`}
                                 checked={tm.is_transport_responsible}
-                                onCheckedChange={(checked) =>
+                                onCheckedChange={(checked: boolean) =>
                                   setForm((f) => ({
                                     ...f,
                                     team: f.team.map((t) =>

@@ -482,9 +482,11 @@ export type Database = {
           created_by: string | null;
           event_id: string;
           id: string;
+          is_transport_responsible: boolean;
           notes: string | null;
           paid_value: number;
           role_title: string | null;
+          transport_value: number | null;
           updated_at: string;
         };
         Insert: {
@@ -494,9 +496,11 @@ export type Database = {
           created_by?: string | null;
           event_id: string;
           id?: string;
+          is_transport_responsible?: boolean;
           notes?: string | null;
           paid_value?: number;
           role_title?: string | null;
+          transport_value?: number | null;
           updated_at?: string;
         };
         Update: {
@@ -506,9 +510,11 @@ export type Database = {
           created_by?: string | null;
           event_id?: string;
           id?: string;
+          is_transport_responsible?: boolean;
           notes?: string | null;
           paid_value?: number;
           role_title?: string | null;
+          transport_value?: number | null;
           updated_at?: string;
         };
         Relationships: [
