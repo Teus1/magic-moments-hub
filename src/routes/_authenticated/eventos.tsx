@@ -434,7 +434,7 @@ function EventsPage() {
   // Anos disponíveis (baseado em todos os eventos carregados, não só filtrados)
   const availableYears = useMemo(() => {
     const years = new Set((events.data ?? []).map((e) => e.event_date.slice(0, 4)));
-    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+    return Array.from(years).sort((a, b) => Number(a) - Number(b));
   }, [events.data]);
 
   // Eventos filtrados pelo ano selecionado
