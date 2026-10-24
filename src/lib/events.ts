@@ -54,6 +54,8 @@ export interface EventForm {
 export interface EventTeamMember {
   collaborator_id: string;
   agreed_value: string;
+  service_paid_value: string;
+  transport_paid_value: string;
   is_transport_responsible: boolean;
   transport_value: string;
 }

@@ -100,9 +100,23 @@ export const updateEventCollaboratorTransport = createServerFn({ method: "POST" 
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, "events", "edit");
     const { event_id, collaborator_id, transport_value } = data;
+    // Busca o agreed_value atual (sem o valor de transporte anterior)
+    const { data: current, error: fetchError } = await context.supabase
+      .from("event_collaborators")
+      .select("agreed_value, transport_value")
+      .eq("event_id", event_id)
+      .eq("collaborator_id", collaborator_id)
+      .single();
+    if (fetchError) throw new Error("Não foi possível buscar o colaborador do evento.");
+    // Calcula o novo agreed_value: remove o transport_value antigo (se houver) e adiciona o novo
+    const currentTransport = current?.transport_value ?? 0;
+    const baseAgreed = (current?.agreed_value ?? 0) - currentTransport;
+    const newAgreed = baseAgreed + transport_value;
+    
     const { error } = await context.supabase
       .from("event_collaborators")
       .update({
+        agreed_value: Math.round(newAgreed * 100) / 100,
         transport_value: Math.round(transport_value * 100) / 100,
         is_transport_responsible: true,
       })

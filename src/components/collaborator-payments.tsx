@@ -42,7 +42,10 @@ import {
 import {
   COLLABORATOR_PAYMENT_METHODS,
   collaboratorBalance,
+  collaboratorServiceBalance,
+  collaboratorTransportBalance,
   collaboratorPaymentTotals,
+  type CollaboratorPaymentTotals,
 } from "@/lib/collaborator-payments";
 import { registerCollaboratorPayment } from "@/lib/collaborator-payments.functions";
 import { buildPixPayload } from "@/lib/pix";
@@ -54,6 +57,8 @@ type Assignment = {
   collaborator_id: string;
   agreed_value: number;
   paid_value: number;
+  service_paid_value: number;
+  transport_paid_value: number;
   is_transport_responsible: boolean;
   transport_value: number | null;
   event: { id: string; name: string; event_date: string; status: string } | null;
@@ -65,6 +70,7 @@ type PixTarget = {
   balance: number;
   personName: string;
   pixKey: string;
+  category: "service" | "transport";
 };
 
 function todayIso() {
@@ -112,6 +118,7 @@ function PixPaymentDialog({
   const [amount, setAmount] = useState(target.balance.toFixed(2).replace(".", ","));
   const [paidAt, setPaidAt] = useState(todayIso());
   const [method, setMethod] = useState<string>("pix");
+  const [category, setCategory] = useState<"service" | "transport">(target.category);
   const [saving, setSaving] = useState(false);
   const value = parseCurrencyInput(amount);
   const payload = useMemo(() => {
@@ -145,7 +152,7 @@ function PixPaymentDialog({
     setSaving(true);
     try {
       await registerCollaboratorPayment({
-        data: { linkId: target.linkId, amount: value, paidAt, method },
+        data: { linkId: target.linkId, amount: value, paidAt, method, category },
       });
       toast.success("Pagamento registrado.");
       void cache.invalidateQueries({ queryKey: ["collaborators", "event-payments"] });
@@ -171,7 +178,7 @@ function PixPaymentDialog({
         <DialogHeader>
           <DialogTitle className="font-display">Pagamento de {target.personName}</DialogTitle>
           <DialogDescription>
-            {target.eventName} · {formatEventDate(target.eventDate)}
+            {target.eventName} · {formatEventDate(target.eventDate)} · {target.category === "service" ? "Serviço" : "Deslocamento"}
           </DialogDescription>
         </DialogHeader>
 
@@ -234,6 +241,18 @@ function PixPaymentDialog({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="pix-category">Categoria</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v as "service" | "transport")}>
+                <SelectTrigger id="pix-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="service">Serviço</SelectItem>
+                  <SelectItem value="transport">Deslocamento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
                 O QR não confirma o Pix sozinho: registre aqui depois de conferir no banco.
@@ -267,7 +286,7 @@ export function CollaboratorPayments({
         const { data, error } = await supabase
           .from("event_collaborators")
           .select(
-            "id, collaborator_id, agreed_value, paid_value, is_transport_responsible, transport_value, event:events!event_collaborators_event_id_fkey(id, name, event_date, status)",
+            "id, collaborator_id, agreed_value, paid_value, service_paid_value, transport_paid_value, is_transport_responsible, transport_value, event:events!event_collaborators_event_id_fkey(id, name, event_date, status)",
           )
           .order("id")
           .range(offset, offset + 499);
@@ -294,16 +313,17 @@ export function CollaboratorPayments({
     [assignments.data, people],
   );
   const totals = collaboratorPaymentTotals(rows);
+  const getTotalPaid = (row: Assignment) => Number(row.service_paid_value ?? 0) + Number(row.transport_paid_value ?? 0);
   const pendingCount = rows.filter(
-    (row) => collaboratorBalance(row.agreed_value, row.paid_value) > 0,
+    (row) => collaboratorBalance(row.agreed_value, getTotalPaid(row)) > 0,
   ).length;
   const visible = rows.filter(
     (row) =>
       filter === "all" ||
       (filter === "pending"
-        ? collaboratorBalance(row.agreed_value, row.paid_value) > 0
+        ? collaboratorBalance(row.agreed_value, getTotalPaid(row)) > 0
         : Number(row.agreed_value) > 0 &&
-          collaboratorBalance(row.agreed_value, row.paid_value) === 0),
+          collaboratorBalance(row.agreed_value, getTotalPaid(row)) === 0),
   );
   const pageCount = Math.max(1, Math.ceil(visible.length / 10));
   const currentPage = Math.min(page, pageCount - 1);
@@ -353,20 +373,56 @@ export function CollaboratorPayments({
         </div>
       </div>
       {!assignments.isLoading && !assignments.isError && (
-        <div className="mb-5 grid gap-3 border-y border-border py-4 sm:grid-cols-3">
-          <div>
+        <div className="mb-5 grid gap-3 border-y border-border py-4 sm:grid-cols-6">
+          <div className="sm:col-span-2">
+            <p className="text-xs text-muted-foreground">Serviço combinado</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">
+              {formatCurrency(totals.serviceAgreed)}
+            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <p className="text-xs text-muted-foreground">Serviço pago</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(totals.servicePaid)}</p>
+          </div>
+          <div className="sm:col-span-2">
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <AlertCircle className="size-3.5" />Serviço a pagar
+            </p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-primary">
+              {formatCurrency(totals.servicePending)}
+            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <p className="text-xs text-muted-foreground">Deslocamento combinado</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">
+              {formatCurrency(totals.transportAgreed)}
+            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <p className="text-xs text-muted-foreground">Deslocamento pago</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(totals.transportPaid)}</p>
+          </div>
+          <div className="sm:col-span-2">
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <AlertCircle className="size-3.5" />Deslocamento a pagar
+            </p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-primary">
+              {formatCurrency(totals.transportPending)}
+            </p>
+          </div>
+          <div className="sm:col-span-2">
             <p className="text-xs text-muted-foreground">Total combinado</p>
             <p className="mt-1 text-xl font-semibold tabular-nums">
               {formatCurrency(totals.agreed)}
             </p>
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <p className="text-xs text-muted-foreground">Total pago</p>
             <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(totals.paid)}</p>
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <AlertCircle className="size-3.5" />A pagar
+              <AlertCircle className="size-3.5" />Total a pagar
             </p>
             <p className="mt-1 text-xl font-semibold tabular-nums text-primary">
               {formatCurrency(totals.pending)}
@@ -388,9 +444,10 @@ export function CollaboratorPayments({
                 <TableHead>Evento / data</TableHead>
                 <TableHead>Colaborador</TableHead>
                 <TableHead>Chave Pix</TableHead>
-                <TableHead className="text-right">Combinado</TableHead>
-                <TableHead className="text-right">Deslocamento</TableHead>
-                <TableHead className="text-right">Pago</TableHead>
+                <TableHead className="text-right">Combinado Serviço</TableHead>
+                <TableHead className="text-right">Pago Serviço</TableHead>
+                <TableHead className="text-right">Combinado Deslocamento</TableHead>
+                <TableHead className="text-right">Pago Deslocamento</TableHead>
                 <TableHead className="text-right">A pagar</TableHead>
               </TableRow>
             </TableHeader>
@@ -398,8 +455,14 @@ export function CollaboratorPayments({
               {visible.slice(currentPage * 10, currentPage * 10 + 10).map((row) => {
                 const person = people.get(row.collaborator_id);
                 if (!person || !row.event) return null;
-                const balance = collaboratorBalance(row.agreed_value, row.paid_value);
-                const transportValue = row.is_transport_responsible ? (row.transport_value ?? 0) : 0;
+                const transportAgreed = row.is_transport_responsible ? Number(row.transport_value ?? 0) : 0;
+                const serviceAgreed = Number(row.agreed_value) - transportAgreed;
+                const servicePaid = Number(row.service_paid_value ?? 0);
+                const transportPaid = Number(row.transport_paid_value ?? 0);
+                const totalPaid = servicePaid + transportPaid;
+                const serviceBalance = collaboratorServiceBalance(serviceAgreed, servicePaid);
+                const transportBalance = collaboratorTransportBalance(transportAgreed, transportPaid);
+                const totalBalance = collaboratorBalance(Number(row.agreed_value), totalPaid);
                 return (
                   <TableRow key={row.id}>
                     <TableCell>
@@ -426,36 +489,74 @@ export function CollaboratorPayments({
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <PixKey value={person.pix_key} name={person.full_name} />
-                        {person.pix_key && balance > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 shrink-0"
-                            title="Gerar QR Code Pix"
-                            aria-label={`Gerar QR Code Pix para ${person.full_name}`}
-                            onClick={() =>
-                              setPixTarget({
-                                linkId: row.id,
-                                eventName: row.event?.name ?? "",
-                                eventDate: row.event?.event_date ?? "",
-                                balance,
-                                personName: person.full_name,
-                                pixKey: person.pix_key ?? "",
-                              })
-                            }
-                          >
-                            <QrCode className="size-3.5" />
-                          </Button>
+                        {person.pix_key && (serviceBalance > 0 || transportBalance > 0) && (
+                          <div className="flex gap-1">
+                            {serviceBalance > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 shrink-0"
+                                title="Gerar QR Code Pix - Serviço"
+                                aria-label={`Gerar QR Code Pix serviço para ${person.full_name}`}
+                                onClick={() =>
+                                  setPixTarget({
+                                    linkId: row.id,
+                                    eventName: row.event?.name ?? "",
+                                    eventDate: row.event?.event_date ?? "",
+                                    balance: serviceBalance,
+                                    personName: person.full_name,
+                                    pixKey: person.pix_key ?? "",
+                                    category: "service",
+                                  })
+                                }
+                              >
+                                <QrCode className="size-3.5" />
+                              </Button>
+                            )}
+                            {transportBalance > 0 && row.is_transport_responsible && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 shrink-0"
+                                title="Gerar QR Code Pix - Deslocamento"
+                                aria-label={`Gerar QR Code Pix deslocamento para ${person.full_name}`}
+                                onClick={() =>
+                                  setPixTarget({
+                                    linkId: row.id,
+                                    eventName: row.event?.name ?? "",
+                                    eventDate: row.event?.event_date ?? "",
+                                    balance: transportBalance,
+                                    personName: person.full_name,
+                                    pixKey: person.pix_key ?? "",
+                                    category: "transport",
+                                  })
+                                }
+                              >
+                                <QrCode className="size-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatCurrency(Number(row.agreed_value))}
+                      {formatCurrency(serviceAgreed)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {transportValue > 0 ? (
+                      {formatCurrency(servicePaid)}
+                      {serviceBalance > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="ml-1 border-warning/30 bg-warning/10 text-foreground text-[10px]"
+                        >
+                          {servicePaid > 0 ? "Parcial" : "Pendente"}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {transportAgreed > 0 ? (
                         <>
-                          {formatCurrency(transportValue)}
+                          {formatCurrency(transportAgreed)}
                           <Badge variant="secondary" className="ml-1 text-xs">Combustível</Badge>
                         </>
                       ) : (
@@ -463,18 +564,26 @@ export function CollaboratorPayments({
                       )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatCurrency(Number(row.paid_value))}
+                      {transportPaid > 0 ? formatCurrency(transportPaid) : <span className="text-muted-foreground">—</span>}
+                      {transportBalance > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="ml-1 border-warning/30 bg-warning/10 text-foreground text-[10px]"
+                        >
+                          {transportPaid > 0 ? "Parcial" : "Pendente"}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <p className="font-semibold tabular-nums text-primary">
-                        {formatCurrency(balance)}
+                        {formatCurrency(totalBalance)}
                       </p>
-                      {balance > 0 && (
+                      {totalBalance > 0 && (
                         <Badge
                           variant="outline"
                           className="mt-1 border-warning/30 bg-warning/10 text-foreground"
                         >
-                          {Number(row.paid_value) > 0 ? "Parcial" : "Pendente"}
+                          {totalPaid > 0 ? "Parcial" : "Pendente"}
                         </Badge>
                       )}
                     </TableCell>
@@ -483,7 +592,7 @@ export function CollaboratorPayments({
               })}
               {visible.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                     {filter === "pending"
                       ? "Nenhum pagamento pendente."
                       : "Nenhum pagamento encontrado."}

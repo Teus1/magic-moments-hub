@@ -340,7 +340,7 @@ function EventsPage() {
       const { data, error } = await supabase
         .from("event_collaborators")
         .select(
-          "event_id, collaborator_id, agreed_value, paid_value, is_transport_responsible, transport_value, collaborators:collaborator_id (id, full_name)",
+          "event_id, collaborator_id, agreed_value, paid_value, service_paid_value, transport_paid_value, is_transport_responsible, transport_value, collaborators:collaborator_id (id, full_name)",
         );
       if (error) throw new Error("Não foi possível carregar a equipe dos eventos.");
       const map: Record<
@@ -350,6 +350,8 @@ function EventsPage() {
           name: string;
           agreed: number;
           paid: number;
+          service_paid: number;
+          transport_paid: number;
           is_transport_responsible: boolean;
           transport_value: number | null;
         }[]
@@ -359,6 +361,8 @@ function EventsPage() {
         collaborator_id: string;
         agreed_value: number | null;
         paid_value: number | null;
+        service_paid_value: number | null;
+        transport_paid_value: number | null;
         is_transport_responsible: boolean | null;
         transport_value: number | null;
         collaborators: { id: string; full_name: string } | null;
@@ -369,6 +373,8 @@ function EventsPage() {
           name: link.collaborators?.full_name ?? "—",
           agreed: Number(link.agreed_value ?? 0),
           paid: Number(link.paid_value ?? 0),
+          service_paid: Number(link.service_paid_value ?? 0),
+          transport_paid: Number(link.transport_paid_value ?? 0),
           is_transport_responsible: link.is_transport_responsible ?? false,
           transport_value: link.transport_value,
         });
@@ -587,12 +593,20 @@ function EventsPage() {
       contracted_value: String(event.contracted_value ?? 0),
       received_value: String(event.received_value ?? 0),
       notes: event.notes ?? "",
-      team: members.map((m) => ({
-        collaborator_id: m.id,
-        agreed_value: String(m.agreed ?? 0),
-        is_transport_responsible: m.is_transport_responsible ?? false,
-        transport_value: m.transport_value ? String(m.transport_value) : "",
-      })),
+      team: members.map((m) => {
+        const agreed = Number(m.agreed ?? 0);
+        const transport = m.is_transport_responsible && m.transport_value ? Number(m.transport_value) : 0;
+        // O agreed_value salvo já inclui o transport_value, então subtraímos para exibir corretamente
+        const displayAgreed = agreed - transport;
+        return {
+          collaborator_id: m.id,
+          agreed_value: displayAgreed > 0 ? String(displayAgreed) : String(agreed),
+          service_paid_value: m.service_paid ? String(m.service_paid) : "",
+          transport_paid_value: m.transport_paid ? String(m.transport_paid) : "",
+          is_transport_responsible: m.is_transport_responsible ?? false,
+          transport_value: m.transport_value ? String(m.transport_value) : "",
+        };
+      }),
     });
     setPendingAttachments([]);
     setPayments([]);
@@ -750,11 +764,14 @@ function EventsPage() {
         const { error } = await supabase.from("event_collaborators").insert(
           toAdd.map((collaboratorId) => {
             const tm = form.team.find((t) => t.collaborator_id === collaboratorId);
+            const transportVal = tm?.is_transport_responsible ? parseCurrencyInput(tm?.transport_value ?? "") : 0;
             return {
               event_id: eventId,
               collaborator_id: collaboratorId,
               created_by: currentUserId,
-              agreed_value: parseCurrencyInput(tm?.agreed_value ?? ""),
+              agreed_value: parseCurrencyInput(tm?.agreed_value ?? "") + transportVal,
+              service_paid_value: parseCurrencyInput(tm?.service_paid_value ?? ""),
+              transport_paid_value: parseCurrencyInput(tm?.transport_paid_value ?? ""),
               is_transport_responsible: tm?.is_transport_responsible ?? false,
               transport_value: tm?.is_transport_responsible ? parseCurrencyInput(tm?.transport_value ?? "") : null,
             };
@@ -767,10 +784,13 @@ function EventsPage() {
       const toUpdate = currentTeamIds.filter((id) => previous.includes(id));
       for (const collaboratorId of toUpdate) {
         const tm = form.team.find((t) => t.collaborator_id === collaboratorId);
+        const transportVal = tm?.is_transport_responsible ? parseCurrencyInput(tm?.transport_value ?? "") : 0;
         const { error } = await supabase
           .from("event_collaborators")
           .update({
-            agreed_value: parseCurrencyInput(tm?.agreed_value ?? ""),
+            agreed_value: parseCurrencyInput(tm?.agreed_value ?? "") + transportVal,
+            service_paid_value: parseCurrencyInput(tm?.service_paid_value ?? ""),
+            transport_paid_value: parseCurrencyInput(tm?.transport_paid_value ?? ""),
             is_transport_responsible: tm?.is_transport_responsible ?? false,
             transport_value: tm?.is_transport_responsible ? parseCurrencyInput(tm?.transport_value ?? "") : null,
           })
@@ -834,6 +854,8 @@ function EventsPage() {
       setPayments([]);
       setPendingAttachments([]);
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["events", "teams"] });
+      queryClient.invalidateQueries({ queryKey: ["collaborators", "event-payments"] });
       queryClient.invalidateQueries({ queryKey: ["event-attachments"] });
       queryClient.invalidateQueries({ queryKey: ["client-intakes"] });
     },
@@ -1803,7 +1825,14 @@ function EventsPage() {
                   </p>
                   {form.team.map((tm) => {
                     const member = (collaborators.data ?? []).find((c) => c.id === tm.collaborator_id);
-                    const memberBalance = parseCurrencyInput(tm.agreed_value);
+                    const serviceAgreed = parseCurrencyInput(tm.agreed_value);
+                    const transportAgreed = tm.is_transport_responsible ? parseCurrencyInput(tm.transport_value) : 0;
+                    const servicePaid = parseCurrencyInput(tm.service_paid_value ?? "");
+                    const transportPaid = parseCurrencyInput(tm.transport_paid_value ?? "");
+                    // Verifica se já existe outro responsável pelo transporte
+                    const hasOtherTransportResponsible = form.team.some(
+                      (t) => t.collaborator_id !== tm.collaborator_id && t.is_transport_responsible
+                    );
                     return (
                       <div
                         key={tm.collaborator_id}
@@ -1817,15 +1846,15 @@ function EventsPage() {
                             )}
                           </p>
                         </div>
-                        <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                           <div className="space-y-1">
-                            <Label htmlFor={`t-agreed-${tm.collaborator_id}`} className="text-xs">
-                              Combinado (R$)
+                            <Label htmlFor={`t-service-agreed-${tm.collaborator_id}`} className="text-xs">
+                              Combinado Serviço (R$)
                             </Label>
                             <Input
-                              id={`t-agreed-${tm.collaborator_id}`}
+                              id={`t-service-agreed-${tm.collaborator_id}`}
                               inputMode="decimal"
-                              className="sm:w-32"
+                              className="w-full"
                               value={tm.agreed_value}
                               onChange={(event) =>
                                 setForm((f) => ({
@@ -1841,51 +1870,115 @@ function EventsPage() {
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label htmlFor={`t-transport-${tm.collaborator_id}`} className="text-xs flex items-center gap-1">
+                            <Label htmlFor={`t-service-paid-${tm.collaborator_id}`} className="text-xs">
+                              Pago Serviço (R$)
+                            </Label>
+                            <Input
+                              id={`t-service-paid-${tm.collaborator_id}`}
+                              inputMode="decimal"
+                              className="w-full"
+                              value={tm.service_paid_value ?? ""}
+                              onChange={(event) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  team: f.team.map((t) =>
+                                    t.collaborator_id === tm.collaborator_id
+                                      ? { ...t, service_paid_value: event.target.value }
+                                      : t
+                                  ),
+                                }))
+                              }
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor={`t-transport-check-${tm.collaborator_id}`} className="text-xs flex items-center gap-1">
                               <Checkbox
                                 id={`transport-check-${tm.collaborator_id}`}
                                 checked={tm.is_transport_responsible}
+                                disabled={hasOtherTransportResponsible && !tm.is_transport_responsible}
                                 onCheckedChange={(checked: boolean) =>
                                   setForm((f) => ({
                                     ...f,
                                     team: f.team.map((t) =>
                                       t.collaborator_id === tm.collaborator_id
                                         ? { ...t, is_transport_responsible: checked, transport_value: checked ? t.transport_value : "" }
-                                        : t
+                                        : { ...t, is_transport_responsible: checked ? false : t.is_transport_responsible }
                                     ),
                                   }))
                                 }
                               />
-                              Responsável pelo transporte
+                              Responsável transporte
                             </Label>
+                            {hasOtherTransportResponsible && !tm.is_transport_responsible && (
+                              <p className="text-xs text-muted-foreground">Já existe outro responsável</p>
+                            )}
                           </div>
-                          {tm.is_transport_responsible && (
-                            <div className="space-y-1">
-                              <Label htmlFor={`t-transport-val-${tm.collaborator_id}`} className="text-xs">
-                                Valor deslocamento (R$)
-                              </Label>
-                              <Input
-                                id={`t-transport-val-${tm.collaborator_id}`}
-                                inputMode="decimal"
-                                className="sm:w-36"
-                                value={tm.transport_value}
-                                onChange={(event) =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    team: f.team.map((t) =>
-                                      t.collaborator_id === tm.collaborator_id
-                                        ? { ...t, transport_value: event.target.value }
-                                        : t
-                                    ),
-                                  }))
-                                }
-                                placeholder="0,00"
-                              />
+                          {tm.is_transport_responsible ? (
+                            <>
+                              <div className="space-y-1">
+                                <Label htmlFor={`t-transport-agreed-${tm.collaborator_id}`} className="text-xs">
+                                  Combinado Desloc. (R$)
+                                </Label>
+                                <Input
+                                  id={`t-transport-agreed-${tm.collaborator_id}`}
+                                  inputMode="decimal"
+                                  className="w-full"
+                                  value={tm.transport_value}
+                                  onChange={(event) =>
+                                    setForm((f) => ({
+                                      ...f,
+                                      team: f.team.map((t) =>
+                                        t.collaborator_id === tm.collaborator_id
+                                          ? { ...t, transport_value: event.target.value }
+                                          : t
+                                      ),
+                                    }))
+                                  }
+                                  placeholder="0,00"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label htmlFor={`t-transport-paid-${tm.collaborator_id}`} className="text-xs">
+                                  Pago Desloc. (R$)
+                                </Label>
+                                <Input
+                                  id={`t-transport-paid-${tm.collaborator_id}`}
+                                  inputMode="decimal"
+                                  className="w-full"
+                                  value={tm.transport_paid_value ?? ""}
+                                  onChange={(event) =>
+                                    setForm((f) => ({
+                                      ...f,
+                                      team: f.team.map((t) =>
+                                        t.collaborator_id === tm.collaborator_id
+                                          ? { ...t, transport_paid_value: event.target.value }
+                                          : t
+                                      ),
+                                    }))
+                                  }
+                                  placeholder="0,00"
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="sm:col-span-2 flex items-end justify-between gap-2">
+                              <span className="text-xs text-muted-foreground">—</span>
+                              <span className="text-xs text-muted-foreground">—</span>
                             </div>
                           )}
-                          <p className="pb-3 text-xs text-muted-foreground sm:w-28 sm:text-right">
-                            A pagar {formatCurrency(memberBalance)}
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <p>
+                            Serviço: a pagar {formatCurrency(Math.max(0, serviceAgreed - servicePaid))}
+                            {servicePaid > 0 && <span className="ml-1 font-medium">(pago {formatCurrency(servicePaid)})</span>}
                           </p>
+                          {tm.is_transport_responsible && (
+                            <p>
+                              Desloc.: a pagar {formatCurrency(Math.max(0, transportAgreed - transportPaid))}
+                              {transportPaid > 0 && <span className="ml-1 font-medium">(pago {formatCurrency(transportPaid)})</span>}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );

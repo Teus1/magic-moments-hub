@@ -315,6 +315,7 @@ export type Database = {
       collaborator_payments: {
         Row: {
           amount: number;
+          category: Database["public"]["Enums"]["collaborator_payment_category"];
           created_at: string;
           created_by: string | null;
           event_collaborator_id: string;
@@ -324,6 +325,7 @@ export type Database = {
         };
         Insert: {
           amount: number;
+          category?: Database["public"]["Enums"]["collaborator_payment_category"];
           created_at?: string;
           created_by?: string | null;
           event_collaborator_id: string;
@@ -333,6 +335,7 @@ export type Database = {
         };
         Update: {
           amount?: number;
+          category?: Database["public"]["Enums"]["collaborator_payment_category"];
           created_at?: string;
           created_by?: string | null;
           event_collaborator_id?: string;
@@ -486,6 +489,8 @@ export type Database = {
           notes: string | null;
           paid_value: number;
           role_title: string | null;
+          service_paid_value: number;
+          transport_paid_value: number;
           transport_value: number | null;
           updated_at: string;
         };
@@ -500,6 +505,8 @@ export type Database = {
           notes?: string | null;
           paid_value?: number;
           role_title?: string | null;
+          service_paid_value?: number;
+          transport_paid_value?: number;
           transport_value?: number | null;
           updated_at?: string;
         };
@@ -514,6 +521,8 @@ export type Database = {
           notes?: string | null;
           paid_value?: number;
           role_title?: string | null;
+          service_paid_value?: number;
+          transport_paid_value?: number;
           transport_value?: number | null;
           updated_at?: string;
         };
@@ -1233,6 +1242,7 @@ export type Database = {
       touch_last_login: { Args: never; Returns: undefined };
     };
     Enums: {
+      collaborator_payment_category: "service" | "transport";
       event_attachment_category: "receipt" | "document";
       event_status: "planned" | "cancelled";
       payment_method:
@@ -1360,11 +1370,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      collaborator_payment_category: ["service", "transport"],
       event_attachment_category: ["receipt", "document"],
       event_status: ["planned", "cancelled"],
       payment_method: ["pix", "credit", "debit", "cash", "boleto", "transfer", "previous_balance"],
       record_status: ["active", "inactive"],
-      user_status: ["active", "inactive"],
+      user_status: ["active" | "inactive"],
     },
   },
 } as const;
